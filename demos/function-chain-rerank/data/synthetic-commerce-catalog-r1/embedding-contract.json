@@ -1,0 +1,22 @@
+{
+  "dimension": 1024,
+  "field_order": [
+    "title",
+    "product_type",
+    "brand",
+    "color",
+    "material",
+    "style",
+    "node_name",
+    "description",
+    "bullet_points"
+  ],
+  "model_repo": "gpahal/bge-m3-onnx-int8",
+  "model_revision": "2b34e84df040034d4b9eabb62383a87c18955822",
+  "normalization": "l2",
+  "onnx_file": "model_quantized.onnx",
+  "onnx_sha256": "16de7ea1146ca427e14938ec3e9abfdcaff0e6ac76434cd693ac35d761250bcb",
+  "tokenizer_file": "tokenizer.json",
+  "tokenizer_sha256": "249df0778f236f6ece390de0de746838ef25b9d6954b68c2ee71249e0a9d8fd4",
+  "version": "bge-m3-onnx-int8-dense-l2-v3"
+}

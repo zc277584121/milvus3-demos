@@ -1,0 +1,54 @@
+name: ${FUNCTION_CHAIN_DEMO_COMPOSE_PROJECT:-milvus3-demos-function-chain-rerank}
+
+services:
+  backend:
+    container_name: ${FUNCTION_CHAIN_CONTAINER_NAME:-milvus3-demos-function-chain-rerank-backend}
+    image: milvus3-demos/function-chain-rerank:local
+    build:
+      context: ../..
+      dockerfile: demos/function-chain-rerank/Dockerfile
+    environment:
+      CLEANUP_ON_SHUTDOWN: "true"
+      COLLECTION_NAME: ${FUNCTION_CHAIN_COLLECTION_NAME:-milvus3_demos_function_chain_rerank_products}
+      HF_HUB_CACHE: /models/hub
+      HF_HUB_OFFLINE: "1"
+      MILVUS_EXPECTED_VERSION: "3.0.0"
+      MILVUS_TIMEOUT_SECONDS: "10"
+      MILVUS_TOKEN: ${MILVUS_TOKEN:-}
+      MILVUS_URI: http://standalone:19530
+      MINIO_ACCESS_KEY: ${FUNCTION_CHAIN_MINIO_ACCESS_KEY:-}
+      MINIO_BUCKET: a-bucket
+      MINIO_ENDPOINT: minio:9000
+      MINIO_SECRET_KEY: ${FUNCTION_CHAIN_MINIO_SECRET_KEY:-}
+      MINIO_SECURE: "false"
+      MODEL_OBJECT_NAME: ${FUNCTION_CHAIN_MODEL_OBJECT_NAME:-files/milvus3-demos/function-chain-rerank/xgb-reranker.ubj}
+      MODEL_RESOURCE_NAME: ${FUNCTION_CHAIN_MODEL_RESOURCE_NAME:-milvus3_demos_function_chain_rerank_model}
+      MKL_NUM_THREADS: "1"
+      NUMEXPR_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ${HF_HUB_CACHE_HOST:?HF_HUB_CACHE_HOST must be set to a local Hugging Face hub cache directory}:/models/hub:ro
+    ports:
+      - "127.0.0.1:${FUNCTION_CHAIN_PORT:-48020}:8000"
+    networks:
+      - default
+      - milvus-ga
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    stop_grace_period: 30s
+
+networks:
+  default:
+    name: ${FUNCTION_CHAIN_NETWORK_NAME:-milvus3-demos-function-chain-rerank}
+  milvus-ga:
+    external: true
+    name: milvus3-demos-ga

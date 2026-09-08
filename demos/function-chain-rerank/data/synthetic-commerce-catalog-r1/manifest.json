@@ -1,0 +1,1738 @@
+{
+  "as_of_date": "2026-08-20",
+  "counts": {
+    "ground_truth_judgments": 1440,
+    "images": 240,
+    "product_type_counts": {
+      "BACKPACK": 14,
+      "BED": 14,
+      "BOOT": 11,
+      "CHAIR": 11,
+      "DESK": 14,
+      "DRINKING_CUP": 11,
+      "HANDBAG": 11,
+      "HAT": 11,
+      "HEADPHONES": 15,
+      "LAMP": 11,
+      "PILLOW": 11,
+      "PLANTER": 12,
+      "RUG": 14,
+      "SANDAL": 11,
+      "SHELF": 11,
+      "SHOES": 11,
+      "SOFA": 11,
+      "SUITCASE": 11,
+      "TABLE": 11,
+      "UMBRELLA": 14
+    },
+    "product_types": 20,
+    "products": 240,
+    "queries": 6,
+    "train_query_groups": 4,
+    "training_records": 1440,
+    "validation_query_groups": 2
+  },
+  "dataset_id": "synthetic-commerce-catalog",
+  "embedding": {
+    "dimension": 1024,
+    "field_order": [
+      "title",
+      "product_type",
+      "brand",
+      "color",
+      "material",
+      "style",
+      "node_name",
+      "description",
+      "bullet_points"
+    ],
+    "model_repo": "gpahal/bge-m3-onnx-int8",
+    "model_revision": "2b34e84df040034d4b9eabb62383a87c18955822",
+    "normalization": "l2",
+    "onnx_file": "model_quantized.onnx",
+    "onnx_sha256": "16de7ea1146ca427e14938ec3e9abfdcaff0e6ac76434cd693ac35d761250bcb",
+    "tokenizer_file": "tokenizer.json",
+    "tokenizer_sha256": "249df0778f236f6ece390de0de746838ef25b9d6954b68c2ee71249e0a9d8fd4",
+    "version": "bge-m3-onnx-int8-dense-l2-v3"
+  },
+  "feature_order": [
+    "semantic_score",
+    "rating",
+    "popularity",
+    "price_affinity",
+    "freshness"
+  ],
+  "field_provenance": {
+    "brand": "synthetic_authored_metadata",
+    "bullet_points": "synthetic_authored_metadata",
+    "clicks_30d": "deterministic_simulated_operational_signal",
+    "color": "synthetic_authored_metadata",
+    "description": "synthetic_authored_metadata",
+    "display_price_usd": "deterministic_simulated_operational_signal",
+    "embedding": "derived_from_synthetic_authored_metadata",
+    "field_provenance": "project_data_contract",
+    "freshness": "derived_from_deterministic_simulated_operational_signal",
+    "id": "project_dataset_sequence",
+    "image_bytes": "verified_source_object_metadata",
+    "image_etag": "verified_source_object_metadata",
+    "image_height": "synthetic_placeholder_image_object",
+    "image_md5": "verified_source_object_digest",
+    "image_mime": "synthetic_placeholder_image_object",
+    "image_path": "project_copy_of_hash_pinned_synthetic_placeholder_jpeg",
+    "image_role": "synthetic_placeholder_image_object",
+    "image_sha256": "verified_source_object_digest",
+    "image_width": "synthetic_placeholder_image_object",
+    "inventory": "derived_from_deterministic_simulated_operational_signal",
+    "inventory_capacity": "deterministic_simulated_operational_signal",
+    "inventory_units": "deterministic_simulated_operational_signal",
+    "item_id": "synthetic_catalog_identity",
+    "main_image_id": "synthetic_catalog_identity",
+    "material": "synthetic_authored_metadata",
+    "node_name": "synthetic_authored_metadata",
+    "product_type": "synthetic_authored_metadata",
+    "rating": "derived_from_deterministic_simulated_operational_signal",
+    "rating_value": "deterministic_simulated_operational_signal",
+    "release_date": "deterministic_simulated_operational_signal",
+    "release_epoch": "derived_from_deterministic_simulated_operational_signal",
+    "return_rate": "deterministic_simulated_operational_signal",
+    "sales_30d": "deterministic_simulated_operational_signal",
+    "selected_image_id": "synthetic_placeholder_image_object",
+    "source_object_path": "synthetic_placeholder_image_object",
+    "source_url": "synthetic_placeholder_image_object",
+    "style": "synthetic_authored_metadata",
+    "title": "per_product_declared_title_provenance"
+  },
+  "files": [
+    {
+      "bytes": 487,
+      "media_type": "text/markdown",
+      "path": "LICENSE-CONFLICT.md",
+      "sha256": "47d65531f9548b564c4fd74a500bd48f2b271a479be4457528027b22abe2098f"
+    },
+    {
+      "bytes": 1092,
+      "media_type": "text/markdown",
+      "path": "NOTICE.md",
+      "sha256": "d4601b52dbf3cc9869a671f931d360aea3d0d01d42eed0e30f32a657f4c32890"
+    },
+    {
+      "bytes": 621,
+      "media_type": "application/json",
+      "path": "embedding-contract.json",
+      "sha256": "59f52671ec6be197aca70b011b4749135cd29d77e4df4aa300f2d29ebbe48705"
+    },
+    {
+      "bytes": 23873,
+      "media_type": "text/plain",
+      "path": "hash-manifest.sha256",
+      "sha256": "699357c9310cd05a5ab9c768055017ed45e8c83b6e54b1ac2bc639f3643a440f"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/001-SYN-DESK-001.jpg",
+      "sha256": "55ad0d96b544e39c7157de85bf72a16b4a529b25b168117e323faa04fdbff456"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/002-SYN-DESK-002.jpg",
+      "sha256": "55ad0d96b544e39c7157de85bf72a16b4a529b25b168117e323faa04fdbff456"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/003-SYN-DESK-003.jpg",
+      "sha256": "55ad0d96b544e39c7157de85bf72a16b4a529b25b168117e323faa04fdbff456"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/004-SYN-DESK-004.jpg",
+      "sha256": "55ad0d96b544e39c7157de85bf72a16b4a529b25b168117e323faa04fdbff456"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/005-SYN-DESK-005.jpg",
+      "sha256": "55ad0d96b544e39c7157de85bf72a16b4a529b25b168117e323faa04fdbff456"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/006-SYN-DESK-006.jpg",
+      "sha256": "55ad0d96b544e39c7157de85bf72a16b4a529b25b168117e323faa04fdbff456"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/007-SYN-DESK-007.jpg",
+      "sha256": "55ad0d96b544e39c7157de85bf72a16b4a529b25b168117e323faa04fdbff456"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/008-SYN-DESK-008.jpg",
+      "sha256": "55ad0d96b544e39c7157de85bf72a16b4a529b25b168117e323faa04fdbff456"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/009-SYN-RUG-009.jpg",
+      "sha256": "ddc32599fe625737c2a199fadaa5a95e5f587f7a89fd12017cf76b279ce21afa"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/010-SYN-RUG-010.jpg",
+      "sha256": "ddc32599fe625737c2a199fadaa5a95e5f587f7a89fd12017cf76b279ce21afa"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/011-SYN-RUG-011.jpg",
+      "sha256": "ddc32599fe625737c2a199fadaa5a95e5f587f7a89fd12017cf76b279ce21afa"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/012-SYN-RUG-012.jpg",
+      "sha256": "ddc32599fe625737c2a199fadaa5a95e5f587f7a89fd12017cf76b279ce21afa"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/013-SYN-RUG-013.jpg",
+      "sha256": "ddc32599fe625737c2a199fadaa5a95e5f587f7a89fd12017cf76b279ce21afa"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/014-SYN-RUG-014.jpg",
+      "sha256": "ddc32599fe625737c2a199fadaa5a95e5f587f7a89fd12017cf76b279ce21afa"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/015-SYN-RUG-015.jpg",
+      "sha256": "ddc32599fe625737c2a199fadaa5a95e5f587f7a89fd12017cf76b279ce21afa"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/016-SYN-RUG-016.jpg",
+      "sha256": "ddc32599fe625737c2a199fadaa5a95e5f587f7a89fd12017cf76b279ce21afa"
+    },
+    {
+      "bytes": 7228,
+      "media_type": "image/jpeg",
+      "path": "images/017-SYN-BACKPACK-017.jpg",
+      "sha256": "75af5ffc73c57a8a9d82325b69928373542ef0fafa501152b64a8fc718e401bd"
+    },
+    {
+      "bytes": 7228,
+      "media_type": "image/jpeg",
+      "path": "images/018-SYN-BACKPACK-018.jpg",
+      "sha256": "75af5ffc73c57a8a9d82325b69928373542ef0fafa501152b64a8fc718e401bd"
+    },
+    {
+      "bytes": 7228,
+      "media_type": "image/jpeg",
+      "path": "images/019-SYN-BACKPACK-019.jpg",
+      "sha256": "75af5ffc73c57a8a9d82325b69928373542ef0fafa501152b64a8fc718e401bd"
+    },
+    {
+      "bytes": 7228,
+      "media_type": "image/jpeg",
+      "path": "images/020-SYN-BACKPACK-020.jpg",
+      "sha256": "75af5ffc73c57a8a9d82325b69928373542ef0fafa501152b64a8fc718e401bd"
+    },
+    {
+      "bytes": 7228,
+      "media_type": "image/jpeg",
+      "path": "images/021-SYN-BACKPACK-021.jpg",
+      "sha256": "75af5ffc73c57a8a9d82325b69928373542ef0fafa501152b64a8fc718e401bd"
+    },
+    {
+      "bytes": 7228,
+      "media_type": "image/jpeg",
+      "path": "images/022-SYN-BACKPACK-022.jpg",
+      "sha256": "75af5ffc73c57a8a9d82325b69928373542ef0fafa501152b64a8fc718e401bd"
+    },
+    {
+      "bytes": 7228,
+      "media_type": "image/jpeg",
+      "path": "images/023-SYN-BACKPACK-023.jpg",
+      "sha256": "75af5ffc73c57a8a9d82325b69928373542ef0fafa501152b64a8fc718e401bd"
+    },
+    {
+      "bytes": 7228,
+      "media_type": "image/jpeg",
+      "path": "images/024-SYN-BACKPACK-024.jpg",
+      "sha256": "75af5ffc73c57a8a9d82325b69928373542ef0fafa501152b64a8fc718e401bd"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/025-SYN-HEADPHONES-025.jpg",
+      "sha256": "f088bba190c2e1dabe34563ea06cf7dee899e655a5f354187b57993f164b0b99"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/026-SYN-HEADPHONES-026.jpg",
+      "sha256": "f088bba190c2e1dabe34563ea06cf7dee899e655a5f354187b57993f164b0b99"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/027-SYN-HEADPHONES-027.jpg",
+      "sha256": "f088bba190c2e1dabe34563ea06cf7dee899e655a5f354187b57993f164b0b99"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/028-SYN-HEADPHONES-028.jpg",
+      "sha256": "f088bba190c2e1dabe34563ea06cf7dee899e655a5f354187b57993f164b0b99"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/029-SYN-HEADPHONES-029.jpg",
+      "sha256": "f088bba190c2e1dabe34563ea06cf7dee899e655a5f354187b57993f164b0b99"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/030-SYN-HEADPHONES-030.jpg",
+      "sha256": "f088bba190c2e1dabe34563ea06cf7dee899e655a5f354187b57993f164b0b99"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/031-SYN-HEADPHONES-031.jpg",
+      "sha256": "f088bba190c2e1dabe34563ea06cf7dee899e655a5f354187b57993f164b0b99"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/032-SYN-HEADPHONES-032.jpg",
+      "sha256": "f088bba190c2e1dabe34563ea06cf7dee899e655a5f354187b57993f164b0b99"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/033-SYN-HEADPHONES-033.jpg",
+      "sha256": "f088bba190c2e1dabe34563ea06cf7dee899e655a5f354187b57993f164b0b99"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/034-SYN-UMBRELLA-034.jpg",
+      "sha256": "9d6c207ac34aa9003c42d1794b55a2404935a7f4bcf581dc0ab236f0dfa9e4bc"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/035-SYN-UMBRELLA-035.jpg",
+      "sha256": "9d6c207ac34aa9003c42d1794b55a2404935a7f4bcf581dc0ab236f0dfa9e4bc"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/036-SYN-UMBRELLA-036.jpg",
+      "sha256": "9d6c207ac34aa9003c42d1794b55a2404935a7f4bcf581dc0ab236f0dfa9e4bc"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/037-SYN-UMBRELLA-037.jpg",
+      "sha256": "9d6c207ac34aa9003c42d1794b55a2404935a7f4bcf581dc0ab236f0dfa9e4bc"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/038-SYN-UMBRELLA-038.jpg",
+      "sha256": "9d6c207ac34aa9003c42d1794b55a2404935a7f4bcf581dc0ab236f0dfa9e4bc"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/039-SYN-UMBRELLA-039.jpg",
+      "sha256": "9d6c207ac34aa9003c42d1794b55a2404935a7f4bcf581dc0ab236f0dfa9e4bc"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/040-SYN-UMBRELLA-040.jpg",
+      "sha256": "9d6c207ac34aa9003c42d1794b55a2404935a7f4bcf581dc0ab236f0dfa9e4bc"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/041-SYN-UMBRELLA-041.jpg",
+      "sha256": "9d6c207ac34aa9003c42d1794b55a2404935a7f4bcf581dc0ab236f0dfa9e4bc"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/042-SYN-BED-042.jpg",
+      "sha256": "df74175e2f99f727b865a251ed2bd578f74d59c0ebe38084c96ad41569db1252"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/043-SYN-BED-043.jpg",
+      "sha256": "df74175e2f99f727b865a251ed2bd578f74d59c0ebe38084c96ad41569db1252"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/044-SYN-BED-044.jpg",
+      "sha256": "df74175e2f99f727b865a251ed2bd578f74d59c0ebe38084c96ad41569db1252"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/045-SYN-BED-045.jpg",
+      "sha256": "df74175e2f99f727b865a251ed2bd578f74d59c0ebe38084c96ad41569db1252"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/046-SYN-BED-046.jpg",
+      "sha256": "df74175e2f99f727b865a251ed2bd578f74d59c0ebe38084c96ad41569db1252"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/047-SYN-BED-047.jpg",
+      "sha256": "df74175e2f99f727b865a251ed2bd578f74d59c0ebe38084c96ad41569db1252"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/048-SYN-BED-048.jpg",
+      "sha256": "df74175e2f99f727b865a251ed2bd578f74d59c0ebe38084c96ad41569db1252"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/049-SYN-BED-049.jpg",
+      "sha256": "df74175e2f99f727b865a251ed2bd578f74d59c0ebe38084c96ad41569db1252"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/050-SYN-SOFA-050.jpg",
+      "sha256": "f993528917a73b88f5f1a306ce99b3b38861d356622625f4bd3638fa62f24261"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/051-SYN-SOFA-051.jpg",
+      "sha256": "f993528917a73b88f5f1a306ce99b3b38861d356622625f4bd3638fa62f24261"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/052-SYN-SOFA-052.jpg",
+      "sha256": "f993528917a73b88f5f1a306ce99b3b38861d356622625f4bd3638fa62f24261"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/053-SYN-SOFA-053.jpg",
+      "sha256": "f993528917a73b88f5f1a306ce99b3b38861d356622625f4bd3638fa62f24261"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/054-SYN-SOFA-054.jpg",
+      "sha256": "f993528917a73b88f5f1a306ce99b3b38861d356622625f4bd3638fa62f24261"
+    },
+    {
+      "bytes": 6627,
+      "media_type": "image/jpeg",
+      "path": "images/055-SYN-CHAIR-055.jpg",
+      "sha256": "5e471c1eb6d597c7866c3907641212fb8ee92354c1b9f475909b6f1cb4a7ef33"
+    },
+    {
+      "bytes": 6627,
+      "media_type": "image/jpeg",
+      "path": "images/056-SYN-CHAIR-056.jpg",
+      "sha256": "5e471c1eb6d597c7866c3907641212fb8ee92354c1b9f475909b6f1cb4a7ef33"
+    },
+    {
+      "bytes": 6627,
+      "media_type": "image/jpeg",
+      "path": "images/057-SYN-CHAIR-057.jpg",
+      "sha256": "5e471c1eb6d597c7866c3907641212fb8ee92354c1b9f475909b6f1cb4a7ef33"
+    },
+    {
+      "bytes": 6627,
+      "media_type": "image/jpeg",
+      "path": "images/058-SYN-CHAIR-058.jpg",
+      "sha256": "5e471c1eb6d597c7866c3907641212fb8ee92354c1b9f475909b6f1cb4a7ef33"
+    },
+    {
+      "bytes": 6627,
+      "media_type": "image/jpeg",
+      "path": "images/059-SYN-CHAIR-059.jpg",
+      "sha256": "5e471c1eb6d597c7866c3907641212fb8ee92354c1b9f475909b6f1cb4a7ef33"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/060-SYN-TABLE-060.jpg",
+      "sha256": "fc2d4a933bc5cf0bde79fcc77078227c4d8be95ce49f41c67836b2b3774eed3f"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/061-SYN-TABLE-061.jpg",
+      "sha256": "fc2d4a933bc5cf0bde79fcc77078227c4d8be95ce49f41c67836b2b3774eed3f"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/062-SYN-TABLE-062.jpg",
+      "sha256": "fc2d4a933bc5cf0bde79fcc77078227c4d8be95ce49f41c67836b2b3774eed3f"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/063-SYN-TABLE-063.jpg",
+      "sha256": "fc2d4a933bc5cf0bde79fcc77078227c4d8be95ce49f41c67836b2b3774eed3f"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/064-SYN-TABLE-064.jpg",
+      "sha256": "fc2d4a933bc5cf0bde79fcc77078227c4d8be95ce49f41c67836b2b3774eed3f"
+    },
+    {
+      "bytes": 7828,
+      "media_type": "image/jpeg",
+      "path": "images/065-SYN-LAMP-065.jpg",
+      "sha256": "26a911e5e669ed81ac7d880a00d4c4e5e8cbab7fd6d8812e3c8d2f795b77fd99"
+    },
+    {
+      "bytes": 7828,
+      "media_type": "image/jpeg",
+      "path": "images/066-SYN-LAMP-066.jpg",
+      "sha256": "26a911e5e669ed81ac7d880a00d4c4e5e8cbab7fd6d8812e3c8d2f795b77fd99"
+    },
+    {
+      "bytes": 7828,
+      "media_type": "image/jpeg",
+      "path": "images/067-SYN-LAMP-067.jpg",
+      "sha256": "26a911e5e669ed81ac7d880a00d4c4e5e8cbab7fd6d8812e3c8d2f795b77fd99"
+    },
+    {
+      "bytes": 7828,
+      "media_type": "image/jpeg",
+      "path": "images/068-SYN-LAMP-068.jpg",
+      "sha256": "26a911e5e669ed81ac7d880a00d4c4e5e8cbab7fd6d8812e3c8d2f795b77fd99"
+    },
+    {
+      "bytes": 7828,
+      "media_type": "image/jpeg",
+      "path": "images/069-SYN-LAMP-069.jpg",
+      "sha256": "26a911e5e669ed81ac7d880a00d4c4e5e8cbab7fd6d8812e3c8d2f795b77fd99"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/070-SYN-HANDBAG-070.jpg",
+      "sha256": "f437d621096b4c61bde76207a3171fa7190deefc4f44d148f1d52cd4b08e803a"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/071-SYN-HANDBAG-071.jpg",
+      "sha256": "f437d621096b4c61bde76207a3171fa7190deefc4f44d148f1d52cd4b08e803a"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/072-SYN-HANDBAG-072.jpg",
+      "sha256": "f437d621096b4c61bde76207a3171fa7190deefc4f44d148f1d52cd4b08e803a"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/073-SYN-HANDBAG-073.jpg",
+      "sha256": "f437d621096b4c61bde76207a3171fa7190deefc4f44d148f1d52cd4b08e803a"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/074-SYN-HANDBAG-074.jpg",
+      "sha256": "f437d621096b4c61bde76207a3171fa7190deefc4f44d148f1d52cd4b08e803a"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/075-SYN-SHOES-075.jpg",
+      "sha256": "77ded6b576170c3c13f83d1aee205fb8d75ab0b382cc05cb065f42dd8f4b9fb4"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/076-SYN-SHOES-076.jpg",
+      "sha256": "77ded6b576170c3c13f83d1aee205fb8d75ab0b382cc05cb065f42dd8f4b9fb4"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/077-SYN-SHOES-077.jpg",
+      "sha256": "77ded6b576170c3c13f83d1aee205fb8d75ab0b382cc05cb065f42dd8f4b9fb4"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/078-SYN-SHOES-078.jpg",
+      "sha256": "77ded6b576170c3c13f83d1aee205fb8d75ab0b382cc05cb065f42dd8f4b9fb4"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/079-SYN-SHOES-079.jpg",
+      "sha256": "77ded6b576170c3c13f83d1aee205fb8d75ab0b382cc05cb065f42dd8f4b9fb4"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/080-SYN-BOOT-080.jpg",
+      "sha256": "99747a7e7c2031c37af7fa0cf00fc9a2933dcba17c5d8e42d2eae3bb078845c9"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/081-SYN-BOOT-081.jpg",
+      "sha256": "99747a7e7c2031c37af7fa0cf00fc9a2933dcba17c5d8e42d2eae3bb078845c9"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/082-SYN-BOOT-082.jpg",
+      "sha256": "99747a7e7c2031c37af7fa0cf00fc9a2933dcba17c5d8e42d2eae3bb078845c9"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/083-SYN-BOOT-083.jpg",
+      "sha256": "99747a7e7c2031c37af7fa0cf00fc9a2933dcba17c5d8e42d2eae3bb078845c9"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/084-SYN-BOOT-084.jpg",
+      "sha256": "99747a7e7c2031c37af7fa0cf00fc9a2933dcba17c5d8e42d2eae3bb078845c9"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/085-SYN-SANDAL-085.jpg",
+      "sha256": "05b0a0fcb1ad3db3e2f517ac512775140f2d6627fdd849f4f5e71f73a7dfdfc1"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/086-SYN-SANDAL-086.jpg",
+      "sha256": "05b0a0fcb1ad3db3e2f517ac512775140f2d6627fdd849f4f5e71f73a7dfdfc1"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/087-SYN-SANDAL-087.jpg",
+      "sha256": "05b0a0fcb1ad3db3e2f517ac512775140f2d6627fdd849f4f5e71f73a7dfdfc1"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/088-SYN-SANDAL-088.jpg",
+      "sha256": "05b0a0fcb1ad3db3e2f517ac512775140f2d6627fdd849f4f5e71f73a7dfdfc1"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/089-SYN-SANDAL-089.jpg",
+      "sha256": "05b0a0fcb1ad3db3e2f517ac512775140f2d6627fdd849f4f5e71f73a7dfdfc1"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/090-SYN-HAT-090.jpg",
+      "sha256": "0ea0e414c55e5176467c7b1b4e161a8565fbdd44495379e28481015f015caebf"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/091-SYN-HAT-091.jpg",
+      "sha256": "0ea0e414c55e5176467c7b1b4e161a8565fbdd44495379e28481015f015caebf"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/092-SYN-HAT-092.jpg",
+      "sha256": "0ea0e414c55e5176467c7b1b4e161a8565fbdd44495379e28481015f015caebf"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/093-SYN-HAT-093.jpg",
+      "sha256": "0ea0e414c55e5176467c7b1b4e161a8565fbdd44495379e28481015f015caebf"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/094-SYN-HAT-094.jpg",
+      "sha256": "0ea0e414c55e5176467c7b1b4e161a8565fbdd44495379e28481015f015caebf"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/095-SYN-SUITCASE-095.jpg",
+      "sha256": "602d3aae4de7d2c74ca56590d8449f86205035f98ed35bced24a16dee4e66e3b"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/096-SYN-SUITCASE-096.jpg",
+      "sha256": "602d3aae4de7d2c74ca56590d8449f86205035f98ed35bced24a16dee4e66e3b"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/097-SYN-SUITCASE-097.jpg",
+      "sha256": "602d3aae4de7d2c74ca56590d8449f86205035f98ed35bced24a16dee4e66e3b"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/098-SYN-SUITCASE-098.jpg",
+      "sha256": "602d3aae4de7d2c74ca56590d8449f86205035f98ed35bced24a16dee4e66e3b"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/099-SYN-SUITCASE-099.jpg",
+      "sha256": "602d3aae4de7d2c74ca56590d8449f86205035f98ed35bced24a16dee4e66e3b"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/100-SYN-DRINKING_CUP-100.jpg",
+      "sha256": "f3fc6086ec7e7afb9e96ac2e05eb9679f3e45b46284af2fbc2bd8538cef1f8e3"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/101-SYN-DRINKING_CUP-101.jpg",
+      "sha256": "f3fc6086ec7e7afb9e96ac2e05eb9679f3e45b46284af2fbc2bd8538cef1f8e3"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/102-SYN-DRINKING_CUP-102.jpg",
+      "sha256": "f3fc6086ec7e7afb9e96ac2e05eb9679f3e45b46284af2fbc2bd8538cef1f8e3"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/103-SYN-DRINKING_CUP-103.jpg",
+      "sha256": "f3fc6086ec7e7afb9e96ac2e05eb9679f3e45b46284af2fbc2bd8538cef1f8e3"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/104-SYN-DRINKING_CUP-104.jpg",
+      "sha256": "f3fc6086ec7e7afb9e96ac2e05eb9679f3e45b46284af2fbc2bd8538cef1f8e3"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/105-SYN-PILLOW-105.jpg",
+      "sha256": "5de5c661acd949fcba742d452b2bce247a976be2a8ca8a2031fb742c5665d42d"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/106-SYN-PILLOW-106.jpg",
+      "sha256": "5de5c661acd949fcba742d452b2bce247a976be2a8ca8a2031fb742c5665d42d"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/107-SYN-PILLOW-107.jpg",
+      "sha256": "5de5c661acd949fcba742d452b2bce247a976be2a8ca8a2031fb742c5665d42d"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/108-SYN-PILLOW-108.jpg",
+      "sha256": "5de5c661acd949fcba742d452b2bce247a976be2a8ca8a2031fb742c5665d42d"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/109-SYN-PILLOW-109.jpg",
+      "sha256": "5de5c661acd949fcba742d452b2bce247a976be2a8ca8a2031fb742c5665d42d"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/110-SYN-SHELF-110.jpg",
+      "sha256": "c60672883e0fba48c69ecf61946240729fcc9c635700fe01d59cb14163a9b999"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/111-SYN-SHELF-111.jpg",
+      "sha256": "c60672883e0fba48c69ecf61946240729fcc9c635700fe01d59cb14163a9b999"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/112-SYN-SHELF-112.jpg",
+      "sha256": "c60672883e0fba48c69ecf61946240729fcc9c635700fe01d59cb14163a9b999"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/113-SYN-SHELF-113.jpg",
+      "sha256": "c60672883e0fba48c69ecf61946240729fcc9c635700fe01d59cb14163a9b999"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/114-SYN-SHELF-114.jpg",
+      "sha256": "c60672883e0fba48c69ecf61946240729fcc9c635700fe01d59cb14163a9b999"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/115-SYN-PLANTER-115.jpg",
+      "sha256": "a8855af01f6a349b2ae393259f8bc5883a76673e8646609b1adab325d0bcd49e"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/116-SYN-PLANTER-116.jpg",
+      "sha256": "a8855af01f6a349b2ae393259f8bc5883a76673e8646609b1adab325d0bcd49e"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/117-SYN-PLANTER-117.jpg",
+      "sha256": "a8855af01f6a349b2ae393259f8bc5883a76673e8646609b1adab325d0bcd49e"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/118-SYN-PLANTER-118.jpg",
+      "sha256": "a8855af01f6a349b2ae393259f8bc5883a76673e8646609b1adab325d0bcd49e"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/119-SYN-PLANTER-119.jpg",
+      "sha256": "a8855af01f6a349b2ae393259f8bc5883a76673e8646609b1adab325d0bcd49e"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/120-SYN-PLANTER-120.jpg",
+      "sha256": "a8855af01f6a349b2ae393259f8bc5883a76673e8646609b1adab325d0bcd49e"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/121-SYN-DESK-121.jpg",
+      "sha256": "55ad0d96b544e39c7157de85bf72a16b4a529b25b168117e323faa04fdbff456"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/122-SYN-DESK-122.jpg",
+      "sha256": "55ad0d96b544e39c7157de85bf72a16b4a529b25b168117e323faa04fdbff456"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/123-SYN-DESK-123.jpg",
+      "sha256": "55ad0d96b544e39c7157de85bf72a16b4a529b25b168117e323faa04fdbff456"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/124-SYN-DESK-124.jpg",
+      "sha256": "55ad0d96b544e39c7157de85bf72a16b4a529b25b168117e323faa04fdbff456"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/125-SYN-DESK-125.jpg",
+      "sha256": "55ad0d96b544e39c7157de85bf72a16b4a529b25b168117e323faa04fdbff456"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/126-SYN-DESK-126.jpg",
+      "sha256": "55ad0d96b544e39c7157de85bf72a16b4a529b25b168117e323faa04fdbff456"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/127-SYN-RUG-127.jpg",
+      "sha256": "ddc32599fe625737c2a199fadaa5a95e5f587f7a89fd12017cf76b279ce21afa"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/128-SYN-RUG-128.jpg",
+      "sha256": "ddc32599fe625737c2a199fadaa5a95e5f587f7a89fd12017cf76b279ce21afa"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/129-SYN-RUG-129.jpg",
+      "sha256": "ddc32599fe625737c2a199fadaa5a95e5f587f7a89fd12017cf76b279ce21afa"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/130-SYN-RUG-130.jpg",
+      "sha256": "ddc32599fe625737c2a199fadaa5a95e5f587f7a89fd12017cf76b279ce21afa"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/131-SYN-RUG-131.jpg",
+      "sha256": "ddc32599fe625737c2a199fadaa5a95e5f587f7a89fd12017cf76b279ce21afa"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/132-SYN-RUG-132.jpg",
+      "sha256": "ddc32599fe625737c2a199fadaa5a95e5f587f7a89fd12017cf76b279ce21afa"
+    },
+    {
+      "bytes": 7228,
+      "media_type": "image/jpeg",
+      "path": "images/133-SYN-BACKPACK-133.jpg",
+      "sha256": "75af5ffc73c57a8a9d82325b69928373542ef0fafa501152b64a8fc718e401bd"
+    },
+    {
+      "bytes": 7228,
+      "media_type": "image/jpeg",
+      "path": "images/134-SYN-BACKPACK-134.jpg",
+      "sha256": "75af5ffc73c57a8a9d82325b69928373542ef0fafa501152b64a8fc718e401bd"
+    },
+    {
+      "bytes": 7228,
+      "media_type": "image/jpeg",
+      "path": "images/135-SYN-BACKPACK-135.jpg",
+      "sha256": "75af5ffc73c57a8a9d82325b69928373542ef0fafa501152b64a8fc718e401bd"
+    },
+    {
+      "bytes": 7228,
+      "media_type": "image/jpeg",
+      "path": "images/136-SYN-BACKPACK-136.jpg",
+      "sha256": "75af5ffc73c57a8a9d82325b69928373542ef0fafa501152b64a8fc718e401bd"
+    },
+    {
+      "bytes": 7228,
+      "media_type": "image/jpeg",
+      "path": "images/137-SYN-BACKPACK-137.jpg",
+      "sha256": "75af5ffc73c57a8a9d82325b69928373542ef0fafa501152b64a8fc718e401bd"
+    },
+    {
+      "bytes": 7228,
+      "media_type": "image/jpeg",
+      "path": "images/138-SYN-BACKPACK-138.jpg",
+      "sha256": "75af5ffc73c57a8a9d82325b69928373542ef0fafa501152b64a8fc718e401bd"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/139-SYN-HEADPHONES-139.jpg",
+      "sha256": "f088bba190c2e1dabe34563ea06cf7dee899e655a5f354187b57993f164b0b99"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/140-SYN-HEADPHONES-140.jpg",
+      "sha256": "f088bba190c2e1dabe34563ea06cf7dee899e655a5f354187b57993f164b0b99"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/141-SYN-HEADPHONES-141.jpg",
+      "sha256": "f088bba190c2e1dabe34563ea06cf7dee899e655a5f354187b57993f164b0b99"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/142-SYN-HEADPHONES-142.jpg",
+      "sha256": "f088bba190c2e1dabe34563ea06cf7dee899e655a5f354187b57993f164b0b99"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/143-SYN-HEADPHONES-143.jpg",
+      "sha256": "f088bba190c2e1dabe34563ea06cf7dee899e655a5f354187b57993f164b0b99"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/144-SYN-HEADPHONES-144.jpg",
+      "sha256": "f088bba190c2e1dabe34563ea06cf7dee899e655a5f354187b57993f164b0b99"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/145-SYN-UMBRELLA-145.jpg",
+      "sha256": "9d6c207ac34aa9003c42d1794b55a2404935a7f4bcf581dc0ab236f0dfa9e4bc"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/146-SYN-UMBRELLA-146.jpg",
+      "sha256": "9d6c207ac34aa9003c42d1794b55a2404935a7f4bcf581dc0ab236f0dfa9e4bc"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/147-SYN-UMBRELLA-147.jpg",
+      "sha256": "9d6c207ac34aa9003c42d1794b55a2404935a7f4bcf581dc0ab236f0dfa9e4bc"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/148-SYN-UMBRELLA-148.jpg",
+      "sha256": "9d6c207ac34aa9003c42d1794b55a2404935a7f4bcf581dc0ab236f0dfa9e4bc"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/149-SYN-UMBRELLA-149.jpg",
+      "sha256": "9d6c207ac34aa9003c42d1794b55a2404935a7f4bcf581dc0ab236f0dfa9e4bc"
+    },
+    {
+      "bytes": 8426,
+      "media_type": "image/jpeg",
+      "path": "images/150-SYN-UMBRELLA-150.jpg",
+      "sha256": "9d6c207ac34aa9003c42d1794b55a2404935a7f4bcf581dc0ab236f0dfa9e4bc"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/151-SYN-BED-151.jpg",
+      "sha256": "df74175e2f99f727b865a251ed2bd578f74d59c0ebe38084c96ad41569db1252"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/152-SYN-BED-152.jpg",
+      "sha256": "df74175e2f99f727b865a251ed2bd578f74d59c0ebe38084c96ad41569db1252"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/153-SYN-BED-153.jpg",
+      "sha256": "df74175e2f99f727b865a251ed2bd578f74d59c0ebe38084c96ad41569db1252"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/154-SYN-BED-154.jpg",
+      "sha256": "df74175e2f99f727b865a251ed2bd578f74d59c0ebe38084c96ad41569db1252"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/155-SYN-BED-155.jpg",
+      "sha256": "df74175e2f99f727b865a251ed2bd578f74d59c0ebe38084c96ad41569db1252"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/156-SYN-BED-156.jpg",
+      "sha256": "df74175e2f99f727b865a251ed2bd578f74d59c0ebe38084c96ad41569db1252"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/157-SYN-SOFA-157.jpg",
+      "sha256": "f993528917a73b88f5f1a306ce99b3b38861d356622625f4bd3638fa62f24261"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/158-SYN-SOFA-158.jpg",
+      "sha256": "f993528917a73b88f5f1a306ce99b3b38861d356622625f4bd3638fa62f24261"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/159-SYN-SOFA-159.jpg",
+      "sha256": "f993528917a73b88f5f1a306ce99b3b38861d356622625f4bd3638fa62f24261"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/160-SYN-SOFA-160.jpg",
+      "sha256": "f993528917a73b88f5f1a306ce99b3b38861d356622625f4bd3638fa62f24261"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/161-SYN-SOFA-161.jpg",
+      "sha256": "f993528917a73b88f5f1a306ce99b3b38861d356622625f4bd3638fa62f24261"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/162-SYN-SOFA-162.jpg",
+      "sha256": "f993528917a73b88f5f1a306ce99b3b38861d356622625f4bd3638fa62f24261"
+    },
+    {
+      "bytes": 6627,
+      "media_type": "image/jpeg",
+      "path": "images/163-SYN-CHAIR-163.jpg",
+      "sha256": "5e471c1eb6d597c7866c3907641212fb8ee92354c1b9f475909b6f1cb4a7ef33"
+    },
+    {
+      "bytes": 6627,
+      "media_type": "image/jpeg",
+      "path": "images/164-SYN-CHAIR-164.jpg",
+      "sha256": "5e471c1eb6d597c7866c3907641212fb8ee92354c1b9f475909b6f1cb4a7ef33"
+    },
+    {
+      "bytes": 6627,
+      "media_type": "image/jpeg",
+      "path": "images/165-SYN-CHAIR-165.jpg",
+      "sha256": "5e471c1eb6d597c7866c3907641212fb8ee92354c1b9f475909b6f1cb4a7ef33"
+    },
+    {
+      "bytes": 6627,
+      "media_type": "image/jpeg",
+      "path": "images/166-SYN-CHAIR-166.jpg",
+      "sha256": "5e471c1eb6d597c7866c3907641212fb8ee92354c1b9f475909b6f1cb4a7ef33"
+    },
+    {
+      "bytes": 6627,
+      "media_type": "image/jpeg",
+      "path": "images/167-SYN-CHAIR-167.jpg",
+      "sha256": "5e471c1eb6d597c7866c3907641212fb8ee92354c1b9f475909b6f1cb4a7ef33"
+    },
+    {
+      "bytes": 6627,
+      "media_type": "image/jpeg",
+      "path": "images/168-SYN-CHAIR-168.jpg",
+      "sha256": "5e471c1eb6d597c7866c3907641212fb8ee92354c1b9f475909b6f1cb4a7ef33"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/169-SYN-TABLE-169.jpg",
+      "sha256": "fc2d4a933bc5cf0bde79fcc77078227c4d8be95ce49f41c67836b2b3774eed3f"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/170-SYN-TABLE-170.jpg",
+      "sha256": "fc2d4a933bc5cf0bde79fcc77078227c4d8be95ce49f41c67836b2b3774eed3f"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/171-SYN-TABLE-171.jpg",
+      "sha256": "fc2d4a933bc5cf0bde79fcc77078227c4d8be95ce49f41c67836b2b3774eed3f"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/172-SYN-TABLE-172.jpg",
+      "sha256": "fc2d4a933bc5cf0bde79fcc77078227c4d8be95ce49f41c67836b2b3774eed3f"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/173-SYN-TABLE-173.jpg",
+      "sha256": "fc2d4a933bc5cf0bde79fcc77078227c4d8be95ce49f41c67836b2b3774eed3f"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/174-SYN-TABLE-174.jpg",
+      "sha256": "fc2d4a933bc5cf0bde79fcc77078227c4d8be95ce49f41c67836b2b3774eed3f"
+    },
+    {
+      "bytes": 7828,
+      "media_type": "image/jpeg",
+      "path": "images/175-SYN-LAMP-175.jpg",
+      "sha256": "26a911e5e669ed81ac7d880a00d4c4e5e8cbab7fd6d8812e3c8d2f795b77fd99"
+    },
+    {
+      "bytes": 7828,
+      "media_type": "image/jpeg",
+      "path": "images/176-SYN-LAMP-176.jpg",
+      "sha256": "26a911e5e669ed81ac7d880a00d4c4e5e8cbab7fd6d8812e3c8d2f795b77fd99"
+    },
+    {
+      "bytes": 7828,
+      "media_type": "image/jpeg",
+      "path": "images/177-SYN-LAMP-177.jpg",
+      "sha256": "26a911e5e669ed81ac7d880a00d4c4e5e8cbab7fd6d8812e3c8d2f795b77fd99"
+    },
+    {
+      "bytes": 7828,
+      "media_type": "image/jpeg",
+      "path": "images/178-SYN-LAMP-178.jpg",
+      "sha256": "26a911e5e669ed81ac7d880a00d4c4e5e8cbab7fd6d8812e3c8d2f795b77fd99"
+    },
+    {
+      "bytes": 7828,
+      "media_type": "image/jpeg",
+      "path": "images/179-SYN-LAMP-179.jpg",
+      "sha256": "26a911e5e669ed81ac7d880a00d4c4e5e8cbab7fd6d8812e3c8d2f795b77fd99"
+    },
+    {
+      "bytes": 7828,
+      "media_type": "image/jpeg",
+      "path": "images/180-SYN-LAMP-180.jpg",
+      "sha256": "26a911e5e669ed81ac7d880a00d4c4e5e8cbab7fd6d8812e3c8d2f795b77fd99"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/181-SYN-HANDBAG-181.jpg",
+      "sha256": "f437d621096b4c61bde76207a3171fa7190deefc4f44d148f1d52cd4b08e803a"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/182-SYN-HANDBAG-182.jpg",
+      "sha256": "f437d621096b4c61bde76207a3171fa7190deefc4f44d148f1d52cd4b08e803a"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/183-SYN-HANDBAG-183.jpg",
+      "sha256": "f437d621096b4c61bde76207a3171fa7190deefc4f44d148f1d52cd4b08e803a"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/184-SYN-HANDBAG-184.jpg",
+      "sha256": "f437d621096b4c61bde76207a3171fa7190deefc4f44d148f1d52cd4b08e803a"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/185-SYN-HANDBAG-185.jpg",
+      "sha256": "f437d621096b4c61bde76207a3171fa7190deefc4f44d148f1d52cd4b08e803a"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/186-SYN-HANDBAG-186.jpg",
+      "sha256": "f437d621096b4c61bde76207a3171fa7190deefc4f44d148f1d52cd4b08e803a"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/187-SYN-SHOES-187.jpg",
+      "sha256": "77ded6b576170c3c13f83d1aee205fb8d75ab0b382cc05cb065f42dd8f4b9fb4"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/188-SYN-SHOES-188.jpg",
+      "sha256": "77ded6b576170c3c13f83d1aee205fb8d75ab0b382cc05cb065f42dd8f4b9fb4"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/189-SYN-SHOES-189.jpg",
+      "sha256": "77ded6b576170c3c13f83d1aee205fb8d75ab0b382cc05cb065f42dd8f4b9fb4"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/190-SYN-SHOES-190.jpg",
+      "sha256": "77ded6b576170c3c13f83d1aee205fb8d75ab0b382cc05cb065f42dd8f4b9fb4"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/191-SYN-SHOES-191.jpg",
+      "sha256": "77ded6b576170c3c13f83d1aee205fb8d75ab0b382cc05cb065f42dd8f4b9fb4"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/192-SYN-SHOES-192.jpg",
+      "sha256": "77ded6b576170c3c13f83d1aee205fb8d75ab0b382cc05cb065f42dd8f4b9fb4"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/193-SYN-BOOT-193.jpg",
+      "sha256": "99747a7e7c2031c37af7fa0cf00fc9a2933dcba17c5d8e42d2eae3bb078845c9"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/194-SYN-BOOT-194.jpg",
+      "sha256": "99747a7e7c2031c37af7fa0cf00fc9a2933dcba17c5d8e42d2eae3bb078845c9"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/195-SYN-BOOT-195.jpg",
+      "sha256": "99747a7e7c2031c37af7fa0cf00fc9a2933dcba17c5d8e42d2eae3bb078845c9"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/196-SYN-BOOT-196.jpg",
+      "sha256": "99747a7e7c2031c37af7fa0cf00fc9a2933dcba17c5d8e42d2eae3bb078845c9"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/197-SYN-BOOT-197.jpg",
+      "sha256": "99747a7e7c2031c37af7fa0cf00fc9a2933dcba17c5d8e42d2eae3bb078845c9"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/198-SYN-BOOT-198.jpg",
+      "sha256": "99747a7e7c2031c37af7fa0cf00fc9a2933dcba17c5d8e42d2eae3bb078845c9"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/199-SYN-SANDAL-199.jpg",
+      "sha256": "05b0a0fcb1ad3db3e2f517ac512775140f2d6627fdd849f4f5e71f73a7dfdfc1"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/200-SYN-SANDAL-200.jpg",
+      "sha256": "05b0a0fcb1ad3db3e2f517ac512775140f2d6627fdd849f4f5e71f73a7dfdfc1"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/201-SYN-SANDAL-201.jpg",
+      "sha256": "05b0a0fcb1ad3db3e2f517ac512775140f2d6627fdd849f4f5e71f73a7dfdfc1"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/202-SYN-SANDAL-202.jpg",
+      "sha256": "05b0a0fcb1ad3db3e2f517ac512775140f2d6627fdd849f4f5e71f73a7dfdfc1"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/203-SYN-SANDAL-203.jpg",
+      "sha256": "05b0a0fcb1ad3db3e2f517ac512775140f2d6627fdd849f4f5e71f73a7dfdfc1"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/204-SYN-SANDAL-204.jpg",
+      "sha256": "05b0a0fcb1ad3db3e2f517ac512775140f2d6627fdd849f4f5e71f73a7dfdfc1"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/205-SYN-HAT-205.jpg",
+      "sha256": "0ea0e414c55e5176467c7b1b4e161a8565fbdd44495379e28481015f015caebf"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/206-SYN-HAT-206.jpg",
+      "sha256": "0ea0e414c55e5176467c7b1b4e161a8565fbdd44495379e28481015f015caebf"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/207-SYN-HAT-207.jpg",
+      "sha256": "0ea0e414c55e5176467c7b1b4e161a8565fbdd44495379e28481015f015caebf"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/208-SYN-HAT-208.jpg",
+      "sha256": "0ea0e414c55e5176467c7b1b4e161a8565fbdd44495379e28481015f015caebf"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/209-SYN-HAT-209.jpg",
+      "sha256": "0ea0e414c55e5176467c7b1b4e161a8565fbdd44495379e28481015f015caebf"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/210-SYN-HAT-210.jpg",
+      "sha256": "0ea0e414c55e5176467c7b1b4e161a8565fbdd44495379e28481015f015caebf"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/211-SYN-SUITCASE-211.jpg",
+      "sha256": "602d3aae4de7d2c74ca56590d8449f86205035f98ed35bced24a16dee4e66e3b"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/212-SYN-SUITCASE-212.jpg",
+      "sha256": "602d3aae4de7d2c74ca56590d8449f86205035f98ed35bced24a16dee4e66e3b"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/213-SYN-SUITCASE-213.jpg",
+      "sha256": "602d3aae4de7d2c74ca56590d8449f86205035f98ed35bced24a16dee4e66e3b"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/214-SYN-SUITCASE-214.jpg",
+      "sha256": "602d3aae4de7d2c74ca56590d8449f86205035f98ed35bced24a16dee4e66e3b"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/215-SYN-SUITCASE-215.jpg",
+      "sha256": "602d3aae4de7d2c74ca56590d8449f86205035f98ed35bced24a16dee4e66e3b"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/216-SYN-SUITCASE-216.jpg",
+      "sha256": "602d3aae4de7d2c74ca56590d8449f86205035f98ed35bced24a16dee4e66e3b"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/217-SYN-DRINKING_CUP-217.jpg",
+      "sha256": "f3fc6086ec7e7afb9e96ac2e05eb9679f3e45b46284af2fbc2bd8538cef1f8e3"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/218-SYN-DRINKING_CUP-218.jpg",
+      "sha256": "f3fc6086ec7e7afb9e96ac2e05eb9679f3e45b46284af2fbc2bd8538cef1f8e3"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/219-SYN-DRINKING_CUP-219.jpg",
+      "sha256": "f3fc6086ec7e7afb9e96ac2e05eb9679f3e45b46284af2fbc2bd8538cef1f8e3"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/220-SYN-DRINKING_CUP-220.jpg",
+      "sha256": "f3fc6086ec7e7afb9e96ac2e05eb9679f3e45b46284af2fbc2bd8538cef1f8e3"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/221-SYN-DRINKING_CUP-221.jpg",
+      "sha256": "f3fc6086ec7e7afb9e96ac2e05eb9679f3e45b46284af2fbc2bd8538cef1f8e3"
+    },
+    {
+      "bytes": 7227,
+      "media_type": "image/jpeg",
+      "path": "images/222-SYN-DRINKING_CUP-222.jpg",
+      "sha256": "f3fc6086ec7e7afb9e96ac2e05eb9679f3e45b46284af2fbc2bd8538cef1f8e3"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/223-SYN-PILLOW-223.jpg",
+      "sha256": "5de5c661acd949fcba742d452b2bce247a976be2a8ca8a2031fb742c5665d42d"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/224-SYN-PILLOW-224.jpg",
+      "sha256": "5de5c661acd949fcba742d452b2bce247a976be2a8ca8a2031fb742c5665d42d"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/225-SYN-PILLOW-225.jpg",
+      "sha256": "5de5c661acd949fcba742d452b2bce247a976be2a8ca8a2031fb742c5665d42d"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/226-SYN-PILLOW-226.jpg",
+      "sha256": "5de5c661acd949fcba742d452b2bce247a976be2a8ca8a2031fb742c5665d42d"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/227-SYN-PILLOW-227.jpg",
+      "sha256": "5de5c661acd949fcba742d452b2bce247a976be2a8ca8a2031fb742c5665d42d"
+    },
+    {
+      "bytes": 7826,
+      "media_type": "image/jpeg",
+      "path": "images/228-SYN-PILLOW-228.jpg",
+      "sha256": "5de5c661acd949fcba742d452b2bce247a976be2a8ca8a2031fb742c5665d42d"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/229-SYN-SHELF-229.jpg",
+      "sha256": "c60672883e0fba48c69ecf61946240729fcc9c635700fe01d59cb14163a9b999"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/230-SYN-SHELF-230.jpg",
+      "sha256": "c60672883e0fba48c69ecf61946240729fcc9c635700fe01d59cb14163a9b999"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/231-SYN-SHELF-231.jpg",
+      "sha256": "c60672883e0fba48c69ecf61946240729fcc9c635700fe01d59cb14163a9b999"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/232-SYN-SHELF-232.jpg",
+      "sha256": "c60672883e0fba48c69ecf61946240729fcc9c635700fe01d59cb14163a9b999"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/233-SYN-SHELF-233.jpg",
+      "sha256": "c60672883e0fba48c69ecf61946240729fcc9c635700fe01d59cb14163a9b999"
+    },
+    {
+      "bytes": 7827,
+      "media_type": "image/jpeg",
+      "path": "images/234-SYN-SHELF-234.jpg",
+      "sha256": "c60672883e0fba48c69ecf61946240729fcc9c635700fe01d59cb14163a9b999"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/235-SYN-PLANTER-235.jpg",
+      "sha256": "a8855af01f6a349b2ae393259f8bc5883a76673e8646609b1adab325d0bcd49e"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/236-SYN-PLANTER-236.jpg",
+      "sha256": "a8855af01f6a349b2ae393259f8bc5883a76673e8646609b1adab325d0bcd49e"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/237-SYN-PLANTER-237.jpg",
+      "sha256": "a8855af01f6a349b2ae393259f8bc5883a76673e8646609b1adab325d0bcd49e"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/238-SYN-PLANTER-238.jpg",
+      "sha256": "a8855af01f6a349b2ae393259f8bc5883a76673e8646609b1adab325d0bcd49e"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/239-SYN-PLANTER-239.jpg",
+      "sha256": "a8855af01f6a349b2ae393259f8bc5883a76673e8646609b1adab325d0bcd49e"
+    },
+    {
+      "bytes": 6927,
+      "media_type": "image/jpeg",
+      "path": "images/240-SYN-PLANTER-240.jpg",
+      "sha256": "a8855af01f6a349b2ae393259f8bc5883a76673e8646609b1adab325d0bcd49e"
+    },
+    {
+      "bytes": 434,
+      "media_type": "text/plain",
+      "path": "licenses/LICENSE.txt",
+      "sha256": "cc00451a451f907269784c8ea8b6504d5245ad1a85b2ac8d02547c0747f29ebb"
+    },
+    {
+      "bytes": 612,
+      "media_type": "text/markdown",
+      "path": "licenses/SYNTHETIC-README.md",
+      "sha256": "8254363db6dd47c78cf8b12e86e50e0b5ef283a55eb96b067052b15b5bbd8f1d"
+    },
+    {
+      "bytes": 5943690,
+      "media_type": "application/json",
+      "path": "products.json",
+      "sha256": "1e574d5b0b2ee1d4bec840d3122f5a1c3fad0828d60df4b16062d59c0e2fe941"
+    },
+    {
+      "bytes": 127162,
+      "media_type": "application/json",
+      "path": "queries.json",
+      "sha256": "295b5ddbd10d71b075301355d87f095b4d2949b1c8752e506cede02a0448ad4f"
+    },
+    {
+      "bytes": 359803,
+      "media_type": "application/json",
+      "path": "relevance-ground-truth.json",
+      "sha256": "3dd7bc87f2e7fe4d41dd9d44eb1c99ceb98ca395c25ef77ed8b724d5aad55767"
+    },
+    {
+      "bytes": 318167,
+      "media_type": "application/json",
+      "path": "source-objects.json",
+      "sha256": "f92fdd5f494d978e9ad75e61d440cc3c94dcdfc6316a844332a88ef6f8ceb04a"
+    },
+    {
+      "bytes": 490366,
+      "media_type": "application/json",
+      "path": "training-records.json",
+      "sha256": "f42d937ba3ceb273fe1c35a41c6598c36af04e9c513fae90a61061ac7f07affb"
+    }
+  ],
+  "generator_version": "3.2.0",
+  "hash_algorithm": "SHA-256",
+  "license": {
+    "attribution": "NOTICE.md",
+    "conflict_record": "none",
+    "development_controlling_spdx": "CC0-1.0",
+    "endorsement": false,
+    "publication_review_required": false,
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  "rebuild": {
+    "generate_command": "uv run python -m function_chain_demo.dataset generate --source-manifest ../../../artifacts/runtime/synthetic-commerce-catalog-r1/source-manifest.json --source-cache ../../../artifacts/runtime/synthetic-commerce-catalog-r1/cache",
+    "prepare_command": "uv run python -m function_chain_demo.synthetic_source prepare --cache ../../../artifacts/runtime/synthetic-commerce-catalog-r1/cache --output ../../../artifacts/runtime/synthetic-commerce-catalog-r1/source-manifest.json",
+    "working_directory": "demos/function-chain-rerank/backend"
+  },
+  "revision": "synthetic-commerce-catalog-r1",
+  "schema_version": 2,
+  "seed": 20260820,
+  "simulation_boundary": {
+    "derived_localized_title_summary_is_simulated": false,
+    "derived_localized_title_summary_provenance": "deterministic_english_summary_from_synthetic_authored_metadata",
+    "fields": [
+      "display_price_usd",
+      "rating_value",
+      "clicks_30d",
+      "sales_30d",
+      "inventory_units",
+      "inventory_capacity",
+      "return_rate",
+      "release_date",
+      "rating",
+      "inventory",
+      "freshness",
+      "release_epoch"
+    ],
+    "label": "deterministic_simulated_operational_signal",
+    "operational_profile_contract": {
+      "frozen_target_used": false,
+      "key": "item_id",
+      "profiled_item_count": 36,
+      "query_identity_used": false,
+      "templates": {
+        "G": {
+          "age_days": 131,
+          "inventory_ratio": 0.82,
+          "rating_value": 4.6,
+          "return_rate": 0.035
+        },
+        "H": {
+          "age_days": 36,
+          "inventory_ratio": 0.95,
+          "rating_value": 5.0,
+          "return_rate": 0.01
+        },
+        "N": {
+          "age_days": 365,
+          "inventory_ratio": 0.5,
+          "rating_value": 4.0,
+          "return_rate": 0.1
+        },
+        "R": {
+          "age_days": 642,
+          "inventory_ratio": 0.02,
+          "rating_value": 3.1,
+          "return_rate": 0.24
+        },
+        "S": {
+          "age_days": 234,
+          "inventory_ratio": 0.65,
+          "rating_value": 4.3,
+          "return_rate": 0.06
+        }
+      },
+      "vector_rank_used": false,
+      "version": "synthetic-operational-profiles-v1"
+    },
+    "placeholder_image_provenance": "synthetic_placeholder_image_object",
+    "placeholder_images": true,
+    "real_product_metadata": false,
+    "real_product_photos": false,
+    "real_transaction_data": false,
+    "training_labels": "deterministic_simulated_operational_signal"
+  },
+  "source": {
+    "dataset": "Synthetic Commerce Catalog",
+    "publisher_and_data_credit": "milvus3-demos project (no external publisher)",
+    "selection_version": "synthetic-commerce-240-authored-intent-v1",
+    "source_objects": "source-objects.json",
+    "type": "synthetic_catalog_with_simulated_operations"
+  },
+  "training": {
+    "label_formula": "clamp(0,1,0.80*round(semantic_score,5)+0.02*rating+0.08*popularity+0.06*price_affinity+0.04*freshness)",
+    "label_provenance": "deterministic_simulated_operational_signal",
+    "relevance_guardrail": {
+      "intent_source": "fixed token-boundary product-type aliases in query_text",
+      "maximum_positive_operational_weight": 0.2,
+      "monotonic_constraints": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "query_id_or_product_target_used": false,
+      "return_rate_penalty_weight": 0.0,
+      "semantic_weight": 0.8
+    },
+    "semantic_score_preprocessing": {
+      "applied_before_label_and_model_training": true,
+      "decimal": 5,
+      "milvus_function_chain_match_required": true,
+      "operation": "round_decimal"
+    },
+    "split_unit": "query_group",
+    "train_query_ids": [
+      "compact-dark-wood-desk",
+      "soft-neutral-living-room-rug",
+      "red-weekend-backpack",
+      "automatic-black-commuter-umbrella"
+    ],
+    "validation_query_ids": [
+      "comfortable-on-ear-headphones",
+      "warm-bronze-modern-bed"
+    ]
+  }
+}

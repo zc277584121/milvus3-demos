@@ -1,0 +1,1530 @@
+/* Design tokens: one brand action color, two semantic deltas, a tight slate
+   scale, and a single radius rhythm. Every surface below references these. */
+:root {
+  --fc-brand: #1d4ed8;
+  --fc-brand-strong: #1e40af;
+  --fc-brand-soft: #eef4ff;
+  --fc-up: #047857;
+  --fc-up-soft: #e7f7f0;
+  --fc-down: #b45309;
+  --fc-down-soft: #fdf3e3;
+  --fc-ink: #111827;
+  --fc-ink-2: #374151;
+  --fc-muted: #6b7280;
+  --fc-faint: #9aa3b2;
+  --fc-line: #e5e7eb;
+  --fc-line-strong: #d1d5db;
+  --fc-canvas: #f4f6f9;
+  --fc-surface: #ffffff;
+  --fc-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --fc-shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --fc-radius-sm: 8px;
+  --fc-radius-md: 12px;
+  --fc-radius-lg: 16px;
+  --fc-font-sm: 0.78rem;
+  --fc-font-xs: 0.68rem;
+}
+
+.function-chain-page {
+  width: min(1280px, calc(100% - 24px));
+  padding: 16px 0 56px;
+}
+
+.commerce-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  min-height: 56px;
+  padding: 8px 14px;
+  border: 1px solid var(--fc-line);
+  border-radius: var(--fc-radius-md);
+  background: var(--fc-surface);
+  box-shadow: var(--fc-shadow-sm);
+}
+
+.commerce-identity {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.commerce-header .back-link {
+  margin: 0;
+  color: var(--fc-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.commerce-header .back-link:hover {
+  color: var(--fc-brand);
+}
+
+.commerce-header .status-badge {
+  padding: 4px 8px;
+  font-size: 0.62rem;
+}
+
+.milvus-label {
+  padding: 3px 7px;
+  border: 1px solid #b6cdf8;
+  border-radius: var(--fc-radius-sm);
+  color: var(--fc-brand-strong);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.commerce-title {
+  min-width: 0;
+}
+
+.commerce-title h1 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--fc-ink);
+  font-size: 1.28rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-console {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--fc-line);
+  border-radius: var(--fc-radius-md);
+  background: var(--fc-surface);
+  box-shadow: var(--fc-shadow-sm);
+}
+
+.search-heading {
+  margin: 0;
+  color: var(--fc-ink-2);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/* ---- Demo-3-style combobox: input + 倒三角 in one shared control ---- */
+.query-combobox {
+  position: relative;
+  min-width: 0;
+}
+
+.query-combobox-control {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  border: 1px solid var(--fc-line-strong);
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-surface);
+  overflow: hidden;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.query-combobox-control:focus-within {
+  border-color: var(--fc-brand);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.14);
+}
+
+.query-combobox input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 0;
+  color: var(--fc-ink);
+  background: transparent;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+}
+
+.query-combobox input::placeholder {
+  color: var(--fc-faint);
+  font-weight: 400;
+}
+
+.query-combobox input:focus {
+  outline: none;
+}
+
+.query-combobox-toggle {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 46px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--fc-line);
+  color: var(--fc-muted);
+  background: #f9fafb;
+  cursor: pointer;
+}
+
+.query-combobox-toggle:hover {
+  background: #f3f4f6;
+  color: var(--fc-brand);
+}
+
+.query-combobox-toggle svg {
+  transition: transform 0.15s ease;
+}
+
+.query-combobox-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.query-combobox-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--fc-line);
+  border-radius: var(--fc-radius-md);
+  background: var(--fc-surface);
+  box-shadow: var(--fc-shadow-md);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.query-combobox-menu button {
+  width: 100%;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: var(--fc-radius-sm);
+  color: var(--fc-ink-2);
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.query-combobox-menu button:hover,
+.query-combobox-menu button[aria-selected="true"] {
+  color: var(--fc-brand-strong);
+  background: var(--fc-brand-soft);
+}
+
+.query-combobox-option-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-console .search-submit {
+  min-width: 118px;
+  height: 44px;
+  padding: 0 20px;
+  border: 1px solid var(--fc-brand);
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-brand);
+  color: #fff;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.search-console .search-submit:hover:not(:disabled) {
+  background: var(--fc-brand-strong);
+  border-color: var(--fc-brand-strong);
+}
+
+.search-console .search-submit:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.query-combobox-toggle:focus-visible,
+.search-console .search-submit:focus-visible {
+  outline: 3px solid rgba(29, 78, 216, 0.25);
+  outline-offset: 2px;
+}
+
+/* Function Chain: a single-shot DAG. Four columns (raw fields → feature steps
+   → xgboost → final score) are drawn at fixed SVG coordinates, with one shared
+   code panel below that shows a node's executable code on hover — no scrolling,
+   no per-page storyboard. */
+.function-chain-flow {
+  display: block;
+}
+
+/* ---- the DAG canvas ---- */
+.flow-dag {
+  width: 100%;
+  border: 1px solid #dbe4f0;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.flow-dag-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.flow-dag-edge {
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  opacity: 0.55;
+  marker-end: url(#dag-arrow);
+}
+
+.flow-dag-edge:hover {
+  opacity: 0.9;
+}
+
+/* The "pull" ties from the source card to its raw-field chips are reads, not
+   data flow: dashed, no arrowhead. */
+.flow-dag-edge--pull {
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+  opacity: 0.7;
+  marker-end: none;
+}
+
+/* A full-bleed host so the interactive chip/node inside each <foreignObject>
+   can stretch to the node's exact width and height. */
+.dag-node-host {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.dag-node-host--output {
+  justify-content: flex-start;
+}
+
+.dag-node-host--step .flow-step-node {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  justify-content: center;
+}
+
+/* ---- chips ---- */
+.flow-feature {
+  display: inline-flex;
+  gap: 5px;
+  align-items: baseline;
+  padding: 5px 12px;
+  border: 1px solid var(--chip-color, #d6deea);
+  border-radius: 999px;
+  background: #fff;
+  white-space: nowrap;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.flow-feature code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.74rem;
+  font-weight: 750;
+  color: var(--chip-text, #334762);
+}
+
+.flow-feature code {
+  font-weight: 850;
+}
+
+.flow-feature--final {
+  box-shadow: inset 0 0 0 1.5px var(--chip-color);
+  background: color-mix(in srgb, var(--chip-color) 10%, #ffffff);
+}
+
+.flow-feature.is-active {
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--chip-color, #4a90e2) 25%, transparent);
+  background: color-mix(in srgb, var(--chip-color) 10%, #ffffff);
+}
+
+/* ---- source product card (leading column of the DAG) ----
+   A pixel-identical replica of the real store card. The six consumed fields
+   are boxed IN PLACE on the card (no separate raw-field column), and each
+   box's center is measured at runtime to anchor its pull edge. */
+.flow-source-card {
+  /* Keep the replica visually identical to the search cards below. */
+  min-height: 110px;
+  height: 100%;
+  box-sizing: border-box;
+  border-left: 3px solid transparent;
+}
+
+.flow-source-card .card-rank-num {
+  background: var(--fc-brand-soft);
+  color: var(--fc-brand-strong);
+}
+
+/* An in-place field box: a thin colored outline around one piece of the card,
+   carrying the consuming step's hue into the DAG. */
+.flow-field-box {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 4px;
+  border: 1px solid color-mix(in srgb, var(--chip-color, #4a90e2) 60%, #ffffff);
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--chip-color) 8%, transparent);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+/* Labels inside a boxed field sit on the card's white surface; keep them dark
+   enough for WCAG AA even though the box carries a faint accent tint. */
+.flow-field-box .feature small {
+  color: var(--fc-ink-2);
+}
+
+.flow-field-box:hover {
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--chip-color, #4a90e2) 22%, transparent);
+}
+
+/* The photo box wraps the real 56px product photo without distorting it. */
+.flow-field-box--photo {
+  padding: 2px;
+  align-self: center;
+}
+
+.flow-field-box--photo .card-photo {
+  display: block;
+}
+
+/* Simulated operational signals (clicks/sales) never appear on a real store
+   card, so they are drawn as dashed grey tags to stay honest. */
+.flow-field-box--simulated {
+  border-style: dashed;
+  border-color: var(--fc-line-strong);
+  background: #f6f7f9;
+  box-shadow: none;
+}
+
+.flow-field-box--simulated .feature small,
+.flow-field-box--simulated .feature strong {
+  color: var(--fc-ink-2);
+}
+
+.flow-field-box--simulated:hover {
+  box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.15);
+}
+
+/* ---- step node (the big stage card) ---- */
+.flow-step-node {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  padding: 12px 16px;
+  border: 1.5px solid var(--chip-color, #b9d1ee);
+  border-radius: 14px;
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--chip-color) 10%, #ffffff),
+    color-mix(in srgb, var(--chip-color) 4%, #ffffff)
+  );
+  text-align: left;
+  cursor: help;
+  transition:
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.flow-step-node.is-active {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--chip-color) 22%, transparent);
+  transform: translateY(-2px);
+}
+
+.flow-step-op {
+  color: var(--chip-text, #0f4f9d);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95rem;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+}
+
+.flow-step-desc {
+  color: #5c6d82;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.flow-step-out {
+  color: #6b7d94;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+/* ---- shared code panel (revealed on hover) ---- */
+.function-chain-flow {
+  position: relative;
+}
+
+.flow-code-panel {
+  position: absolute;
+  z-index: 20;
+  top: 8px;
+  right: 8px;
+  left: 8px;
+  border: 1px solid #d7e0ec;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 18px 44px rgba(16, 36, 63, 0.18);
+  pointer-events: none;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.flow-code-panel--empty {
+  display: none;
+}
+
+.flow-code-panel-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+}
+
+.flow-code-panel-code {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  max-height: 420px;
+}
+
+.flow-code-card-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid #e6ebf2;
+  background: color-mix(in srgb, var(--chip-color) 7%, #ffffff);
+}
+
+.flow-code-step-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--chip-color);
+  flex: none;
+}
+
+.flow-code-block-op {
+  color: var(--chip-text, #0f4f9d);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.flow-code-block-desc {
+  min-width: 0;
+  overflow: hidden;
+  color: #5c6d82;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flow-code-block-pre {
+  margin: 0;
+  padding: 14px 18px;
+  overflow: auto;
+  background: #0e2138;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.65;
+}
+
+/* ---- per-step graphic companion (right of the code) ---- */
+.flow-step-graphic {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 6px;
+  align-content: start;
+  min-width: 0;
+  padding: 10px 12px 12px;
+  border-left: 1px solid #e6ebf2;
+  background: #f7fafd;
+}
+
+.flow-graphic-head {
+  display: grid;
+  gap: 2px;
+}
+
+.flow-graphic-head strong {
+  color: var(--chip-text, #334762);
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.flow-graphic-head span {
+  overflow: hidden;
+  color: #5c6d82;
+  font-size: 0.6rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flow-graphic-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  align-self: center;
+}
+
+.flow-code-block-pre code {
+  color: #cfe3ff;
+  white-space: pre;
+}
+
+/* ---- Python syntax highlighting ---- */
+.py-string {
+  color: #a5d6a7;
+}
+
+.py-comment {
+  color: #7d93ad;
+  font-style: italic;
+}
+
+.py-number {
+  color: #f6c177;
+}
+
+.py-fn {
+  color: #7aa2f7;
+  font-weight: 700;
+}
+
+.py-param {
+  color: #c0a0f7;
+}
+
+.py-plain {
+  color: #cfe3ff;
+}
+
+/* Known field/feature strings get a pill highlight inside the code so the
+   data-flow columns pop instead of being just another string. */
+.py-entity {
+  color: var(--entity-code, #f6c177);
+  font-weight: 800;
+  padding: 1px 4px;
+  margin: 0 -2px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--entity-code, #f6c177) 16%, transparent);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--entity-code, #f6c177) 35%, transparent);
+}
+
+.search-error {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin: 8px 0 0;
+  padding: 9px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff1f2;
+  color: #9f1239;
+  font-size: 0.78rem;
+}
+
+.search-error button {
+  padding: 5px 12px;
+  border: 1px solid #e11d48;
+  border-radius: 6px;
+  background: #fff;
+  color: #9f1239;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.search-error button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.ranking-workbench {
+  margin-top: 10px;
+}
+
+.compare-launch {
+  align-self: center;
+  padding: 9px 16px;
+  border: 1px solid var(--fc-brand);
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-brand);
+  color: #fff;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    opacity 120ms ease,
+    transform 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.compare-launch:hover:not(:disabled) {
+  background: var(--fc-brand-strong);
+}
+
+.compare-launch:disabled {
+  background: #e5e7eb;
+  border-color: #e5e7eb;
+  color: #9aa3b2;
+  cursor: not-allowed;
+}
+
+/* Compare selection mode controls (replace the lone Compare button). */
+.compare-mode {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.compare-mode-hint {
+  color: var(--fc-muted);
+  font-size: var(--fc-font-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.compare-mode-count {
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: var(--fc-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.compare-mode-count--ready {
+  background: var(--fc-brand-soft);
+  color: var(--fc-brand-strong);
+}
+
+.compare-cancel {
+  padding: 9px 12px;
+  border: 1px solid var(--fc-line-strong);
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-surface);
+  color: var(--fc-ink-2);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.compare-cancel:hover {
+  border-color: var(--fc-muted);
+  background: #f9fafb;
+}
+
+/* Floating Compare action: a round button pinned to the bottom-right viewport
+   corner so it stays reachable while scrolling through the ranked products. In
+   selection mode it expands into the hint + count + cancel + confirm cluster. */
+.compare-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 35;
+}
+
+.compare-fab--round {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border-radius: 50%;
+  box-shadow: 0 10px 24px rgba(16, 36, 63, 0.28);
+}
+
+.compare-fab--round svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.compare-fab--round:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(16, 36, 63, 0.32);
+}
+
+.compare-fab--armed {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--fc-line);
+  border-radius: 999px;
+  background: var(--fc-surface);
+  box-shadow: 0 10px 24px rgba(16, 36, 63, 0.22);
+}
+
+/* Side-by-side board: Semantic cards left, Reranked cards right, with a wide
+   fixed gutter between them so the rank-shift ribbons have room to arc. The
+   engineered-feature column is gone: the frontend reads as a plain store
+   listing, and the full field-by-field breakdown lives behind Compare. */
+.ranking-comparison-board {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px minmax(0, 1fr);
+  align-items: start;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid var(--fc-line);
+  border-radius: var(--fc-radius-md);
+  background: var(--fc-canvas);
+}
+
+.board-column {
+  min-width: 0;
+}
+
+.board-column--left {
+  grid-column: 1;
+}
+
+.board-column--middle {
+  grid-column: 3;
+}
+
+.board-column-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-surface);
+  box-shadow: var(--fc-shadow-sm);
+}
+
+.board-column-header h2 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.board-column--left .board-column-header h2 {
+  color: var(--fc-brand-strong);
+}
+
+.board-column--middle .board-column-header h2 {
+  color: var(--fc-up);
+}
+
+.rank-shift-links {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.rank-link {
+  fill: none;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+
+.rank-link--up {
+  stroke: var(--fc-up);
+}
+
+.rank-link--down {
+  stroke: var(--fc-down);
+}
+
+.rank-link--same {
+  stroke: #cbd5e1;
+  stroke-width: 1.5;
+  opacity: 0.75;
+}
+
+.product-list {
+  display: grid;
+  gap: 8px;
+  padding: 1px;
+}
+
+.product-card {
+  display: grid;
+  grid-template-columns: auto 64px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 82px;
+  padding: 10px 12px;
+  border: 1px solid var(--fc-line);
+  border-radius: var(--fc-radius-md);
+  background: var(--fc-surface);
+  box-shadow: var(--fc-shadow-sm);
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.product-card--comparing {
+  grid-template-columns: auto auto 64px minmax(0, 1fr) auto;
+}
+
+.product-card:hover {
+  border-color: var(--fc-line-strong);
+  box-shadow: var(--fc-shadow-md);
+}
+
+.product-card--compare-selected {
+  border-color: var(--fc-brand);
+  box-shadow: 0 0 0 2px var(--fc-brand) inset;
+}
+
+.product-card--up {
+  border-left: 3px solid var(--fc-up);
+}
+
+.product-card--down {
+  border-left: 3px solid var(--fc-down);
+}
+
+.product-card--same {
+  border-left: 3px solid transparent;
+}
+
+/* Compare selection mode: a leading checkbox appears only while comparing.
+   Cards are clean by default — the entry point is the toolbar Compare button. */
+.compare-check {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.compare-check-box {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--fc-line-strong);
+  border-radius: 6px;
+  background: var(--fc-surface);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.compare-check:hover:not(:disabled) .compare-check-box {
+  border-color: var(--fc-brand);
+}
+
+.compare-check--selected .compare-check-box {
+  border-color: var(--fc-brand);
+  background: var(--fc-brand);
+}
+
+.compare-check:disabled {
+  cursor: not-allowed;
+}
+
+.compare-check:disabled .compare-check-box {
+  opacity: 0.35;
+}
+
+.compare-check:focus-visible {
+  outline: 3px solid rgba(29, 78, 216, 0.25);
+  outline-offset: 2px;
+}
+
+.compare-slot {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--fc-brand);
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.compare-slot:empty {
+  display: none;
+}
+
+.card-rank {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  min-width: 30px;
+}
+
+.card-rank-num {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: var(--fc-ink-2);
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.product-card--left .card-rank-num {
+  background: var(--fc-brand-soft);
+  color: var(--fc-brand-strong);
+}
+
+.product-card--right .card-rank-num {
+  background: var(--fc-up-soft);
+  color: var(--fc-up);
+}
+
+.card-rank-delta {
+  font-size: 0.6rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.card-rank-delta--up {
+  color: var(--fc-up);
+}
+
+.card-rank-delta--down {
+  color: var(--fc-down);
+}
+
+.card-rank-delta--same {
+  color: var(--fc-faint);
+}
+.card-photo {
+  display: grid;
+  place-items: center;
+}
+
+.product-photo-shell {
+  position: relative;
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--fc-radius-sm);
+  background: #f6f8fa;
+}
+
+.product-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 140ms ease;
+}
+
+.product-photo-shell--loading .product-photo,
+.product-photo-shell--error .product-photo {
+  opacity: 0;
+}
+
+.photo-state {
+  position: absolute;
+  color: var(--fc-muted);
+  font-size: 0.55rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.photo-state--error {
+  color: #9f1239;
+}
+
+.card-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.card-title-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+
+.card-title {
+  overflow: hidden;
+  color: var(--fc-ink);
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.derived-title-note {
+  display: inline-block;
+  flex: none;
+  padding: 1px 5px;
+  border: 1px solid var(--fc-line-strong);
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: var(--fc-muted);
+  font-size: 0.56rem;
+  font-weight: 800;
+}
+
+.card-features {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 1px;
+}
+
+.feature {
+  display: inline-flex;
+  gap: 3px;
+  align-items: baseline;
+}
+
+.feature small {
+  color: var(--fc-muted);
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.feature strong {
+  color: var(--fc-ink-2);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- star rating (To-C 5-star read of the 0–1 rating feature) ---- */
+.star-rating {
+  position: relative;
+  display: inline-block;
+  line-height: 1;
+  color: #f59e0b;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.star-rating-bg {
+  color: #e2e5ea;
+}
+
+.star-rating-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  color: #f59e0b;
+  white-space: nowrap;
+}
+
+/* ---- right-side metrics: score ---- */
+.card-metrics {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+  align-items: center;
+  min-width: 0;
+}
+
+.card-score {
+  display: inline-flex;
+  gap: 5px;
+  align-items: baseline;
+  white-space: nowrap;
+}
+
+.card-score small {
+  color: var(--fc-muted);
+  font-size: 0.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.card-score strong {
+  font-size: 0.78rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.card-score--semantic strong {
+  color: var(--fc-brand-strong);
+}
+
+.card-score--business strong {
+  color: var(--fc-up);
+}
+
+.empty-ranking {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+  padding: 14px;
+  border: 1px dashed var(--fc-line-strong);
+  border-radius: var(--fc-radius-md);
+  background: var(--fc-canvas);
+  color: var(--fc-muted);
+  font-size: 0.72rem;
+}
+
+.empty-ranking strong {
+  color: var(--fc-brand-strong);
+}
+
+/* Data-model panel: the Function Chain dataflow diagram. */
+.data-model-panel {
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid var(--fc-line);
+  border-radius: var(--fc-radius-md);
+  background: var(--fc-surface);
+  box-shadow: var(--fc-shadow-sm);
+}
+
+.data-model-body {
+  display: block;
+}
+
+/* ---- Product PK overlay ---- */
+.compare-overlay {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.compare-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 18, 32, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.compare-dialog {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(920px, 100%);
+  max-height: min(88vh, 860px);
+  overflow: hidden;
+  border: 1px solid #c9d4e5;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(10, 18, 32, 0.35);
+}
+
+.compare-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e3e7ee;
+  background: #f7f9fc;
+}
+
+.compare-dialog-title {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.compare-dialog-title strong {
+  color: #10263f;
+  font-size: 0.95rem;
+}
+
+.compare-dialog-title span {
+  overflow: hidden;
+  color: #5c6d82;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compare-close {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #c9d4e5;
+  border-radius: 8px;
+  background: #fff;
+  color: #44556b;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.compare-close:hover {
+  background: #eef2f7;
+  color: #10263f;
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1px;
+  overflow-y: auto;
+  padding: 12px 16px 16px;
+  background: #eef2f7;
+}
+
+.compare-corner {
+  background: transparent;
+}
+
+.compare-col-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #dfe5ee;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.compare-col-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.compare-col-copy strong {
+  overflow: hidden;
+  color: #14213a;
+  font-size: 0.82rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compare-col-copy code {
+  color: #5c6d82;
+  font-size: 0.6rem;
+}
+
+.compare-section {
+  display: contents;
+}
+
+.compare-section-heading {
+  grid-column: 1 / -1;
+  margin: 10px 0 0;
+  padding: 6px 0 4px;
+  color: var(--fc-brand-strong);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.compare-row {
+  display: contents;
+}
+
+.compare-row-label {
+  align-self: center;
+  padding: 7px 10px;
+  border: 1px solid #dfe5ee;
+  border-radius: 8px 0 0 8px;
+  background: #f7f9fc;
+  color: #44556b;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.compare-cell {
+  align-self: center;
+  padding: 7px 10px;
+  border: 1px solid #dfe5ee;
+  border-left: 0;
+  background: #fff;
+  color: #14213a;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.compare-cell:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+.compare-cell--diff {
+  background: var(--fc-brand-soft);
+  color: var(--fc-brand-strong);
+}
+
+.compare-win-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--fc-up);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.compare-win-badge {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--fc-up);
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 980px) {
+  .commerce-header {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .ranking-comparison-board {
+    grid-template-columns: minmax(0, 1fr) 60px minmax(0, 1fr);
+    padding: 8px;
+  }
+}
+
+@media (max-width: 700px) {
+  .function-chain-page {
+    width: min(100% - 12px, 1280px);
+    padding-top: 6px;
+  }
+
+  .commerce-header,
+  .search-console {
+    grid-template-columns: 1fr;
+  }
+
+  .ranking-comparison-board {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .board-column--left,
+  .board-column--middle {
+    grid-column: auto;
+  }
+
+  .rank-shift-links {
+    display: none;
+  }
+
+  .commerce-header {
+    display: grid;
+  }
+
+  .commerce-title {
+    grid-row: 1;
+  }
+
+  .commerce-identity {
+    grid-row: 2;
+  }
+
+  .search-console .search-submit {
+    min-height: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-card,
+  .product-photo {
+    scroll-behavior: auto;
+    transition: none;
+  }
+}

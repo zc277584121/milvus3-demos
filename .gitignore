@@ -1,0 +1,18 @@
+.env
+.venv/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+artifacts/
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.vite/
+.cc-use/
+.memsearch/
+
+# Placeholder product images are intentionally not committed; see the README.
+demos/function-chain-rerank/data/synthetic-commerce-catalog-r1/images/
