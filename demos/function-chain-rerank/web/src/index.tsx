@@ -490,15 +490,19 @@ const STEP_FLOW: Record<
   price_affinity: { inputs: ["display_price_usd"], output: "price_affinity" },
   freshness: { inputs: ["release_epoch"], output: "freshness" },
   xgboost_rerank: {
-    inputs: ["$score", "rating", "popularity", "price_affinity", "freshness"],
+    // The vector-search similarity ($score) is rounded into
+    // normalized_semantic_score before XGBoost consumes it, so the model reads
+    // `semantic_score` and writes a new `$score`. Listing the input as $score
+    // would make the node look like a self-loop.
+    inputs: ["semantic_score", "rating", "popularity", "price_affinity", "freshness"],
     output: "$score",
   },
 };
 
 // Map each raw schema field to the step that consumes it (used for hovering a
 // field row and highlighting the consuming step, and vice versa). The
-// embedding column feeds the vector-search similarity (surfaced as $score),
-// which the XGBoost step reads directly.
+// embedding column feeds the vector-search similarity (surfaced as $score and
+// rounded to normalized_semantic_score), which the XGBoost step reads.
 const FIELD_TO_STEP: Record<string, string> = {
   clicks_30d: "popularity",
   sales_30d: "popularity",
@@ -1047,15 +1051,28 @@ const DAG_XGB_IN_Y: Record<string, number> = {
 const DAG_XGB_TOP_Y = DAG_XGB_Y - DAG_XGB_H / 2;
 
 // The two direct-to-xgboost pulls (embedding → $score, rating) skip the
-// feature-step column. Each climbs straight up from its field box and runs
-// rightward along its own horizontal "skyline" corridor above the step nodes,
-// then drops straight down onto the xgboost node's top edge. The two corridors
+// feature-step column. Each leaves its field box, rises into its own
+// horizontal "skyline" corridor above the step nodes, then descends onto the
+// xgboost node's top edge. A single cubic with vertical tangents at both ends
+// turns the rise/run/drop into one smooth rounded elbow (matching the bezier
+// language of the other edges), instead of hard 90° corners. The two corridors
 // are vertically separated and their drop points are ordered (rating drops
 // before embedding) so the lines never cross each other, never touch a step
 // node, and stay inside the viewBox.
 const DAG_DIRECT_PULL: Record<string, { corridor: number; dropX: number }> = {
-  embedding: { corridor: 84, dropX: 970 },
+  embedding: { corridor: 66, dropX: 975 },
   rating: { corridor: 100, dropX: 950 },
+};
+
+// The LEFT-edge port each source field plugs into on its consuming step node.
+// popularity is a two-input blend, so clicks_30d and sales_30d enter at two
+// separate ports (above and below the node's center) and stay distinguishable
+// all the way to the node instead of converging early.
+const DAG_PULL_PORT: Record<string, number> = {
+  display_price_usd: DAG_STEP_Y.price_affinity,
+  release_epoch: DAG_STEP_Y.freshness,
+  clicks_30d: DAG_STEP_Y.popularity - 18,
+  sales_30d: DAG_STEP_Y.popularity + 18,
 };
 
 function dagEdgePath(x1: number, y1: number, x2: number, y2: number): string {
@@ -1063,9 +1080,11 @@ function dagEdgePath(x1: number, y1: number, x2: number, y2: number): string {
   return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
 }
 
-// A direct pull edge skips the feature-step column along an orthogonal
-// "skyline" route: rise straight up from its field box, run rightward along
-// its corridor, then drop straight down onto the xgboost node's top edge.
+// A direct pull edge skips the feature-step column along a smooth rounded
+// "skyline" route: it rises straight up from its field box, runs rightward
+// along its corridor, then descends straight down onto the xgboost node's top
+// edge — a single cubic whose two control points sit at the corridor height,
+// giving vertical tangents at both endpoints.
 function dagPullOver(
   x1: number,
   y1: number,
@@ -1073,11 +1092,24 @@ function dagPullOver(
   dropX: number,
   dropY: number,
 ): string {
-  return `M ${x1} ${y1} L ${x1} ${corridor} L ${dropX} ${corridor} L ${dropX} ${dropY}`;
+  return `M ${x1} ${y1} C ${x1} ${corridor}, ${dropX} ${corridor}, ${dropX} ${dropY}`;
 }
 
 function stepColorHex(name: string): string {
   return STEP_COLORS[name]?.main ?? "#334762";
+}
+
+// The two raw fields that bypass the function column and feed XGBoost directly
+// (embedding/semantic score, rating) share one neutral "source feature" hue, so
+// orange stays reserved for the XGBoost node and its final $score output. This
+// keeps "orange data passes straight through the model" from being misread.
+const SOURCE_FEATURE_HEX = "#64748b";
+
+function fieldColorHex(name: string): string {
+  if (name === "embedding" || name === "rating") {
+    return SOURCE_FEATURE_HEX;
+  }
+  return stepColorHex(FIELD_TO_STEP[name]);
 }
 
 // The leading "source product card" is a pixel-identical replica of a real
@@ -1097,7 +1129,7 @@ const CARD_FIELDS: Array<{ name: string; simulated?: boolean }> = [
 
 function fieldBoxStyle(name: string): React.CSSProperties {
   return {
-    "--chip-color": stepColorHex(FIELD_TO_STEP[name]),
+    "--chip-color": fieldColorHex(name),
   } as React.CSSProperties;
 }
 
@@ -1222,12 +1254,14 @@ function buildDagEdges(
   d: string;
   color: string;
   kind: "flow" | "pull";
+  direct: boolean;
 }> {
   const edges: Array<{
     id: string;
     d: string;
     color: string;
     kind: "flow" | "pull";
+    direct: boolean;
   }> = [];
   for (const field of CARD_FIELDS) {
     const anchor = anchors.get(field.name);
@@ -1245,12 +1279,13 @@ function buildDagEdges(
     const d =
       step === "xgboost_rerank" && direct
         ? dagPullOver(x1, y1, direct.corridor, direct.dropX, DAG_XGB_TOP_Y)
-        : `M ${x1} ${y1} L ${DAG_STEP_X} ${DAG_STEP_Y[step]}`;
+        : `M ${x1} ${y1} L ${DAG_STEP_X} ${DAG_PULL_PORT[field.name] ?? DAG_STEP_Y[step]}`;
     edges.push({
       id: `card->${field.name}`,
       d,
-      color: stepColorHex(step),
+      color: fieldColorHex(field.name),
       kind: "pull",
+      direct: direct != null,
     });
   }
 
@@ -1260,11 +1295,12 @@ function buildDagEdges(
       d: dagEdgePath(
         DAG_STEP_R,
         DAG_STEP_Y[step],
-        DAG_XGB_X,
+        DAG_XGB_X - 4,
         DAG_XGB_IN_Y[step],
       ),
       color: stepColorHex(step),
       kind: "flow",
+      direct: false,
     });
   }
   edges.push({
@@ -1272,6 +1308,7 @@ function buildDagEdges(
     d: dagEdgePath(DAG_XGB_R, DAG_XGB_Y, DAG_OUT_X, DAG_OUT_Y),
     color: stepColorHex("xgboost_rerank"),
     kind: "flow",
+    direct: false,
   });
   return edges;
 }
@@ -1396,6 +1433,8 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
 
   function renderStepNode(step: ChainStep, x: number, y: number, h: number) {
     const stepActive = isStepActive(step.name);
+    const isXgb = step.name === "xgboost_rerank";
+    const xgbInputs = isXgb ? STEP_FLOW.xgboost_rerank.inputs : [];
     return (
       <foreignObject
         key={step.name}
@@ -1414,6 +1453,16 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
             <span className="flow-step-op">{step.operation}</span>
             <span className="flow-step-desc">{step.description}</span>
             <span className="flow-step-out">→ {step.output}</span>
+            {isXgb ? (
+              <span className="flow-step-inputs">
+                <span className="flow-step-inputs-title">inputs</span>
+                {xgbInputs.map((name) => (
+                  <span className="flow-step-input" key={name}>
+                    <code>{name}</code>
+                  </span>
+                ))}
+              </span>
+            ) : null}
           </div>
         </div>
       </foreignObject>
@@ -1427,6 +1476,25 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
       onMouseLeave={() => setHover(null)}
     >
       <div className="flow-dag">
+        <div className="flow-dag-head">
+          <span className="flow-dag-title">How result #1 is reranked</span>
+          <div className="flow-dag-legend" aria-hidden="true">
+            <span className="flow-dag-legend-item">
+              <svg viewBox="0 0 34 10" className="flow-dag-legend-line">
+                <line x1="1" y1="5" x2="31" y2="5" stroke="#7a8ba1" strokeWidth="2" strokeDasharray="3 4" />
+                <circle cx="31" cy="5" r="2.5" fill="#fff" stroke="#7a8ba1" strokeWidth="1.5" />
+              </svg>
+              <span className="flow-dag-legend-label">source feature input</span>
+            </span>
+            <span className="flow-dag-legend-item">
+              <svg viewBox="0 0 34 10" className="flow-dag-legend-line">
+                <line x1="1" y1="5" x2="25" y2="5" stroke="#7a8ba1" strokeWidth="2.25" />
+                <path d="M 25 1 L 33 5 L 25 9 Z" fill="#7a8ba1" />
+              </svg>
+              <span className="flow-dag-legend-label">processed data flow</span>
+            </span>
+          </div>
+        </div>
         <svg
           className="flow-dag-svg"
           viewBox={`0 0 ${DAG_VIEW_W} ${DAG_VIEW_H}`}
@@ -1435,15 +1503,15 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
           <defs>
             <marker
               id="dag-arrow"
-              viewBox="0 0 8 8"
-              refX="7"
-              refY="4"
-              markerWidth="7"
-              markerHeight="7"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="8"
+              markerHeight="8"
               markerUnits="userSpaceOnUse"
               orient="auto"
             >
-              <path d="M 0 0 L 8 4 L 0 8 Z" fill="#9aa8bc" />
+              <path d="M 0 0 L 10 5 L 0 10 Z" fill="context-stroke" />
             </marker>
           </defs>
 
@@ -1453,12 +1521,80 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
                 key={edge.id}
                 d={edge.d}
                 className={`flow-dag-edge${
-                  edge.kind === "pull" ? " flow-dag-edge--pull" : ""
+                  edge.kind === "pull"
+                    ? edge.direct
+                      ? " flow-dag-edge--pull flow-dag-edge--direct"
+                      : " flow-dag-edge--pull"
+                    : ""
                 }`}
                 data-edge={edge.id}
                 style={{ stroke: edge.color }}
               />
             ))}
+          </g>
+
+          {/* Port dots: every flow edge lands on a visible connector so lines
+              read as "plugged in" rather than "stopping at a border". */}
+          <g className="flow-dag-ports" aria-hidden="true">
+            {["popularity", "price_affinity", "freshness"].map((step) => (
+              <circle
+                key={`${step}-in`}
+                cx={DAG_XGB_X}
+                cy={DAG_XGB_IN_Y[step]}
+                r={3}
+                fill="#fff"
+                stroke={stepColorHex(step)}
+                strokeWidth={1.75}
+              />
+            ))}
+            <circle
+              cx={DAG_DIRECT_PULL.embedding.dropX}
+              cy={DAG_XGB_TOP_Y}
+              r={3}
+              fill="#fff"
+              stroke={SOURCE_FEATURE_HEX}
+              strokeWidth={1.75}
+            />
+            <circle
+              cx={DAG_DIRECT_PULL.rating.dropX}
+              cy={DAG_XGB_TOP_Y}
+              r={3}
+              fill="#fff"
+              stroke={SOURCE_FEATURE_HEX}
+              strokeWidth={1.75}
+            />
+            <circle
+              cx={DAG_STEP_X}
+              cy={DAG_STEP_Y.price_affinity}
+              r={3}
+              fill="#fff"
+              stroke={stepColorHex("price_affinity")}
+              strokeWidth={1.75}
+            />
+            <circle
+              cx={DAG_STEP_X}
+              cy={DAG_STEP_Y.freshness}
+              r={3}
+              fill="#fff"
+              stroke={stepColorHex("freshness")}
+              strokeWidth={1.75}
+            />
+            <circle
+              cx={DAG_STEP_X}
+              cy={DAG_STEP_Y.popularity - 18}
+              r={3}
+              fill="#fff"
+              stroke={stepColorHex("popularity")}
+              strokeWidth={1.75}
+            />
+            <circle
+              cx={DAG_STEP_X}
+              cy={DAG_STEP_Y.popularity + 18}
+              r={3}
+              fill="#fff"
+              stroke={stepColorHex("popularity")}
+              strokeWidth={1.75}
+            />
           </g>
 
           {/* Column 0: the source product card, a pixel-identical replica of

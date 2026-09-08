@@ -277,6 +277,7 @@
 
 /* ---- the DAG canvas ---- */
 .flow-dag {
+  position: relative;
   width: 100%;
   border: 1px solid #dbe4f0;
   border-radius: 12px;
@@ -290,25 +291,86 @@
   height: auto;
 }
 
+/* The derived-feature flow (step → xgboost → final score) is the diagram's
+   primary narrative: thicker, deeper, and pointed with a real arrowhead. */
 .flow-dag-edge {
   fill: none;
-  stroke-width: 1.75;
+  stroke-width: 2.25;
   stroke-linecap: round;
-  opacity: 0.55;
+  stroke-linejoin: round;
+  opacity: 0.85;
   marker-end: url(#dag-arrow);
 }
 
 .flow-dag-edge:hover {
-  opacity: 0.9;
+  opacity: 1;
 }
 
 /* The "pull" ties from the source card to its raw-field chips are reads, not
-   data flow: dashed, no arrowhead. */
+   data flow: dashed and thinner, but still clearly visible against the flow. */
 .flow-dag-edge--pull {
   stroke-width: 1.5;
   stroke-dasharray: 3 4;
   opacity: 0.7;
   marker-end: none;
+}
+
+/* The two direct-to-model source features are as load-bearing as the derived
+   flows, so keep them a notch more present than the other reads. */
+.flow-dag-edge--direct {
+  opacity: 0.8;
+}
+
+/* The diagram's header row: a narrative title on the left and a line-style
+   legend on the right, so the figure explains itself before the reader traces
+   any edge. */
+.flow-dag-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #eef2f7;
+  background: #fbfcfe;
+}
+
+.flow-dag-title {
+  color: #2a3a51;
+  font-size: 0.82rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* A compact legend decoding the two line styles. */
+.flow-dag-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.flow-dag-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.flow-dag-legend-line {
+  width: 34px;
+  height: 10px;
+  display: block;
+}
+
+.flow-dag-legend-label {
+  color: #5c6d82;
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Port dots: the visible connectors where flow edges plug into nodes. */
+.flow-dag-ports {
+  pointer-events: none;
 }
 
 /* A full-bleed host so the interactive chip/node inside each <foreignObject>
@@ -486,6 +548,42 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.62rem;
   font-weight: 700;
+}
+
+/* The XGBoost node lists its five named inputs as a labeled grid, turning
+   "combines the five features" into a verifiable claim instead of one the
+   reader must count. */
+.flow-step-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 8px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed
+    color-mix(in srgb, var(--chip-color, #d6deea) 40%, transparent);
+}
+
+.flow-step-inputs-title {
+  flex-basis: 100%;
+  color: #8a99ad;
+  font-size: 0.56rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.flow-step-input {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.flow-step-input code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #5c6d82;
+  font-size: 0.62rem;
+  font-weight: 650;
+  white-space: nowrap;
 }
 
 /* ---- shared code panel (revealed on hover) ---- */
