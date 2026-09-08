@@ -1004,54 +1004,76 @@ function StepGraphic({
 // are boxed in place over the real store-card markup, so their *vertical*
 // centers are measured at runtime (like RankShiftLinks) rather than fixed here.
 const DAG_VIEW_W = 1320;
-const DAG_VIEW_H = 300;
+const DAG_VIEW_H = 400;
 const DAG_CARD_X = 14;
-const DAG_CARD_W = 460;
-const DAG_CARD_R = DAG_CARD_X + DAG_CARD_W;
-const DAG_CARD_TOP = 20;
-const DAG_CARD_H = 150;
-const DAG_STEP_X = 540;
-const DAG_STEP_W = 264;
+const DAG_CARD_W = 470;
+const DAG_CARD_TOP = 24;
+const DAG_CARD_H = 190;
+const DAG_STEP_X = 560;
+const DAG_STEP_W = 250;
 const DAG_STEP_R = DAG_STEP_X + DAG_STEP_W;
-const DAG_XGB_X = 860;
-const DAG_XGB_W = 264;
+const DAG_XGB_X = 890;
+const DAG_XGB_W = 250;
 const DAG_XGB_R = DAG_XGB_X + DAG_XGB_W;
-const DAG_OUT_X = 1180;
-const DAG_OUT_W = 114;
-const DAG_OUT_R = DAG_OUT_X + DAG_OUT_W;
+const DAG_OUT_X = 1160;
+const DAG_OUT_W = 110;
 const DAG_CHIP_H = 40;
-const DAG_STEP_H = 88;
-const DAG_XGB_H = 96;
+const DAG_STEP_H = 72;
+const DAG_XGB_H = 200;
 
-// Vertical centers for the three feature-producing steps and the xgboost/
-// output column. The source card's six boxed fields anchor their own pull
-// edges at measured y-coordinates, so these only need to spread out nicely to
-// the right of the card.
+// Vertical centers for the three feature-producing steps, ordered TOP-TO-BOTTOM
+// to match the order their source fields appear on the card (price near the
+// top, release in the middle, clicks/sales at the bottom). This makes the six
+// pull edges fan out monotonically and never cross. Centers are 84px apart with
+// 72px-tall nodes, leaving a 12px clear gap — no vertical overlap.
 const DAG_STEP_Y: Record<string, number> = {
-  popularity: 70,
-  price_affinity: 130,
-  freshness: 190,
+  price_affinity: 150,
+  freshness: 234,
+  popularity: 318,
 };
-const DAG_XGB_Y = 130;
-const DAG_OUT_Y = 130;
+const DAG_XGB_Y = 230;
+const DAG_OUT_Y = 230;
+
+// Inbound ports on the xgboost node. The three feature flows enter the LEFT
+// edge at heights that keep them near-horizontal (sorted the same way as their
+// source steps, so they never cross). The two direct pulls (embedding → $score,
+// rating) arc OVER the feature column and land on the node's TOP edge at two
+// well-separated x positions.
+const DAG_XGB_IN_Y: Record<string, number> = {
+  price_affinity: 160,
+  freshness: 234,
+  popularity: 308,
+};
+const DAG_XGB_TOP_Y = DAG_XGB_Y - DAG_XGB_H / 2;
+
+// The two direct-to-xgboost pulls (embedding → $score, rating) skip the
+// feature-step column. Each climbs straight up from its field box and runs
+// rightward along its own horizontal "skyline" corridor above the step nodes,
+// then drops straight down onto the xgboost node's top edge. The two corridors
+// are vertically separated and their drop points are ordered (rating drops
+// before embedding) so the lines never cross each other, never touch a step
+// node, and stay inside the viewBox.
+const DAG_DIRECT_PULL: Record<string, { corridor: number; dropX: number }> = {
+  embedding: { corridor: 84, dropX: 970 },
+  rating: { corridor: 100, dropX: 950 },
+};
 
 function dagEdgePath(x1: number, y1: number, x2: number, y2: number): string {
   const dx = Math.max(40, (x2 - x1) * 0.5);
   return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
 }
 
-// A pull edge bound straight for xgboost skips the middle feature-step column,
-// so it arcs beneath those nodes instead of crossing their text.
-function dagPullBelow(
+// A direct pull edge skips the feature-step column along an orthogonal
+// "skyline" route: rise straight up from its field box, run rightward along
+// its corridor, then drop straight down onto the xgboost node's top edge.
+function dagPullOver(
   x1: number,
   y1: number,
-  x2: number,
-  y2: number,
-  floor: number,
+  corridor: number,
+  dropX: number,
+  dropY: number,
 ): string {
-  const midX = (x1 + x2) / 2;
-  const c = Math.max(floor, Math.max(y1, y2) + 20);
-  return `M ${x1} ${y1} C ${midX} ${c}, ${midX} ${c}, ${x2} ${y2}`;
+  return `M ${x1} ${y1} L ${x1} ${corridor} L ${dropX} ${corridor} L ${dropX} ${dropY}`;
 }
 
 function stepColorHex(name: string): string {
@@ -1187,11 +1209,15 @@ function FlowProductCard({
 
 // The DAG's edges, colored by the step each one belongs to (a pull edge takes
 // its consuming step's hue; a feature edge keeps its producing step's hue).
-// Six dashed "pull" ties run from the card's boxed fields straight into the
-// step that consumes them; four solid flow edges chain the features through
-// XGBoost to the final $score. Direct-to-xgboost pulls (embedding/rating) are
-// read at the xgboost node's center, so their tie lands on the node itself.
-function buildDagEdges(anchors: Map<string, number>): Array<{
+// Six dashed "pull" ties run from the card's boxed fields into the step that
+// consumes them; four solid flow edges chain the features through XGBoost to
+// the final $score. Pull edges start at each field box's own right edge
+// (measured at runtime, so ties hug their box even as the card wraps), while
+// the two direct-to-xgboost pulls (embedding, rating) arc OVER the feature
+// column and land on the xgboost node's top edge.
+function buildDagEdges(
+  anchors: Map<string, { x: number; y: number }>,
+): Array<{
   id: string;
   d: string;
   color: string;
@@ -1204,17 +1230,22 @@ function buildDagEdges(anchors: Map<string, number>): Array<{
     kind: "flow" | "pull";
   }> = [];
   for (const field of CARD_FIELDS) {
-    const y = anchors.get(field.name);
-    if (typeof y !== "number") {
+    const anchor = anchors.get(field.name);
+    if (!anchor) {
       continue;
     }
     const step = FIELD_TO_STEP[field.name];
-    // Fields bound straight for xgboost (embedding, rating) dip below the
-    // feature-step column so their tie never crosses a node's label.
+    const x1 = anchor.x;
+    const y1 = anchor.y;
+    // Fields bound straight for xgboost (embedding, rating) skip the
+    // feature-step column along their own skyline corridor and land on the
+    // xgboost node's top edge, so their tie never crosses a node's label and
+    // never leaves the viewBox.
+    const direct = DAG_DIRECT_PULL[field.name];
     const d =
-      step === "xgboost_rerank"
-        ? dagPullBelow(DAG_CARD_R, y, DAG_XGB_X, DAG_XGB_Y, 420)
-        : `M ${DAG_CARD_R} ${y} L ${DAG_STEP_X} ${DAG_STEP_Y[step]}`;
+      step === "xgboost_rerank" && direct
+        ? dagPullOver(x1, y1, direct.corridor, direct.dropX, DAG_XGB_TOP_Y)
+        : `M ${x1} ${y1} L ${DAG_STEP_X} ${DAG_STEP_Y[step]}`;
     edges.push({
       id: `card->${field.name}`,
       d,
@@ -1226,7 +1257,12 @@ function buildDagEdges(anchors: Map<string, number>): Array<{
   for (const step of ["popularity", "price_affinity", "freshness"]) {
     edges.push({
       id: `${step}->xgboost_rerank`,
-      d: dagEdgePath(DAG_STEP_R, DAG_STEP_Y[step], DAG_XGB_X, DAG_XGB_Y),
+      d: dagEdgePath(
+        DAG_STEP_R,
+        DAG_STEP_Y[step],
+        DAG_XGB_X,
+        DAG_XGB_IN_Y[step],
+      ),
       color: stepColorHex(step),
       kind: "flow",
     });
@@ -1242,14 +1278,18 @@ function buildDagEdges(anchors: Map<string, number>): Array<{
 
 function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
   const [hover, setHover] = useState<HoverTarget>(null);
-  const [anchors, setAnchors] = useState<Map<string, number> | null>(null);
+  const [anchors, setAnchors] = useState<
+    Map<string, { x: number; y: number }> | null
+  >(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const steps = comparison.function_chain.chain_steps;
 
   // The six in-place field boxes live inside a <foreignObject>, so their
-  // vertical centers are measured at runtime (like RankShiftLinks) and scaled
-  // from DOM px into viewBox units. The card top is DAG_CARD_TOP in viewBox
-  // space; a box's px offset is scaled by DAG_VIEW_W / renderedWidth.
+  // centers are measured at runtime (like RankShiftLinks) and scaled from DOM
+  // px into viewBox units. The card top is DAG_CARD_TOP in viewBox space; a
+  // box's px offset is scaled by DAG_VIEW_W / renderedWidth. Each anchor stores
+  // the box's horizontal CENTER (y) and RIGHT EDGE (x), so pull edges start on
+  // the box's own edge rather than the card's fixed right border.
   useLayoutEffect(() => {
     function measure() {
       const svg = svgRef.current;
@@ -1265,8 +1305,9 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
       }
       const rect = svg.getBoundingClientRect();
       const scale = rect.width > 0 ? DAG_VIEW_W / rect.width : 1;
+      const cardLeft = card.getBoundingClientRect().left;
       const cardTop = card.getBoundingClientRect().top;
-      const next = new Map<string, number>();
+      const next = new Map<string, { x: number; y: number }>();
       for (const field of CARD_FIELDS) {
         const box = card.querySelector<HTMLElement>(
           `[data-card-field="${field.name}"]`,
@@ -1276,7 +1317,11 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
         }
         const boxRect = box.getBoundingClientRect();
         const centerPx = boxRect.top + boxRect.height / 2 - cardTop;
-        next.set(field.name, DAG_CARD_TOP + centerPx * scale);
+        const rightPx = boxRect.right - cardLeft;
+        next.set(field.name, {
+          x: DAG_CARD_X + rightPx * scale,
+          y: DAG_CARD_TOP + centerPx * scale,
+        });
       }
       setAnchors(next);
     }
