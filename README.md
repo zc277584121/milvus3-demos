@@ -40,34 +40,102 @@ the public domain under CC0 1.0.
 See [`demos/function-chain-rerank/README.md`](demos/function-chain-rerank/README.md) for the full
 provenance, model contracts, and API reference.
 
+### Demo 2 — EmbeddingList MAX_SIM NASA Handbook Retrieval
+
+A 40-page selection from the **NASA Systems Engineering Handbook, NASA/SP-2016-6105 Rev 2**
+retrieved with real ColSmol multi-vector embeddings and Milvus 3.0 `EmbeddingList`
+`MAX_SIM_COSINE` search.
+
+Page patches and query tokens are both 128-dimensional. Milvus ranks pages by the maximum cosine
+similarity between query tokens and page patches; the demo also computes a local spatial
+explanation (token matches, patch traces, and heatmaps) from the same real vectors — this
+explanation is produced application-side and never returned by Milvus.
+
+```text
+FastAPI → ColSmol CPU page/query multi-vectors
+        → Milvus EmbeddingList (patches[patch_embedding]) MAX_SIM_COSINE
+        → local MaxSim scoring + spatial explanation for the Top 3
+```
+
+**Data.** The tracked production dataset is the NASA handbook PDF plus 40 unmodified rendered
+pages, recorded with NTRS source metadata, rights determination `PUBLIC_USE_PERMITTED`, and a
+complete SHA-256 manifest. NASA does not endorse Milvus or this demo.
+
+See [`demos/embedding-list-max-sim/README.md`](demos/embedding-list-max-sim/README.md) for the
+fixed NTRS source contract, model contract, and API reference.
+
+### Demo 3 — StructArray Parent + Child Semantic Hybrid
+
+One query, one model, three answers. A driving-video dataset is stored as a Milvus 3.0
+`ARRAY<STRUCT>` row per parent (video) with its fine child records (object observations), and one
+semantic query is answered three ways:
+
+1. **Parent-only** — search the `summary_vector` field;
+2. **Child-only** — search the nested `observations[description_vector]` element field and group
+   every hit back to one `video_id`;
+3. **Fused** — collapse each parent's best three child scores (`topk_sum(3)`) and weighted-rerank
+   against the parent route with `WeightedRanker`.
+
+The query is embedded at request time by a CPU-only quantized BGE-M3 ONNX model; no external
+embedding API and no precomputed companion-vector file are used.
+
+```text
+Browser → StructArray FastAPI
+        → BGE-M3 ONNX (CPU) query embedding (1024 dims)
+        → summary_vector                           parent-only search
+        → observations[description_vector] + group_by_field=video_id
+        → WeightedRanker + element_scope collapse(topk_sum, 3)
+```
+
+**Data.** The CoVLA driving-video source is gated to academic/non-commercial use and is **not
+committed** to this repository. This demo publishes code only; the source JSON, vectors, model
+weights, and credentials must be supplied out-of-tree and are never redistributed or served.
+Review the current authoritative CoVLA terms before any public deployment or commercial use.
+
+See [`demos/structarray-search/README.md`](demos/structarray-search/README.md) for the full
+schema, source-data contract, and use restrictions.
+
 ## Repository layout
 
 ```text
-demos/function-chain-rerank/   Demo 1: backend, web UI, and synthetic catalog
-packages/python/milvus-demo-common/   shared settings and Milvus health probe
-packages/web/demo-ui/                 shared UI primitives (badge, page frame)
-infra/function-chain-rerank/          Docker Compose for the isolated backend
+demos/function-chain-rerank/        Demo 1: backend, web UI, and synthetic catalog
+demos/embedding-list-max-sim/       Demo 2: backend, web UI, and NASA handbook dataset
+demos/structarray-search/           Demo 3: backend and web UI (code only, no CoVLA data)
+packages/python/milvus-demo-common/ shared settings and Milvus health probe
+packages/web/demo-ui/               shared UI primitives (badge, page frame)
+infra/function-chain-rerank/        Docker Compose for the isolated rerank backend
+infra/embedding-list-max-sim/       Docker Compose for the isolated ColSmol backend
+infra/structarray-search/           Docker Compose for the isolated hybrid backend
 ```
 
 ## Quick start
 
-The demo requires Milvus 3.0.0, a Hugging Face hub cache for the frozen BGE-M3 ONNX encoder, and
-MinIO-backed FileResource storage. See the
-[backend README](demos/function-chain-rerank/README.md) for the full prerequisites and contracts.
+Each demo has its own prerequisites and fixed runtime boundary. Demo 1 requires Milvus 3.0.0 and
+MinIO-backed FileResource storage; Demo 2 requires a local offline ColSmol model cache; Demo 3
+requires the gated CoVLA dataset and a local BGE-M3 ONNX model cache. See each demo's README for
+the full contracts.
 
 ```bash
 # Install Python and Node dependencies
 make bootstrap
 
-# Verify the synthetic catalog metadata offline
+# Verify each demo's dataset metadata offline
 make function-chain-rerank-data-check
+make embedding-list-max-sim-data-check
+make structarray-search-data-check
 ```
 
 ## License
 
-Project-authored catalog metadata and text: CC0 1.0
+Project-authored catalog metadata, text, and synthetic images: CC0 1.0
 (https://creativecommons.org/publicdomain/zero/1.0/). See
 [`demos/function-chain-rerank/data/synthetic-commerce-catalog-r1/LICENSE-CONFLICT.md`](demos/function-chain-rerank/data/synthetic-commerce-catalog-r1/LICENSE-CONFLICT.md)
 and
 [`demos/function-chain-rerank/data/synthetic-commerce-catalog-r1/NOTICE.md`](demos/function-chain-rerank/data/synthetic-commerce-catalog-r1/NOTICE.md)
 for the dataset-specific notice and license record.
+
+The Demo 2 NASA Systems Engineering Handbook is a U.S. Government work with NTRS rights
+determination `PUBLIC_USE_PERMITTED`; it is redistributed as the official, unmodified PDF and
+page renders with full source metadata. Demo 3 publishes no third-party data, model weights, or
+vectors — only project-authored source code.
+

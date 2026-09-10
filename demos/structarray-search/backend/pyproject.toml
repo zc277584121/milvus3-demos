@@ -1,0 +1,43 @@
+[project]
+name = "structarray-demo"
+version = "3.0.0"
+description = "StructArray parent + child semantic hybrid search demo backend"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "fastapi>=0.116,<1",
+    "milvus-demo-common",
+    "numpy>=1.26,<3",
+    "onnxruntime>=1.19,<2",
+    "tokenizers>=0.20,<1",
+    "uvicorn>=0.35,<1",
+]
+
+[project.scripts]
+structarray-hybrid = "structarray_hybrid_demo.cli:main"
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28,<1",
+    "pytest>=8,<9",
+    "ruff>=0.11,<1",
+]
+
+[tool.uv.sources]
+milvus-demo-common = { path = "../../../packages/python/milvus-demo-common", editable = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/structarray_hybrid_demo"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

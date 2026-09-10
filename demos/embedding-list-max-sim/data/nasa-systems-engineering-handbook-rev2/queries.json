@@ -1,0 +1,119 @@
+{
+  "dataset_id": "nasa-systems-engineering-handbook-rev2",
+  "dataset_revision": "NASA/SP-2016-6105 Rev 2",
+  "queries": [
+    {
+      "hard_negatives": [
+        {
+          "confusion_reason": "This related process consumes baselined stakeholder expectations but converts them into technical requirements.",
+          "page_id": "nasa-seh-printed-064"
+        }
+      ],
+      "query_id": "Q01",
+      "target_page_ids": [
+        "nasa-seh-printed-053"
+      ],
+      "target_rationale": "The page starts with customer and stakeholder expectations and follows identification, elicitation, analysis, validation, and baselining before downstream technical work.",
+      "text": "How should systems engineers identify stakeholders, elicit their needs, validate expectations against operational scenarios, and baseline the result before defining technical requirements?"
+    },
+    {
+      "hard_negatives": [
+        {
+          "confusion_reason": "Logical decomposition allocates derived requirements but is a general process flow rather than the requested hierarchy.",
+          "page_id": "nasa-seh-printed-073"
+        }
+      ],
+      "query_id": "Q02",
+      "target_page_ids": [
+        "nasa-seh-printed-068"
+      ],
+      "target_rationale": "The hierarchy depicts system requirements transformed into subsystem requirements and then allocated and derived requirements.",
+      "text": "How are system-level requirements flowed down into allocated and derived subsystem requirements while maintaining traceability to their parent requirements?"
+    },
+    {
+      "hard_negatives": [
+        {
+          "confusion_reason": "Product validation covers realistic use but does not provide the same side-by-side distinction.",
+          "page_id": "nasa-seh-printed-117"
+        }
+      ],
+      "query_id": "Q03",
+      "target_page_ids": [
+        "nasa-seh-printed-103"
+      ],
+      "target_rationale": "The page contrasts controlled requirement-based evidence with realistic-use evidence tied to the operational concept.",
+      "text": "What evidence should engineers collect to show both that a built product conforms to its specified requirements and that typical users can succeed with it in a realistic operational setting?"
+    },
+    {
+      "hard_negatives": [
+        {
+          "confusion_reason": "The overall risk workflow does not define the internal scenario triplet requested.",
+          "page_id": "nasa-seh-printed-163"
+        }
+      ],
+      "query_id": "Q04",
+      "target_page_ids": [
+        "nasa-seh-printed-161"
+      ],
+      "target_rationale": "The diagrams connect initiating events and scenario models with likelihood and consequence uncertainty.",
+      "text": "How should a team structure a technical risk so that initiating events, uncertain likelihood, and uncertain consequences can be analyzed together?"
+    },
+    {
+      "hard_negatives": [
+        {
+          "confusion_reason": "The overall configuration-management workflow lacks the detailed actors and decision sequence.",
+          "page_id": "nasa-seh-printed-168"
+        }
+      ],
+      "query_id": "Q05",
+      "target_page_ids": [
+        "nasa-seh-printed-172"
+      ],
+      "target_rationale": "The diagram follows a change through originator, configuration-management, reviewer, board, and actionee responsibilities.",
+      "text": "After someone proposes a baseline change, what sequence of review, board decision, release, implementation, and status accounting should control it?"
+    },
+    {
+      "hard_negatives": [
+        {
+          "confusion_reason": "The high-level decision workflow lacks the robustness and uncertainty-reduction loop.",
+          "page_id": "nasa-seh-printed-193"
+        }
+      ],
+      "query_id": "Q06",
+      "target_page_ids": [
+        "nasa-seh-printed-195"
+      ],
+      "target_rationale": "The diagram combines qualitative, quantitative, and risk analysis, tests ranking robustness, and applies a net-benefit gate.",
+      "text": "When competing engineering alternatives rank closely, how can qualitative and quantitative analysis be combined to decide whether further uncertainty reduction is worthwhile?"
+    },
+    {
+      "hard_negatives": [
+        {
+          "confusion_reason": "This also depicts a space system but as an abstract data-flow diagram rather than a drawn flight trajectory.",
+          "page_id": "nasa-seh-printed-112"
+        }
+      ],
+      "query_id": "Q07",
+      "target_page_ids": [
+        "nasa-seh-printed-060"
+      ],
+      "target_rationale": "The pictorial mission scenario draws the flight path from Earth orbit to the lunar surface with spacecraft figures rather than descriptive text.",
+      "text": "Which diagram shows a spacecraft traveling from Earth orbit down to a lunar landing site along a drawn flight trajectory?"
+    },
+    {
+      "hard_negatives": [
+        {
+          "confusion_reason": "This is a graphic loop of successive refinement rather than a labeled x-y cost-effectiveness curve.",
+          "page_id": "nasa-seh-printed-079"
+        }
+      ],
+      "query_id": "Q08",
+      "target_page_ids": [
+        "nasa-seh-printed-083"
+      ],
+      "target_rationale": "The cost-effectiveness chart draws a labeled x-y curve that rises with cost versus effectiveness.",
+      "text": "Which chart plots a curve that rises as cost increases against effectiveness, with labeled axes?"
+    }
+  ],
+  "schema_version": 2
+}

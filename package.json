@@ -4,7 +4,9 @@
   "private": true,
   "workspaces": [
     "packages/web/demo-ui",
-    "demos/function-chain-rerank/web"
+    "demos/function-chain-rerank/web",
+    "demos/embedding-list-max-sim/web",
+    "demos/structarray-search/web"
   ],
   "scripts": {
     "format:check": "prettier --check \"{demos,packages}/**/*.{css,html,json,ts,tsx}\" \"*.{json,ts}\"",

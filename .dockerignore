@@ -22,3 +22,5 @@ data
 datasets
 !demos/function-chain-rerank/data/
 !demos/function-chain-rerank/data/**
+!demos/embedding-list-max-sim/data/
+!demos/embedding-list-max-sim/data/**

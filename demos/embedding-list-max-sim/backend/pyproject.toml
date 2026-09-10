@@ -1,0 +1,56 @@
+[project]
+name = "embedding-list-demo"
+version = "0.1.0"
+description = "Independent backend boundary for the EmbeddingList MAX_SIM demo"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "accelerate>=1,<2",
+    "colpali-engine==0.3.17",
+    "fastapi>=0.116,<1",
+    "milvus-demo-common",
+    "numpy>=1.26,<3",
+    "pillow>=11,<13",
+    "pymupdf==1.28.2",
+    "safetensors>=0.5,<1",
+    "torch==2.7.1",
+    "torchvision==0.22.1",
+    "uvicorn>=0.35,<1",
+]
+
+[project.scripts]
+embedding-list-lifecycle = "embedding_list_demo.cli:main"
+embedding-list-dataset = "embedding_list_demo.manual:main"
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28,<1",
+    "pytest>=8,<9",
+    "ruff>=0.11,<1",
+]
+
+[tool.uv.sources]
+milvus-demo-common = { path = "../../../packages/python/milvus-demo-common", editable = true }
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/embedding_list_demo"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

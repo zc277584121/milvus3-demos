@@ -1,0 +1,24 @@
+name: milvus3-demos-structarray-search
+
+services:
+  backend:
+    container_name: milvus3-demos-structarray-search-backend
+    image: milvus3-demos/structarray-search:local
+    build:
+      context: ../..
+      dockerfile: demos/structarray-search/Dockerfile
+    environment:
+      COVLA_DATA_DIR: /data/covla
+      STRUCTARRAY_PORT: "48030"
+      STRUCTARRAY_RUNTIME_DIR: /workspace/artifacts/runtime/structarray-search
+      HF_HUB_CACHE: /model-cache/huggingface/hub
+    network_mode: host
+    volumes:
+      - ${COVLA_DATA_DIR:?COVLA_DATA_DIR must be set to the approved CoVLA dataset root}:/data/covla:ro
+      - ${HF_HUB_CACHE_HOST:?HF_HUB_CACHE_HOST must be set to a local Hugging Face hub cache directory}:/model-cache/huggingface/hub:ro
+      - ../../artifacts/runtime/structarray-search:/workspace/artifacts/runtime/structarray-search
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    init: true
+    stop_grace_period: 30s

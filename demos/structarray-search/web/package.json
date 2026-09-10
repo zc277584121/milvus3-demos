@@ -1,0 +1,15 @@
+{
+  "name": "@milvus3-demos/structarray-search",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.tsx",
+  "scripts": {
+    "test": "vitest run --environment jsdom",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@milvus3-demos/demo-ui": "0.1.0",
+    "react": "^19.1.0"
+  }
+}

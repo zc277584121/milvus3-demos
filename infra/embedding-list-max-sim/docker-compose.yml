@@ -1,0 +1,27 @@
+name: milvus3-demos-embedding-list-max-sim
+
+services:
+  backend:
+    container_name: milvus3-demos-embedding-list-max-sim-backend
+    image: milvus3-demos/embedding-list-max-sim:local
+    user: "${EMBEDDING_LIST_UID:-1000}:${EMBEDDING_LIST_GID:-1000}"
+    build:
+      context: ../..
+      dockerfile: demos/embedding-list-max-sim/Dockerfile
+    environment:
+      COLSMOL_DEVICE: cpu
+      EMBEDDING_LIST_PORT: "48040"
+      EMBEDDING_LIST_RUNTIME_DIR: /workspace/artifacts/runtime/embedding-list-max-sim/volume/run
+      EMBEDDING_LIST_DATASET_DIR: /workspace/demos/embedding-list-max-sim/data/nasa-systems-engineering-handbook-rev2
+      HF_HUB_CACHE: /models/hub
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    network_mode: host
+    volumes:
+      - ${HF_HUB_CACHE_HOST:?HF_HUB_CACHE_HOST must be set to a local Hugging Face hub cache directory}:/models/hub:ro
+      - ../../artifacts/runtime/embedding-list-max-sim:/workspace/artifacts/runtime/embedding-list-max-sim/volume
+    read_only: true
+    tmpfs:
+      - /tmp:size=1g,mode=1777
+    init: true
+    stop_grace_period: 30s
