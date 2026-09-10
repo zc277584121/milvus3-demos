@@ -4,10 +4,6 @@ from pathlib import Path
 
 import pytest
 
-from function_chain_demo.synthetic_source import (
-    TARGET_TYPES,
-    TYPE_COLORS,
-)
 from function_chain_demo.catalog import DATASET
 from function_chain_demo.catalog_curation import (
     PARTIAL,
@@ -25,6 +21,11 @@ from function_chain_demo.dataset import (
     generate_dataset,
     load_dataset,
     simulated_signals,
+)
+from function_chain_demo.synthetic_source import (
+    PRODUCT_IMAGE_HEIGHT,
+    PRODUCT_IMAGE_WIDTH,
+    TARGET_TYPES,
 )
 from function_chain_demo.text_embedding import (
     cosine,
@@ -89,9 +90,7 @@ def test_fixed_source_inventory_and_jpeg_hashes_are_complete() -> None:
     assert len({item["selected_image_id"] for item in items}) == 240
     assert len({item["object_path"] for item in items}) == 240
     assert len({entry["path"] for entry in image_entries}) == 240
-    # Solid-color placeholders are identical within a product type (one color per
-    # type), so there are exactly 20 distinct image digests across the catalog.
-    assert len({entry["sha256"] for entry in image_entries}) == 20
+    assert len({entry["sha256"] for entry in image_entries}) == 240
     actual_type_counts = {
         product_type: sum(
             item["official_metadata"]["product_type"] == product_type for item in items
@@ -104,10 +103,11 @@ def test_fixed_source_inventory_and_jpeg_hashes_are_complete() -> None:
         "synthetic_authored_metadata"
     }
     assert all(
-        item["image_width"] == 640 and item["image_height"] == 480 for item in items
+        item["image_width"] == PRODUCT_IMAGE_WIDTH
+        and item["image_height"] == PRODUCT_IMAGE_HEIGHT
+        for item in items
     )
     assert {item["http_head"].get("media_type") for item in items} == {"image/jpeg"}
-    assert set(TYPE_COLORS) == set(TARGET_TYPES)
 
 
 def test_intent_curation_is_auditable_and_not_a_production_ranker() -> None:
@@ -169,7 +169,7 @@ def test_official_and_simulated_field_boundaries_are_reproducible() -> None:
     assert DATASET.manifest["simulation_boundary"]["real_transaction_data"] is False
     assert DATASET.manifest["simulation_boundary"]["real_product_metadata"] is False
     assert DATASET.manifest["simulation_boundary"]["real_product_photos"] is False
-    assert DATASET.manifest["simulation_boundary"]["placeholder_images"] is True
+    assert DATASET.manifest["simulation_boundary"]["synthetic_product_images"] is True
     assert DATASET.manifest["training"]["label_provenance"] == SIMULATED_FIELD
     profile_contract = DATASET.manifest["simulation_boundary"]["operational_profile_contract"]
     assert profile_contract["key"] == "item_id"
@@ -193,7 +193,8 @@ def test_queries_are_natural_and_training_is_grouped_without_answer_keys() -> No
         for query in DATASET.queries
     )
     assert {query.split for query in DATASET.queries} == {"train", "validation"}
-    assert len({(record.query_id, record.product_id) for record in DATASET.training_records}) == 1440
+    record_pairs = {(record.query_id, record.product_id) for record in DATASET.training_records}
+    assert len(record_pairs) == 1440
     assert all(
         record.split == split_by_query[record.query_id] for record in DATASET.training_records
     )
@@ -217,16 +218,16 @@ def test_queries_declare_expected_type_and_keep_it_ahead_of_operational_signals(
         assert sum(product.product_type == expected_type for product in vector_order[:6]) >= 5
 
 
-def test_notice_declares_synthetic_catalog_and_placeholder_images() -> None:
+def test_notice_declares_synthetic_catalog_and_generated_images() -> None:
     notice = (DEFAULT_DATASET_ROOT / "NOTICE.md").read_text()
     conflict = (DEFAULT_DATASET_ROOT / "LICENSE-CONFLICT.md").read_text()
 
     assert "Synthetic Commerce Catalog" in notice
     assert "not derived from any real retailer" in notice
-    assert "solid-color JPEG placeholder" in notice
+    assert "project-generated synthetic catalog rendering" in notice
     assert "CC0 1.0" in notice
     assert "https://creativecommons.org/publicdomain/zero/1.0/" in notice
-    assert "not product photographs" in conflict
+    assert "not real product photographs" in conflict
     assert DATASET.manifest["license"]["publication_review_required"] is False
     assert DATASET.manifest["license"]["development_controlling_spdx"] == "CC0-1.0"
 

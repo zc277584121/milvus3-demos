@@ -32,10 +32,10 @@ types) are not derived from any real retailer or public dataset, and all busines
 (price, rating, clicks, sales, release date) is simulated. Metadata and text are dedicated to
 the public domain under CC0 1.0.
 
-> **Note:** the 240 solid-color placeholder JPEGs are intentionally **not** committed to this
-> repository. The catalog metadata, hash manifests, and training records are included; images
-> will be added once final, clearly licensed product photography is available. Until then, the
-> strict loader's image validation will not pass.
+> **Note:** the 240 project-generated synthetic catalog images are committed to this repository.
+> They are 256×256 hash-pinned synthetic renderings, not photographs of real products, and are
+> dedicated to the public domain under CC0 1.0. The strict loader's image validation passes
+> against the checked-in `hash-manifest.sha256`.
 
 See [`demos/function-chain-rerank/README.md`](demos/function-chain-rerank/README.md) for the full
 provenance, model contracts, and API reference.

@@ -321,15 +321,24 @@
   opacity: 0.8;
 }
 
-/* The diagram's header row: a narrative title on the left and a line-style
-   legend on the right, so the figure explains itself before the reader traces
-   any edge. */
+/* The dashed direct pulls end with a short SOLID landing into their port dot so
+   the dash phase can never leave a white gap right before the connector. A
+   separate class (not .flow-dag-edge) so it never inflates the edge count. */
+.flow-dag-landing {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+
+/* The diagram's header row: a compact narrative title, with no legend, so the
+   canvas can start almost immediately below it. */
 .flow-dag-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 8px 14px;
+  padding: 6px 14px;
   border-bottom: 1px solid #eef2f7;
   background: #fbfcfe;
 }
@@ -339,32 +348,6 @@
   font-size: 0.82rem;
   font-weight: 750;
   letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
-/* A compact legend decoding the two line styles. */
-.flow-dag-legend {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.flow-dag-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.flow-dag-legend-line {
-  width: 34px;
-  height: 10px;
-  display: block;
-}
-
-.flow-dag-legend-label {
-  color: #5c6d82;
-  font-size: 0.68rem;
-  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -384,6 +367,49 @@
 
 .dag-node-host--output {
   justify-content: flex-start;
+}
+
+/* The final output chip: the XGBoost business score, styled exactly like the
+   "business" score on the rerank cards below (muted uppercase label + green
+   tabular value) so the diagram's last node reads as the same number the board
+   reports. */
+.flow-output-score {
+  display: inline-flex;
+  gap: 5px;
+  align-items: baseline;
+  flex: none;
+  width: max-content;
+  padding: 5px 12px;
+  border: 1px solid color-mix(in srgb, var(--fc-up) 45%, #ffffff);
+  border-radius: 999px;
+  background: var(--fc-up-soft);
+  white-space: nowrap;
+}
+
+.flow-output-score small {
+  flex: none;
+  color: var(--fc-muted);
+  font-size: 0.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.flow-output-score strong {
+  flex: none;
+  color: var(--fc-up);
+  font-size: 0.78rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The intermediate-feature data column spans its full reserved width, so the
+   incoming and outgoing horizontal hops plug into the chip's exact left/right
+   border (DAG_DATA_X / DAG_DATA_R) with no dead gap. The feature name centers
+   inside the pill. */
+.dag-node-host--data .flow-feature {
+  width: 100%;
+  box-sizing: border-box;
+  justify-content: center;
 }
 
 .dag-node-host--step .flow-step-node {
@@ -418,11 +444,6 @@
 
 .flow-feature code {
   font-weight: 850;
-}
-
-.flow-feature--final {
-  box-shadow: inset 0 0 0 1.5px var(--chip-color);
-  background: color-mix(in srgb, var(--chip-color) 10%, #ffffff);
 }
 
 .flow-feature.is-active {
@@ -474,14 +495,16 @@
     color-mix(in srgb, var(--chip-color, #4a90e2) 22%, transparent);
 }
 
-/* The photo box wraps the real 56px product photo without distorting it. */
-.flow-field-box--photo {
-  padding: 2px;
-  align-self: center;
-}
-
-.flow-field-box--photo .card-photo {
-  display: block;
+/* The semantic score chip is a real field box (it feeds XGBoost directly as
+   semantic_score) and gets a colored source port dot on its right edge, but its
+   outline is drawn in SVG (not CSS) so the ring and the pull line stay on
+   separate layers and never overlap. The chip itself carries its existing
+   `.card-score` typography and adds NO border/padding — any layout change would
+   grow the card's metrics column and re-warp the feature rows. */
+.flow-field-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
 }
 
 /* Simulated operational signals (clicks/sales) never appear on a real store
@@ -543,13 +566,6 @@
   line-height: 1.3;
 }
 
-.flow-step-out {
-  color: #6b7d94;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.62rem;
-  font-weight: 700;
-}
-
 /* The XGBoost node lists its five named inputs as a labeled grid, turning
    "combines the five features" into a verifiable claim instead of one the
    reader must count. */
@@ -596,7 +612,11 @@
   z-index: 20;
   top: 8px;
   right: 8px;
-  left: 8px;
+  /* Shrink-to-fit: the overlay hugs the right edge and is only as wide as the
+     code column + the right-hand diagram, so short snippets never leave a wide
+     dead band of dark background between the code and the graphic. */
+  width: fit-content;
+  max-width: calc(100% - 16px);
   border: 1px solid #d7e0ec;
   border-radius: 14px;
   overflow: hidden;
@@ -614,7 +634,7 @@
 
 .flow-code-panel-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, max-content) 300px;
 }
 
 .flow-code-panel-code {

@@ -12,18 +12,6 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Final
 
-from function_chain_demo.synthetic_source import (
-    SELECTION_VERSION,
-    STATIC_OBJECTS,
-    SYNTHETIC_IDENTITY_FIELD,
-    SYNTHETIC_IMAGE_FIELD,
-    SYNTHETIC_METADATA_FIELD,
-    canonical_json,
-    jpeg_dimensions,
-    selection_rule,
-    sha256_file,
-)
-from function_chain_demo.synthetic_catalog import build_items
 from function_chain_demo.business_profiles import (
     ITEM_PROFILE_NAMES,
     PROFILE_TEMPLATES,
@@ -50,6 +38,18 @@ from function_chain_demo.relevance_ground_truth import (
     GROUND_TRUTH_FILE,
     build_ground_truth,
     load_ground_truth,
+)
+from function_chain_demo.synthetic_catalog import build_items
+from function_chain_demo.synthetic_source import (
+    SELECTION_VERSION,
+    STATIC_OBJECTS,
+    SYNTHETIC_IDENTITY_FIELD,
+    SYNTHETIC_IMAGE_FIELD,
+    SYNTHETIC_METADATA_FIELD,
+    canonical_json,
+    jpeg_dimensions,
+    selection_rule,
+    sha256_file,
 )
 
 DATASET_ID: Final = "synthetic-commerce-catalog"
@@ -402,7 +402,7 @@ def product_provenance() -> dict[str, str]:
         "image_role": SOURCE_IMAGE_FIELD,
         "source_object_path": SOURCE_IMAGE_FIELD,
         "source_url": SOURCE_IMAGE_FIELD,
-        "image_path": "project_copy_of_hash_pinned_synthetic_placeholder_jpeg",
+        "image_path": "project_copy_of_hash_pinned_synthetic_generated_jpeg",
         "image_mime": SOURCE_IMAGE_FIELD,
         "image_width": SOURCE_IMAGE_FIELD,
         "image_height": SOURCE_IMAGE_FIELD,
@@ -473,10 +473,10 @@ descriptions, bullet points, colors, and all other metadata are authored by the
 milvus3-demos project for the Function Chain reranking demonstration. They are
 not derived from any real retailer, merchant, or public dataset.
 
-Every product image is a deterministic solid-color JPEG placeholder
-(640 x 480, baseline JPEG) and is not a product photograph. Placeholder images
-are labeled `synthetic-placeholder` in the source manifest; this revision must
-not be published as if it contained real product photography.
+Every product image is a 256 x 256 project-generated synthetic catalog rendering,
+not a photograph of a real product. Images are hash-pinned and labeled as synthetic
+generated product images in the source manifest. This revision must not be
+published as if it contained real product photography.
 
 Operational values (display price, rating, inventory, return rate, release age,
 clicks, and sales) are deterministic simulated signals and are labeled as such
@@ -492,12 +492,12 @@ def _conflict_notice() -> str:
     return """# License conflict record
 
 No license conflict applies to this revision. The catalog metadata and the
-solid-color placeholder images are authored by the milvus3-demos project and
+synthetic generated product images are produced for the milvus3-demos project and
 dedicated to the public domain under CC0 1.0 (`licenses/LICENSE.txt`).
 
 No third-party metadata, photography, or license texts are included, so there
 is no controlling third-party grant to re-check. A public release must still
-disclose that the images are synthetic placeholders and not product photographs.
+disclose that the images are synthetic renderings and not real product photographs.
 """
 
 
@@ -670,8 +670,8 @@ def generate_dataset(
             "real_product_metadata": False,
             "real_product_photos": False,
             "real_transaction_data": False,
-            "placeholder_images": True,
-            "placeholder_image_provenance": SOURCE_IMAGE_FIELD,
+            "synthetic_product_images": True,
+            "synthetic_product_image_provenance": SOURCE_IMAGE_FIELD,
             "derived_localized_title_summary_is_simulated": False,
             "derived_localized_title_summary_provenance": DERIVED_LOCALIZED_TITLE_FIELD,
             "label": SIMULATED_FIELD,
@@ -740,7 +740,8 @@ def generate_dataset(
             "prepare_command": (
                 "uv run python -m function_chain_demo.synthetic_source prepare "
                 "--cache ../../../artifacts/runtime/synthetic-commerce-catalog-r1/cache "
-                "--output ../../../artifacts/runtime/synthetic-commerce-catalog-r1/source-manifest.json"
+                "--output "
+                "../../../artifacts/runtime/synthetic-commerce-catalog-r1/source-manifest.json"
             ),
             "generate_command": (
                 "uv run python -m function_chain_demo.dataset generate "
@@ -842,8 +843,8 @@ def load_dataset(root: Path = DEFAULT_DATASET_ROOT) -> CatalogDataset:
         simulation.get("real_product_metadata") is not False
         or simulation.get("real_product_photos") is not False
         or simulation.get("real_transaction_data") is not False
-        or simulation.get("placeholder_images") is not True
-        or simulation.get("placeholder_image_provenance") != SOURCE_IMAGE_FIELD
+        or simulation.get("synthetic_product_images") is not True
+        or simulation.get("synthetic_product_image_provenance") != SOURCE_IMAGE_FIELD
         or simulation.get("label") != SIMULATED_FIELD
         or simulation.get("training_labels") != SIMULATED_FIELD
     ):

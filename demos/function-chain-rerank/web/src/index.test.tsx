@@ -69,7 +69,7 @@ function product(itemId: string, rank: number, score: number) {
     selected_image_id: first ? "main-image-1" : "main-image-2",
     image_role: "main",
     source_object_path: `images/small/${first ? "1" : "2"}.jpg`,
-    source_url: `synthetic://catalog/${itemId}/placeholder.jpg`,
+    source_url: `synthetic://catalog/${itemId}/generated-product.jpg`,
     display_price_usd: first ? 58 : 62.25,
     rating_value: first ? 3.2 : 4.8,
     clicks_30d: first ? 1141 : 9000,
@@ -291,25 +291,30 @@ describe("FunctionChainDemoPage", () => {
       name: /Product image for/,
     });
     expect(productImages[0].getAttribute("src")).toBe(
-      "/api/function-chain/v1/assets/images/SYN-DESK-001.jpg",
+      "/api/function-chain/v1/assets/images/001-SYN-DESK-001.jpg?v=2ab8e3c3eee3edf1fe1f8bd98a2ce3e2fd450cb778160f325585da1590a0f398",
     );
     expect(screen.getAllByAltText("Product image for DESK")).toHaveLength(2);
 
     // Data model panel renders the DAG: a leading source product card (a
     // pixel-identical replica of the search cards, with six fields boxed in
-    // place), four step nodes, and ten connecting edges (six card→step "pull"
-    // ties plus the four flow edges), with code hidden until a node is hovered.
+    // place), four step nodes, three intermediate-feature data chips, and
+    // thirteen connecting edges (six card→step "pull" ties, six operation→chip
+    // / chip→xgboost flow legs, and the final xgboost→business-score flow),
+    // with code hidden until a node is hovered.
     const flow = screen.getByTestId("function-chain-flow");
     expect(flow.querySelectorAll(".flow-step-node")).toHaveLength(4);
     expect(flow.querySelectorAll(".flow-field")).toHaveLength(0);
-    expect(flow.querySelectorAll(".flow-dag-edge")).toHaveLength(10);
+    expect(flow.querySelectorAll(".flow-dag-edge")).toHaveLength(13);
     expect(flow.querySelectorAll(".flow-dag-edge--pull")).toHaveLength(6);
     expect(flow.textContent).toContain("clicks_30d");
     expect(flow.textContent).toContain("popularity");
-    expect(flow.textContent).toContain("$score");
+    expect(flow.querySelector(".flow-output-score")?.textContent).toBe(
+      "business0.6708",
+    );
 
-    // The leading product card is the semantic top-1 and boxes each consumed
-    // field in place; the two simulated signals are present as dashed tags.
+    // The leading product card is a frozen worked example (the real semantic
+    // top-1 SYN-DESK-001 record) and boxes each consumed field in place; the
+    // two simulated signals are present as dashed tags.
     const sourceCard = flow.querySelector("[data-flow-card]");
     expect(sourceCard).toBeTruthy();
     expect(sourceCard?.getAttribute("data-item-id")).toBe("SYN-DESK-001");
@@ -317,7 +322,7 @@ describe("FunctionChainDemoPage", () => {
     expect(
       flow.querySelectorAll("[data-card-field].flow-field-box--simulated"),
     ).toHaveLength(2);
-    expect(sourceCard?.textContent).toContain("$58.00");
+    expect(sourceCard?.textContent).toContain("$155.90");
 
     // Code is revealed on hover, not always visible per step.
     let codePanel = flow.querySelector(".flow-code-panel");
@@ -629,6 +634,9 @@ describe("FunctionChainDemoPage", () => {
   it("encodes every JPEG asset path segment", () => {
     expect(productImageUrl("images/a b.jpg")).toBe(
       "/api/function-chain/v1/assets/images/a%20b.jpg",
+    );
+    expect(productImageUrl("images/a b.jpg", "c".repeat(64))).toBe(
+      `/api/function-chain/v1/assets/images/a%20b.jpg?v=${"c".repeat(64)}`,
     );
   });
 });

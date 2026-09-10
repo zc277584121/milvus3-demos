@@ -1,10 +1,9 @@
-"""Deterministic generation of the fully synthetic Function Chain source set.
+"""Deterministic preparation of the fully synthetic Function Chain source set.
 
 There is no external retailer, no download, and no real product metadata or
 photography. Every product identifier, brand, title, description, bullet point,
-and color is authored by this project, and every image is a deterministic
-solid-color JPEG placeholder (dimension-pinned, hash-pinned, and clearly labeled
-``synthetic-placeholder`` in the manifest).
+and color is authored by this project. Product images are project-generated
+synthetic catalog renderings that are dimension-pinned and hash-pinned.
 
 The emitted source manifest keeps the exact shape ``dataset.generate_dataset``
 expects (``revision``, ``selection_rule``, ``static_objects``, ``items``), so the
@@ -16,6 +15,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shutil
 import struct
 from pathlib import Path
 from typing import Final
@@ -33,7 +33,7 @@ SELECTION_VERSION: Final = "synthetic-commerce-240-authored-intent-v1"
 # Provenance labels shared with ``dataset`` (which imports them from here).
 SYNTHETIC_METADATA_FIELD: Final = "synthetic_authored_metadata"
 SYNTHETIC_IDENTITY_FIELD: Final = "synthetic_catalog_identity"
-SYNTHETIC_IMAGE_FIELD: Final = "synthetic_placeholder_image_object"
+SYNTHETIC_IMAGE_FIELD: Final = "synthetic_generated_product_image_object"
 
 # Product types in catalog order: the six intent slices first, then the fourteen
 # background slices. This is the exact order ``synthetic_catalog.build_items``
@@ -63,6 +63,9 @@ TARGET_TYPES: Final = (
 
 PLACEHOLDER_WIDTH: Final = 640
 PLACEHOLDER_HEIGHT: Final = 480
+PRODUCT_IMAGE_WIDTH: Final = 256
+PRODUCT_IMAGE_HEIGHT: Final = 256
+DEFAULT_DATASET_ROOT: Final = Path(__file__).resolve().parents[3] / "data" / DATASET_REVISION
 
 # One muted representative color per product type so the placeholder subtly
 # hints at the category without pretending to be a product photograph.
@@ -99,8 +102,8 @@ _SYNTHETIC_README: Final = b"""# Synthetic Commerce Catalog
 This catalog is entirely fictional and was authored by the milvus3-demos project
 for the Function Chain reranking demonstration. It is not derived from any real
 retailer: product identifiers, brand names, titles, descriptions, bullet points,
-and colors are invented, and every product image is a deterministic solid-color
-JPEG placeholder that is not a product photograph.
+and colors are invented. Every product image is a project-generated synthetic
+catalog rendering rather than a photograph of a real product.
 
 Operational values (display price, rating, inventory, return rate, release age,
 clicks, sales) are deterministic simulated signals and are labeled as such on
@@ -111,7 +114,7 @@ _LICENSE_CC0: Final = b"""# CC0 1.0 Universal
 
 To the extent possible under law, the milvus3-demos project has waived all
 copyright and related or neighboring rights to the synthetic catalog content
-(metadata, placeholder images, and this notice).
+(metadata, synthetic generated product images, and this notice).
 
 The full legal text is published by Creative Commons at:
 https://creativecommons.org/publicdomain/zero/1.0/legalcode
@@ -375,8 +378,8 @@ def selection_rule() -> dict[str, object]:
         "authored_catalog_version": "synthetic-commerce-catalog-v1",
         "language": "authored English only",
         "image_policy": (
-            "every selected record carries one deterministic solid-color JPEG placeholder "
-            "(640x480) labeled synthetic-placeholder; these are not product photographs"
+            "every selected record carries one hash-pinned 256x256 project-generated "
+            "synthetic catalog JPEG; these are not photographs of real products"
         ),
         "candidate_order": "fixed authored catalog order with stable SYN- sequence ids",
         "selection_order": (
@@ -389,16 +392,20 @@ def selection_rule() -> dict[str, object]:
     }
 
 
-def build_source_items() -> list[dict[str, object]]:
-    """Assemble manifest items from the authored catalog plus generated images."""
+def build_source_items(image_root: Path = DEFAULT_DATASET_ROOT) -> list[dict[str, object]]:
+    """Assemble manifest items from the catalog and canonical generated images."""
     items: list[dict[str, object]] = []
     for catalog_item in build_items():
         sequence = int(catalog_item["sequence"])
         item_id = str(catalog_item["id"])
         product_type = str(catalog_item["product_type"])
-        rgb = TYPE_COLORS[product_type]
-        image_bytes = solid_color_jpeg(rgb, PLACEHOLDER_WIDTH, PLACEHOLDER_HEIGHT)
         object_path = f"images/{sequence:03d}-{item_id}.jpg"
+        source_path = image_root / object_path
+        if not source_path.is_file():
+            raise SourcePreparationError(f"Missing canonical product image: {source_path}")
+        image_bytes = source_path.read_bytes()
+        if jpeg_dimensions(source_path) != (PRODUCT_IMAGE_WIDTH, PRODUCT_IMAGE_HEIGHT):
+            raise SourcePreparationError(f"Product image dimensions are invalid: {source_path}")
         md5 = _md5_bytes(image_bytes)
         items.append(
             {
@@ -422,22 +429,24 @@ def build_source_items() -> list[dict[str, object]]:
                 "selected_image_id": f"SYN-IMG-{sequence:03d}",
                 "image_role": "main",
                 "object_path": object_path,
-                "url": f"synthetic://catalog/{item_id}/placeholder.jpg",
+                "url": f"synthetic://catalog/{item_id}/generated-product.jpg",
                 "bytes": len(image_bytes),
                 "md5": md5,
                 "sha256": _sha256_bytes(image_bytes),
-                "image_width": PLACEHOLDER_WIDTH,
-                "image_height": PLACEHOLDER_HEIGHT,
+                "image_width": PRODUCT_IMAGE_WIDTH,
+                "image_height": PRODUCT_IMAGE_HEIGHT,
                 "http_head": {"etag": md5, "media_type": "image/jpeg"},
             }
         )
     return items
 
 
-def prepare_source(cache: Path, output: Path) -> dict[str, object]:
-    """Write the static texts and placeholder JPEGs, then emit the manifest."""
+def prepare_source(
+    cache: Path, output: Path, image_root: Path = DEFAULT_DATASET_ROOT
+) -> dict[str, object]:
+    """Copy canonical synthetic images and static texts, then emit the manifest."""
     cache.mkdir(parents=True, exist_ok=True)
-    items = build_source_items()
+    items = build_source_items(image_root)
     validate()
 
     for static_object in STATIC_OBJECTS:
@@ -454,16 +463,15 @@ def prepare_source(cache: Path, output: Path) -> dict[str, object]:
     for item in items:
         destination = cache / str(item["object_path"])
         destination.parent.mkdir(parents=True, exist_ok=True)
-        rgb = TYPE_COLORS[str(item["official_metadata"]["product_type"])]
-        destination.write_bytes(
-            solid_color_jpeg(rgb, PLACEHOLDER_WIDTH, PLACEHOLDER_HEIGHT)
-        )
+        shutil.copyfile(image_root / str(item["object_path"]), destination)
         if (
             destination.stat().st_size != int(item["bytes"])
             or sha256_file(destination) != item["sha256"]
-            or jpeg_dimensions(destination) != (PLACEHOLDER_WIDTH, PLACEHOLDER_HEIGHT)
+            or jpeg_dimensions(destination) != (PRODUCT_IMAGE_WIDTH, PRODUCT_IMAGE_HEIGHT)
         ):
-            raise SourcePreparationError(f"Placeholder verification failed: {item['object_path']}")
+            raise SourcePreparationError(
+                f"Product image verification failed: {item['object_path']}"
+            )
 
     manifest = {
         "schema_version": 1,
@@ -486,12 +494,13 @@ def _parse_args() -> argparse.Namespace:
     prepare = subparsers.add_parser("prepare")
     prepare.add_argument("--cache", type=Path, required=True)
     prepare.add_argument("--output", type=Path, required=True)
+    prepare.add_argument("--image-root", type=Path, default=DEFAULT_DATASET_ROOT)
     return parser.parse_args()
 
 
 def main() -> None:
     args = _parse_args()
-    manifest = prepare_source(args.cache, args.output)
+    manifest = prepare_source(args.cache, args.output, args.image_root)
     print(json.dumps({"revision": manifest["revision"], "items": len(manifest["items"])}))
 
 

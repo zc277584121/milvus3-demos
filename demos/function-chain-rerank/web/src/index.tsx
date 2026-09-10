@@ -168,6 +168,94 @@ const API_BASE = "/api/function-chain/v1";
 const DERIVED_TITLE_PROVENANCE =
   "deterministic_english_summary_from_synthetic_authored_metadata";
 
+// The DAG's source-product card is a frozen worked example: the semantic top-1
+// of the default "compact dark wood desk" query (SYN-DESK-001) with its real
+// catalog fields and vector-search score. It stays identical on every open no
+// matter which query is searched, so the diagram always shows the same example.
+const HARDCODED_SOURCE_PRODUCT: RankedProduct = {
+  id: 1,
+  rank: 1,
+  score: 0.7042073607444763,
+  item_id: "SYN-DESK-001",
+  title: "Timbermark Compact Dark Walnut Writing Desk, 100 x 50 cm",
+  product_type: "DESK",
+  brand: "Timbermark",
+  color: "Dark Walnut",
+  material: "Engineered wood",
+  style: "Modern",
+  node_name: "Catalog > Desks",
+  description:
+    "A space-conscious writing desk with a dark walnut wood-look finish for a small home office.",
+  bullet_points: [
+    "Compact 100 x 50 cm footprint fits a small office",
+    "Dark walnut wood-look finish",
+    "One cable-routing cutout",
+  ],
+  main_image_id: "SYN-IMG-001",
+  selected_image_id: "SYN-IMG-001",
+  image_role: "main",
+  source_object_path: "images/001-SYN-DESK-001.jpg",
+  source_url: "synthetic://catalog/SYN-DESK-001/generated-product.jpg",
+  display_price_usd: 155.9,
+  rating_value: 5.0,
+  clicks_30d: 1127,
+  sales_30d: 28,
+  inventory_units: 190,
+  inventory_capacity: 200,
+  release_date: "2026-07-15",
+  release_epoch: 1784073600,
+  rating: 1.0,
+  inventory: 0.95,
+  return_rate: 0.01,
+  freshness: 0.950685,
+  image_path: "images/001-SYN-DESK-001.jpg",
+  image_mime: "image/jpeg",
+  image_width: 256,
+  image_height: 256,
+  image_sha256: "2ab8e3c3eee3edf1fe1f8bd98a2ce3e2fd450cb778160f325585da1590a0f398",
+  operational_signal_provenance: "deterministic_simulated_operational_signal",
+  field_provenance: {
+    brand: "synthetic_authored_metadata",
+    bullet_points: "synthetic_authored_metadata",
+    clicks_30d: "deterministic_simulated_operational_signal",
+    color: "synthetic_authored_metadata",
+    description: "synthetic_authored_metadata",
+    display_price_usd: "deterministic_simulated_operational_signal",
+    freshness: "derived_from_deterministic_simulated_operational_signal",
+    id: "project_dataset_sequence",
+    image_height: "synthetic_generated_product_image_object",
+    image_mime: "synthetic_generated_product_image_object",
+    image_path: "project_copy_of_hash_pinned_synthetic_generated_jpeg",
+    image_role: "synthetic_generated_product_image_object",
+    image_sha256: "verified_source_object_digest",
+    image_width: "synthetic_generated_product_image_object",
+    inventory: "derived_from_deterministic_simulated_operational_signal",
+    inventory_capacity: "deterministic_simulated_operational_signal",
+    inventory_units: "deterministic_simulated_operational_signal",
+    item_id: "synthetic_catalog_identity",
+    main_image_id: "synthetic_catalog_identity",
+    material: "synthetic_authored_metadata",
+    node_name: "synthetic_authored_metadata",
+    product_type: "synthetic_authored_metadata",
+    rating: "derived_from_deterministic_simulated_operational_signal",
+    rating_value: "deterministic_simulated_operational_signal",
+    release_date: "deterministic_simulated_operational_signal",
+    release_epoch: "derived_from_deterministic_simulated_operational_signal",
+    return_rate: "deterministic_simulated_operational_signal",
+    sales_30d: "deterministic_simulated_operational_signal",
+    selected_image_id: "synthetic_generated_product_image_object",
+    source_object_path: "synthetic_generated_product_image_object",
+    source_url: "synthetic_generated_product_image_object",
+    style: "synthetic_authored_metadata",
+    title: "synthetic_authored_metadata",
+  },
+};
+
+// The DAG's final output chip mirrors the "business" score column below it: the
+// XGBoost business score for the same frozen SYN-DESK-001 worked example (the
+// rank-1 rerank result of the default "compact dark wood desk" query).
+const HARDCODED_SOURCE_BUSINESS_SCORE = 0.6707878708839417;
+
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     throw new Error(`Request failed with status ${response.status}`);
@@ -207,12 +295,19 @@ export async function fetchSearchComparison(
   );
 }
 
-export function productImageUrl(imagePath: string): string {
+export function productImageUrl(
+  imagePath: string,
+  imageSha256?: string,
+): string {
   const encodedPath = imagePath
     .split("/")
     .map((segment) => encodeURIComponent(segment))
     .join("/");
-  return `${API_BASE}/assets/${encodedPath}`;
+  // Content-address the asset URL with its sha256 so a replaced image at the
+  // same path gets a new URL and never hides behind a stale immutable-cached
+  // entry from a previous build.
+  const version = imageSha256 ? `?v=${imageSha256}` : "";
+  return `${API_BASE}/assets/${encodedPath}${version}`;
 }
 
 function formatCount(value: number): string {
@@ -305,7 +400,7 @@ function ProductPhoto({ product }: { product: RankedProduct }) {
       ) : null}
       <img
         className="product-photo"
-        src={productImageUrl(product.image_path)}
+        src={productImageUrl(product.image_path, product.image_sha256)}
         width={product.image_width}
         height={product.image_height}
         alt={`Product image for ${product.title ?? product.product_type}`}
@@ -499,16 +594,18 @@ const STEP_FLOW: Record<
   },
 };
 
-// Map each raw schema field to the step that consumes it (used for hovering a
-// field row and highlighting the consuming step, and vice versa). The
-// embedding column feeds the vector-search similarity (surfaced as $score and
-// rounded to normalized_semantic_score), which the XGBoost step reads.
+// Map each raw schema field (and the two direct model inputs) to the step that
+// consumes it — used for hovering a field row and highlighting the consuming
+// step, and vice versa. `embedding` is the vector-search ANN field that
+// produces the similarity $score; `semantic_score` is that similarity after
+// rounding (normalized_semantic_score), the value XGBoost actually reads.
 const FIELD_TO_STEP: Record<string, string> = {
   clicks_30d: "popularity",
   sales_30d: "popularity",
   display_price_usd: "price_affinity",
   release_epoch: "freshness",
   embedding: "xgboost_rerank",
+  semantic_score: "xgboost_rerank",
   rating: "xgboost_rerank",
 };
 
@@ -616,9 +713,8 @@ function pythonHighlight(code: string) {
   return nodes;
 }
 
-// An intermediate feature (e.g. popularity) or the final $score, colored by the
-// step that emits it. Outputs are data, not operations, so entering one clears
-// any open code panel.
+// An intermediate feature (e.g. popularity), colored by the step that emits it.
+// Outputs are data, not operations, so entering one clears any open code panel.
 function FeatureChip({
   name,
   step,
@@ -630,7 +726,6 @@ function FeatureChip({
   active: boolean;
   onEnter: () => void;
 }) {
-  const isFinal = name === "$score";
   const palette = STEP_COLORS[step] ?? {
     main: "#334762",
     text: "#334762",
@@ -638,7 +733,7 @@ function FeatureChip({
   };
   return (
     <span
-      className={`flow-feature${active ? " is-active" : ""}${isFinal ? " flow-feature--final" : ""}`}
+      className={`flow-feature${active ? " is-active" : ""}`}
       data-flow-feature={name}
       data-flow-step={step}
       style={
@@ -1002,25 +1097,33 @@ function StepGraphic({
   );
 }
 
-// Fixed geometry for the single-shot DAG: four columns (source product card →
-// feature steps → xgboost → final score). The card and the three step/xgboost
-// columns sit at deterministic x-coordinates; the card's six consumed fields
-// are boxed in place over the real store-card markup, so their *vertical*
-// centers are measured at runtime (like RankShiftLinks) rather than fixed here.
-const DAG_VIEW_W = 1320;
-const DAG_VIEW_H = 400;
+// Fixed geometry for the single-shot DAG: six columns (source product card →
+// operation steps → intermediate feature chips → xgboost → final $score). The
+// card and the operation columns sit at deterministic x-coordinates; the card's
+// six consumed fields are boxed in place over the real store-card markup, so
+// their *vertical* centers are measured at runtime (like RankShiftLinks) rather
+// than fixed here.
+const DAG_VIEW_W = 1480;
+const DAG_VIEW_H = 380;
 const DAG_CARD_X = 14;
 const DAG_CARD_W = 470;
-const DAG_CARD_TOP = 24;
+const DAG_CARD_TOP = 10;
 const DAG_CARD_H = 190;
 const DAG_STEP_X = 560;
 const DAG_STEP_W = 250;
 const DAG_STEP_R = DAG_STEP_X + DAG_STEP_W;
-const DAG_XGB_X = 890;
+// The intermediate-feature "data" column: a fixed-width pill per feature
+// (popularity, price_affinity, freshness) that sits BETWEEN its producing
+// operation and xgboost, so the reader sees the operation's output as a named
+// datum flowing into the model — the same visual language as the final $score.
+const DAG_DATA_X = 850;
+const DAG_DATA_W = 150;
+const DAG_DATA_R = DAG_DATA_X + DAG_DATA_W;
+const DAG_XGB_X = 1040;
 const DAG_XGB_W = 250;
 const DAG_XGB_R = DAG_XGB_X + DAG_XGB_W;
-const DAG_OUT_X = 1160;
-const DAG_OUT_W = 110;
+const DAG_OUT_X = 1330;
+const DAG_OUT_W = 150;
 const DAG_CHIP_H = 40;
 const DAG_STEP_H = 72;
 const DAG_XGB_H = 200;
@@ -1029,7 +1132,9 @@ const DAG_XGB_H = 200;
 // to match the order their source fields appear on the card (price near the
 // top, release in the middle, clicks/sales at the bottom). This makes the six
 // pull edges fan out monotonically and never cross. Centers are 84px apart with
-// 72px-tall nodes, leaving a 12px clear gap — no vertical overlap.
+// 72px-tall nodes, leaving a 12px clear gap — no vertical overlap. Each step's
+// intermediate-feature chip shares the SAME center, so the operation→chip and
+// chip→xgboost legs stay perfectly horizontal.
 const DAG_STEP_Y: Record<string, number> = {
   price_affinity: 150,
   freshness: 234,
@@ -1038,41 +1143,55 @@ const DAG_STEP_Y: Record<string, number> = {
 const DAG_XGB_Y = 230;
 const DAG_OUT_Y = 230;
 
-// Inbound ports on the xgboost node. The three feature flows enter the LEFT
-// edge at heights that keep them near-horizontal (sorted the same way as their
-// source steps, so they never cross). The two direct pulls (embedding → $score,
-// rating) arc OVER the feature column and land on the node's TOP edge at two
-// well-separated x positions.
+// Inbound ports on the xgboost node. The three intermediate-feature flows enter
+// the LEFT edge at the SAME heights as their feature chips (horizontal leads,
+// never crossing). The two direct pulls (semantic_score, rating) arc OVER the
+// feature column and land on the node's TOP edge at two well-separated x
+// positions.
 const DAG_XGB_IN_Y: Record<string, number> = {
-  price_affinity: 160,
-  freshness: 234,
-  popularity: 308,
+  price_affinity: DAG_STEP_Y.price_affinity,
+  freshness: DAG_STEP_Y.freshness,
+  popularity: DAG_STEP_Y.popularity,
 };
 const DAG_XGB_TOP_Y = DAG_XGB_Y - DAG_XGB_H / 2;
 
-// The two direct-to-xgboost pulls (embedding → $score, rating) skip the
-// feature-step column. Each leaves its field box, rises into its own
+// The card is painted BEFORE the edge layer, so a pull edge that starts at a
+// field box stays visible across the card's white surface (it is NOT hidden).
+// Each tie therefore begins ON its own box — the semantic score chip's right
+// edge, the rating box's right edge, or a stacked left-column box's bottom
+// edge — and is routed through the card's empty gutters out to the right,
+// never crossing text or a neighbouring box.
+
+// The two direct-to-xgboost pulls (semantic_score, rating) skip the
+// feature-step column. Each leaves its SEND port, rises into its own
 // horizontal "skyline" corridor above the step nodes, then descends onto the
-// xgboost node's top edge. A single cubic with vertical tangents at both ends
-// turns the rise/run/drop into one smooth rounded elbow (matching the bezier
-// language of the other edges), instead of hard 90° corners. The two corridors
-// are vertically separated and their drop points are ordered (rating drops
-// before embedding) so the lines never cross each other, never touch a step
-// node, and stay inside the viewBox.
+// xgboost node's top edge. The two corridors are vertically separated and
+// their drop points are ordered (rating drops before semantic_score) so the
+// lines never cross each other, never touch a step node, and stay inside the
+// viewBox.
 const DAG_DIRECT_PULL: Record<string, { corridor: number; dropX: number }> = {
-  embedding: { corridor: 66, dropX: 975 },
-  rating: { corridor: 100, dropX: 950 },
+  // semantic_score's chip sits in the card's RIGHT metric column. Its line
+  // exits the chip's right edge, rises a few px into a corridor that runs JUST
+  // ABOVE the price_affinity step node's top edge (clear of the node), then
+  // descends onto the xgboost top edge. rating's box sits higher in the same
+  // right-hand column, so it exits its own right edge and runs a HIGHER
+  // corridor. The two corridors stay vertically separated (80 vs 91) and
+  // their drop points are ordered so neither vertical drop crosses the other's
+  // corridor: semantic_score drops at x=1055 (left), rating at x=1070 (right).
+  semantic_score: { corridor: 91, dropX: 1055 },
+  rating: { corridor: 80, dropX: 1070 },
 };
 
 // The LEFT-edge port each source field plugs into on its consuming step node.
 // popularity is a two-input blend, so clicks_30d and sales_30d enter at two
-// separate ports (above and below the node's center) and stay distinguishable
-// all the way to the node instead of converging early.
+// separate ports. clicks_30d (which appears BELOW sales_30d on the card once
+// it exits through the shared bottom funnel) enters the LOWER port and
+// sales_30d the UPPER one, so the two leads never cross.
 const DAG_PULL_PORT: Record<string, number> = {
   display_price_usd: DAG_STEP_Y.price_affinity,
   release_epoch: DAG_STEP_Y.freshness,
-  clicks_30d: DAG_STEP_Y.popularity - 18,
-  sales_30d: DAG_STEP_Y.popularity + 18,
+  clicks_30d: DAG_STEP_Y.popularity + 18,
+  sales_30d: DAG_STEP_Y.popularity - 18,
 };
 
 function dagEdgePath(x1: number, y1: number, x2: number, y2: number): string {
@@ -1080,33 +1199,74 @@ function dagEdgePath(x1: number, y1: number, x2: number, y2: number): string {
   return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
 }
 
-// A direct pull edge skips the feature-step column along a smooth rounded
-// "skyline" route: it rises straight up from its field box, runs rightward
-// along its corridor, then descends straight down onto the xgboost node's top
-// edge — a single cubic whose two control points sit at the corridor height,
-// giving vertical tangents at both endpoints.
+// A short straight hop connecting an operation node's right edge to its
+// intermediate-feature chip, and that chip to xgboost's left edge, at a shared
+// height. Unlike dagEdgePath's cubic, this is a simple horizontal line: the
+// feature chip is so close to xgboost that a long control-point sag would dip
+// the line off its port.
+function dagHop(x1: number, y1: number, x2: number, y2: number): string {
+  return `M ${x1} ${y1} L ${x2} ${y2}`;
+}
+
+// A direct pull edge skips the feature-step column along a rounded "skyline"
+// route: it rises straight up from its field box, rounds the top corner onto
+// its horizontal corridor, runs rightward, rounds the drop corner, then
+// descends straight down onto the xgboost node's top edge. It is drawn as a
+// true elbow (straight legs joined by quadratic corner arcs) — NOT a single
+// cubic — because a single cubic sags toward its midpoint: for a shallow lift
+// the curve's apex can dip back into the opaque card or an adjacent channel.
+// The corner radius is capped by the available rise/drop/run so a tiny lift
+// never overshoots and dips back down.
+//
+// A source that sits on the card's right edge (semantic_score, rating) needs a
+// short horizontal lead BEFORE it turns upward, so the line leaves the chip's
+// right edge perpendicularly and the first visible dash is separated from the
+// box's outline (a line that turns straight up while still on the box would
+// ride over the ring). `lead` is the length of that horizontal run.
 function dagPullOver(
   x1: number,
   y1: number,
   corridor: number,
   dropX: number,
   dropY: number,
+  lead = 0,
 ): string {
-  return `M ${x1} ${y1} C ${x1} ${corridor}, ${dropX} ${corridor}, ${dropX} ${dropY}`;
+  const leadEnd = x1 + lead;
+  const radius = Math.min(
+    14,
+    Math.abs(corridor - y1) - 0.5,
+    Math.abs(dropY - corridor) - 0.5,
+    (dropX - leadEnd) / 2 - 0.5,
+  );
+  const r = Math.max(radius, 0.5);
+  const riseUp = y1 > corridor;
+  const dropDown = dropY > corridor;
+  const riseEnd = corridor + (riseUp ? r : -r);
+  const dropStart = corridor + (dropDown ? r : -r);
+  return [
+    `M ${x1} ${y1}`,
+    `L ${leadEnd} ${y1}`,
+    `L ${leadEnd} ${riseEnd}`,
+    `Q ${leadEnd} ${corridor}, ${leadEnd + r} ${corridor}`,
+    `L ${dropX - r} ${corridor}`,
+    `Q ${dropX} ${corridor}, ${dropX} ${dropStart}`,
+    `L ${dropX} ${dropY}`,
+  ].join(" ");
 }
 
 function stepColorHex(name: string): string {
   return STEP_COLORS[name]?.main ?? "#334762";
 }
 
-// The two raw fields that bypass the function column and feed XGBoost directly
-// (embedding/semantic score, rating) share one neutral "source feature" hue, so
-// orange stays reserved for the XGBoost node and its final $score output. This
-// keeps "orange data passes straight through the model" from being misread.
+// The two raw values that bypass the function column and feed XGBoost directly
+// (the rounded semantic score, rating) share one neutral "source feature" hue,
+// so orange stays reserved for the XGBoost node and its final $score output.
+// This keeps "orange data passes straight through the model" from being
+// misread.
 const SOURCE_FEATURE_HEX = "#64748b";
 
 function fieldColorHex(name: string): string {
-  if (name === "embedding" || name === "rating") {
+  if (name === "semantic_score" || name === "rating") {
     return SOURCE_FEATURE_HEX;
   }
   return stepColorHex(FIELD_TO_STEP[name]);
@@ -1119,7 +1279,7 @@ function fieldColorHex(name: string): string {
 // to anchor its pull edge. The two operational signals that never appear on a
 // real store card (clicks/sales) are appended as faint dashed "simulated" tags.
 const CARD_FIELDS: Array<{ name: string; simulated?: boolean }> = [
-  { name: "embedding" },
+  { name: "semantic_score" },
   { name: "display_price_usd" },
   { name: "rating" },
   { name: "release_epoch" },
@@ -1153,15 +1313,8 @@ function FlowProductCard({
       <span className="card-rank" aria-hidden="true">
         <strong className="card-rank-num">#{product.rank}</strong>
       </span>
-      <span
-        className="flow-field-box flow-field-box--photo"
-        data-card-field="embedding"
-        style={fieldBoxStyle("embedding")}
-        onMouseEnter={onEnterField}
-      >
-        <span className="card-photo">
-          <ProductPhoto product={product} />
-        </span>
+      <span className="card-photo">
+        <ProductPhoto product={product} />
       </span>
       <span className="card-copy">
         <span className="card-title-row">
@@ -1230,7 +1383,11 @@ function FlowProductCard({
         </span>
       </span>
       <span className="card-metrics">
-        <span className="card-score card-score--semantic">
+        <span
+          className="card-score card-score--semantic flow-field-chip"
+          data-card-field="semantic_score"
+          onMouseEnter={onEnterField}
+        >
           <small>semantic</small>
           <strong>{product.score.toFixed(4)}</strong>
         </span>
@@ -1239,22 +1396,89 @@ function FlowProductCard({
   );
 }
 
+// A measured rectangle in viewBox units: the outer edges plus the center. Each
+// field box (and the semantic score chip) is measured at runtime and stored as
+// one of these so the pull edges can attach to a box's own edge and steer
+// through the card's empty gutters without crossing text or a sibling box.
+interface BoxRect {
+  l: number;
+  r: number;
+  t: number;
+  b: number;
+  cx: number;
+  cy: number;
+}
+
+interface FlowAnchors {
+  boxes: Map<string, BoxRect>;
+  semantic: BoxRect | null;
+}
+
+// An orthogonal "staircase" route built from explicit waypoints, with rounded
+// corners. Unlike dagPullOver (a fixed rise/corridor/drop), this walks any list
+// of turns so a field box can exit its BOTTOM edge, run along a horizontal gap
+// channel, descend a vertical channel, then run into its step port. Each
+// interior corner is rounded with a quadratic arc whose radius is capped by
+// the two adjacent leg lengths, so a short lead-in (a box bottom only a few px
+// above its gap channel) never overshoots past the waypoint.
+function dagStair(
+  points: Array<{ x: number; y: number }>,
+  radius = 8,
+): string {
+  if (points.length < 2) {
+    return "";
+  }
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const cur = points[i];
+    const next = points[i + 1];
+    if (!next) {
+      d += ` L ${cur.x} ${cur.y}`;
+      continue;
+    }
+    const inDx = cur.x - prev.x;
+    const inDy = cur.y - prev.y;
+    const outDx = next.x - cur.x;
+    const outDy = next.y - cur.y;
+    const inLen = Math.hypot(inDx, inDy);
+    const outLen = Math.hypot(outDx, outDy);
+    if (inLen < 1e-6 || outLen < 1e-6) {
+      d += ` L ${cur.x} ${cur.y}`;
+      continue;
+    }
+    const cap = Math.min(radius, inLen / 2 - 0.5, outLen / 2 - 0.5);
+    const cc = Math.max(cap, 0.5);
+    const inUx = inDx / inLen;
+    const inUy = inDy / inLen;
+    const outUx = outDx / outLen;
+    const outUy = outDy / outLen;
+    d += ` L ${cur.x - inUx * cc} ${cur.y - inUy * cc}`;
+    d += ` Q ${cur.x} ${cur.y}, ${cur.x + outUx * cc} ${cur.y + outUy * cc}`;
+  }
+  return d;
+}
+
 // The DAG's edges, colored by the step each one belongs to (a pull edge takes
 // its consuming step's hue; a feature edge keeps its producing step's hue).
 // Six dashed "pull" ties run from the card's boxed fields into the step that
 // consumes them; four solid flow edges chain the features through XGBoost to
-// the final $score. Pull edges start at each field box's own right edge
-// (measured at runtime, so ties hug their box even as the card wraps), while
-// the two direct-to-xgboost pulls (embedding, rating) arc OVER the feature
-// column and land on the xgboost node's top edge.
+// the final $score. Each pull edge now attaches to its OWN field box — not to
+// the card's outer border — because the card is painted first and the edge
+// layer sits on top, so the lead stays visible across the white card. The two
+// direct-to-xgboost pulls (semantic_score, rating) arc over the feature column
+// from the semantic chip's right edge and the rating box's right edge; the four
+// feature-column pulls exit their box's bottom edge and staircase through the
+// row gaps out to their step node.
 function buildDagEdges(
-  anchors: Map<string, { x: number; y: number }>,
+  anchors: FlowAnchors,
 ): Array<{
   id: string;
   d: string;
   color: string;
   kind: "flow" | "pull";
   direct: boolean;
+  landing?: string;
 }> {
   const edges: Array<{
     id: string;
@@ -1262,42 +1486,117 @@ function buildDagEdges(
     color: string;
     kind: "flow" | "pull";
     direct: boolean;
+    landing?: string;
   }> = [];
+  const boxes = anchors.boxes;
+
+  // Routing geometry shared by the feature-column pulls, derived from the
+  // measured boxes. The horizontal gap channels run between the box rows; the
+  // vertical channels descend in the gutter right of the rating/sales column
+  // (rating's right edge) and left of the semantic score chip, where no text
+  // sits. Falls back to the live-validated constants if a box is unmeasured.
+  const ratingBox = boxes.get("rating");
+  const releaseBox = boxes.get("release_epoch");
+  const clicksBox = boxes.get("clicks_30d");
+  const priceChanX = anchors.semantic ? anchors.semantic.l - 3.5 : 368;
+  const releaseChanX = ratingBox ? ratingBox.r + 7.5 : 361;
+  const gap1Y =
+    ratingBox && releaseBox ? (ratingBox.b + releaseBox.t) / 2 : 116.4;
+  const gap2Y =
+    releaseBox && clicksBox ? (releaseBox.b + clicksBox.t) / 2 : 142.4;
+
   for (const field of CARD_FIELDS) {
-    const anchor = anchors.get(field.name);
-    if (!anchor) {
+    const box = boxes.get(field.name);
+    if (!box) {
       continue;
     }
     const step = FIELD_TO_STEP[field.name];
-    const x1 = anchor.x;
-    const y1 = anchor.y;
-    // Fields bound straight for xgboost (embedding, rating) skip the
-    // feature-step column along their own skyline corridor and land on the
-    // xgboost node's top edge, so their tie never crosses a node's label and
-    // never leaves the viewBox.
     const direct = DAG_DIRECT_PULL[field.name];
-    const d =
-      step === "xgboost_rerank" && direct
-        ? dagPullOver(x1, y1, direct.corridor, direct.dropX, DAG_XGB_TOP_Y)
-        : `M ${x1} ${y1} L ${DAG_STEP_X} ${DAG_PULL_PORT[field.name] ?? DAG_STEP_Y[step]}`;
+    const portY = DAG_PULL_PORT[field.name] ?? DAG_STEP_Y[step];
+
+    // semantic_score's chip sits in the card's right metric column: the solid
+    // source dot sits just right of the box's outset ring (at box.r + 7), so the
+    // line starts there, runs a short horizontal lead, then rises into its
+    // corridor and runs over the feature column. rating's box sits higher in the
+    // same right-hand column: exit its right edge and run a higher corridor.
+    // Both land on the xgboost node's top edge.
+    let d: string;
+    if (field.name === "semantic_score") {
+      d = dagPullOver(
+        box.r + 7,
+        box.cy,
+        direct!.corridor,
+        direct!.dropX,
+        DAG_XGB_TOP_Y,
+        14,
+      );
+    } else if (field.name === "rating") {
+      d = dagPullOver(
+        box.r,
+        box.cy,
+        direct!.corridor,
+        direct!.dropX,
+        DAG_XGB_TOP_Y,
+        6,
+      );
+    } else if (field.name === "display_price_usd") {
+      d = dagStair([
+        { x: box.cx, y: box.b },
+        { x: box.cx, y: gap1Y },
+        { x: priceChanX, y: gap1Y },
+        { x: priceChanX, y: portY },
+        { x: DAG_STEP_X, y: portY },
+      ]);
+    } else if (field.name === "release_epoch") {
+      d = dagStair([
+        { x: box.cx, y: box.b },
+        { x: box.cx, y: gap2Y },
+        { x: releaseChanX, y: gap2Y },
+        { x: releaseChanX, y: portY },
+        { x: DAG_STEP_X, y: portY },
+      ]);
+    } else {
+      // clicks_30d / sales_30d: exit bottom-center, drop straight down to their
+      // popularity port, then run right into the step node.
+      d = dagStair([
+        { x: box.cx, y: box.b },
+        { x: box.cx, y: portY },
+        { x: DAG_STEP_X, y: portY },
+      ]);
+    }
     edges.push({
       id: `card->${field.name}`,
       d,
       color: fieldColorHex(field.name),
       kind: "pull",
       direct: direct != null,
+      // Every pull edge lands on a port via a short solid tail so the dash
+      // phase never opens a white gap at the connector. Direct pulls drop
+      // straight down onto the xgboost top edge; the feature-column pulls run
+      // horizontally into their step node's left edge.
+      landing:
+        direct != null
+          ? dagHop(direct.dropX, DAG_XGB_TOP_Y - 6, direct.dropX, DAG_XGB_TOP_Y)
+          : dagHop(DAG_STEP_X - 6, portY, DAG_STEP_X, portY),
     });
   }
 
+  // The derived-feature flow: each operation node feeds a named intermediate
+  // feature chip (a data node, same language as $score), and that chip feeds
+  // xgboost. Two short horizontal hops per feature, all at the feature's own
+  // height, so "price_affinity / freshness / popularity" read as first-class
+  // data entering the model rather than an arrow label on an operation node.
   for (const step of ["popularity", "price_affinity", "freshness"]) {
     edges.push({
-      id: `${step}->xgboost_rerank`,
-      d: dagEdgePath(
-        DAG_STEP_R,
-        DAG_STEP_Y[step],
-        DAG_XGB_X - 4,
-        DAG_XGB_IN_Y[step],
-      ),
+      id: `step:${step}->feature:${STEP_FLOW[step].output}`,
+      d: dagHop(DAG_STEP_R, DAG_STEP_Y[step], DAG_DATA_X, DAG_STEP_Y[step]),
+      color: stepColorHex(step),
+      kind: "flow",
+      direct: false,
+    });
+    edges.push({
+      id: `feature:${STEP_FLOW[step].output}->xgboost_rerank`,
+      d: dagHop(DAG_DATA_R, DAG_STEP_Y[step], DAG_XGB_X, DAG_XGB_IN_Y[step]),
       color: stepColorHex(step),
       kind: "flow",
       direct: false,
@@ -1315,18 +1614,18 @@ function buildDagEdges(
 
 function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
   const [hover, setHover] = useState<HoverTarget>(null);
-  const [anchors, setAnchors] = useState<
-    Map<string, { x: number; y: number }> | null
-  >(null);
+  const [anchors, setAnchors] = useState<FlowAnchors | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const steps = comparison.function_chain.chain_steps;
 
   // The six in-place field boxes live inside a <foreignObject>, so their
-  // centers are measured at runtime (like RankShiftLinks) and scaled from DOM
+  // positions are measured at runtime (like RankShiftLinks) and scaled from DOM
   // px into viewBox units. The card top is DAG_CARD_TOP in viewBox space; a
-  // box's px offset is scaled by DAG_VIEW_W / renderedWidth. Each anchor stores
-  // the box's horizontal CENTER (y) and RIGHT EDGE (x), so pull edges start on
-  // the box's own edge rather than the card's fixed right border.
+  // box's px offset is scaled by DAG_VIEW_W / renderedWidth. Each box stores
+  // its full rect (left/right/top/bottom/center) in viewBox units so each pull
+  // edge can attach to the box's own edge and steer through the card's gutters.
+  // The semantic score chip is measured too: it is the right-hand obstacle the
+  // price/release channels must thread past.
   useLayoutEffect(() => {
     function measure() {
       const svg = svgRef.current;
@@ -1344,7 +1643,7 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
       const scale = rect.width > 0 ? DAG_VIEW_W / rect.width : 1;
       const cardLeft = card.getBoundingClientRect().left;
       const cardTop = card.getBoundingClientRect().top;
-      const next = new Map<string, { x: number; y: number }>();
+      const boxes = new Map<string, BoxRect>();
       for (const field of CARD_FIELDS) {
         const box = card.querySelector<HTMLElement>(
           `[data-card-field="${field.name}"]`,
@@ -1353,14 +1652,34 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
           continue;
         }
         const boxRect = box.getBoundingClientRect();
-        const centerPx = boxRect.top + boxRect.height / 2 - cardTop;
-        const rightPx = boxRect.right - cardLeft;
-        next.set(field.name, {
-          x: DAG_CARD_X + rightPx * scale,
-          y: DAG_CARD_TOP + centerPx * scale,
+        const toVb = (px: number, axis: "x" | "y") =>
+          (axis === "x" ? DAG_CARD_X : DAG_CARD_TOP) + px * scale;
+        const l = toVb(boxRect.left - cardLeft, "x");
+        const t = toVb(boxRect.top - cardTop, "y");
+        const r = toVb(boxRect.right - cardLeft, "x");
+        const b = toVb(boxRect.bottom - cardTop, "y");
+        boxes.set(field.name, {
+          l,
+          r,
+          t,
+          b,
+          cx: (l + r) / 2,
+          cy: (t + b) / 2,
         });
       }
-      setAnchors(next);
+      let semantic: BoxRect | null = null;
+      const chip = card.querySelector<HTMLElement>(".card-score--semantic");
+      if (chip) {
+        const chipRect = chip.getBoundingClientRect();
+        const toVb = (px: number, axis: "x" | "y") =>
+          (axis === "x" ? DAG_CARD_X : DAG_CARD_TOP) + px * scale;
+        const l = toVb(chipRect.left - cardLeft, "x");
+        const t = toVb(chipRect.top - cardTop, "y");
+        const r = toVb(chipRect.right - cardLeft, "x");
+        const b = toVb(chipRect.bottom - cardTop, "y");
+        semantic = { l, r, t, b, cx: (l + r) / 2, cy: (t + b) / 2 };
+      }
+      setAnchors({ boxes, semantic });
     }
     measure();
     window.addEventListener("resize", measure);
@@ -1397,10 +1716,10 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
     [ordered],
   );
 
-  // The product card that sources the DAG's raw fields. It is the semantic
-  // top-1 (the vector search's best hit), the same product the chain_trace
-  // annotates, so the diagram shows the actual numbers flowing through.
-  const sourceProduct = comparison.vector_order[0];
+  // The product card that sources the DAG's raw fields. The demo example is
+  // frozen to a single catalog item regardless of the query, so the diagram
+  // always shows the same product and numbers on every open.
+  const sourceProduct = HARDCODED_SOURCE_PRODUCT;
 
   // Only operation step nodes reveal the code+graphic overlay; raw input and
   // output chips are data, not operations, so they do not open a panel.
@@ -1429,7 +1748,10 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
       })
     : null;
 
-  const edges = useMemo(() => buildDagEdges(anchors ?? new Map()), [anchors]);
+  const edges = useMemo(
+    () => buildDagEdges(anchors ?? { boxes: new Map(), semantic: null }),
+    [anchors],
+  );
 
   function renderStepNode(step: ChainStep, x: number, y: number, h: number) {
     const stepActive = isStepActive(step.name);
@@ -1452,7 +1774,6 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
           >
             <span className="flow-step-op">{step.operation}</span>
             <span className="flow-step-desc">{step.description}</span>
-            <span className="flow-step-out">→ {step.output}</span>
             {isXgb ? (
               <span className="flow-step-inputs">
                 <span className="flow-step-inputs-title">inputs</span>
@@ -1477,23 +1798,7 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
     >
       <div className="flow-dag">
         <div className="flow-dag-head">
-          <span className="flow-dag-title">How result #1 is reranked</span>
-          <div className="flow-dag-legend" aria-hidden="true">
-            <span className="flow-dag-legend-item">
-              <svg viewBox="0 0 34 10" className="flow-dag-legend-line">
-                <line x1="1" y1="5" x2="31" y2="5" stroke="#7a8ba1" strokeWidth="2" strokeDasharray="3 4" />
-                <circle cx="31" cy="5" r="2.5" fill="#fff" stroke="#7a8ba1" strokeWidth="1.5" />
-              </svg>
-              <span className="flow-dag-legend-label">source feature input</span>
-            </span>
-            <span className="flow-dag-legend-item">
-              <svg viewBox="0 0 34 10" className="flow-dag-legend-line">
-                <line x1="1" y1="5" x2="25" y2="5" stroke="#7a8ba1" strokeWidth="2.25" />
-                <path d="M 25 1 L 33 5 L 25 9 Z" fill="#7a8ba1" />
-              </svg>
-              <span className="flow-dag-legend-label">processed data flow</span>
-            </span>
-          </div>
+          <span className="flow-dag-title">Function chain rerank demo</span>
         </div>
         <svg
           className="flow-dag-svg"
@@ -1504,7 +1809,7 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
             <marker
               id="dag-arrow"
               viewBox="0 0 10 10"
-              refX="9"
+              refX="10"
               refY="5"
               markerWidth="8"
               markerHeight="8"
@@ -1514,6 +1819,28 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
               <path d="M 0 0 L 10 5 L 0 10 Z" fill="context-stroke" />
             </marker>
           </defs>
+
+          {/* Column 0: the source product card, a pixel-identical replica of
+              the search cards below. It is painted FIRST (under the edge
+              layer) so the pull edges that start on the card itself — the two
+              direct pulls from the right-border SEND ports (semantic_score,
+              rating) and the four feature-column leads — stay visible ON the
+              card's white surface instead of being hidden behind it. The edges
+              are still routed around the card's content, exiting at the card's
+              right border. */}
+          {sourceProduct ? (
+            <foreignObject
+              x={DAG_CARD_X}
+              y={DAG_CARD_TOP}
+              width={DAG_CARD_W}
+              height={DAG_CARD_H}
+            >
+              <FlowProductCard
+                product={sourceProduct}
+                onEnterField={() => setHover(null)}
+              />
+            </foreignObject>
+          ) : null}
 
           <g className="flow-dag-edges" aria-hidden="true">
             {edges.map((edge) => (
@@ -1531,10 +1858,76 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
                 style={{ stroke: edge.color }}
               />
             ))}
+            {edges
+              .filter((edge) => edge.landing)
+              .map((edge) => (
+                <path
+                  key={`${edge.id}->landing`}
+                  d={edge.landing!}
+                  className="flow-dag-landing"
+                  style={{ stroke: edge.color }}
+                />
+              ))}
           </g>
 
-          {/* Port dots: every flow edge lands on a visible connector so lines
-              read as "plugged in" rather than "stopping at a border". */}
+          {/* Column 2: the three feature-producing steps. */}
+          {featureSteps.map(({ step }) =>
+            renderStepNode(
+              step!,
+              DAG_STEP_X,
+              DAG_STEP_Y[step!.name],
+              DAG_STEP_H,
+            ),
+          )}
+
+          {/* Column 2.5: the intermediate-feature data chips — each operation
+              node's output is a named datum (popularity / price_affinity /
+              freshness) that flows on into xgboost, mirroring the final $score
+              chip. They sit at the same height as their producing operation. */}
+          {["price_affinity", "freshness", "popularity"].map((step) => (
+            <foreignObject
+              key={`data-${step}`}
+              x={DAG_DATA_X}
+              y={DAG_STEP_Y[step] - DAG_CHIP_H / 2}
+              width={DAG_DATA_W}
+              height={DAG_CHIP_H}
+            >
+              <div className="dag-node-host dag-node-host--data">
+                <FeatureChip
+                  name={STEP_FLOW[step].output}
+                  step={step}
+                  active={isStepActive(step)}
+                  onEnter={() => setHover(null)}
+                />
+              </div>
+            </foreignObject>
+          ))}
+
+          {/* Column 3: the single xgboost rerank step. */}
+          {rerankStep
+            ? renderStepNode(rerankStep.step!, DAG_XGB_X, DAG_XGB_Y, DAG_XGB_H)
+            : null}
+
+          {/* Column 4: the final output — the XGBoost business score, styled
+              like the "business" score chip on the real rerank cards below. */}
+          <foreignObject
+            x={DAG_OUT_X}
+            y={DAG_OUT_Y - DAG_CHIP_H / 2}
+            width={DAG_OUT_W}
+            height={DAG_CHIP_H}
+          >
+            <div className="dag-node-host dag-node-host--output">
+              <span className="flow-output-score">
+                <small>business</small>
+                <strong>{HARDCODED_SOURCE_BUSINESS_SCORE.toFixed(4)}</strong>
+              </span>
+            </div>
+          </foreignObject>
+
+          {/* Port dots: painted LAST, above every node's opaque fill, so each
+              connector renders as a full circle sitting on the node border
+              (never a half-circle clipped by the node's white background).
+              Every flow edge lands on one so lines read as "plugged in". */}
           <g className="flow-dag-ports" aria-hidden="true">
             {["popularity", "price_affinity", "freshness"].map((step) => (
               <circle
@@ -1547,8 +1940,30 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
                 strokeWidth={1.75}
               />
             ))}
+            {["popularity", "price_affinity", "freshness"].map((step) => (
+              <circle
+                key={`${step}-data-in`}
+                cx={DAG_DATA_X}
+                cy={DAG_STEP_Y[step]}
+                r={3}
+                fill="#fff"
+                stroke={stepColorHex(step)}
+                strokeWidth={1.75}
+              />
+            ))}
+            {["popularity", "price_affinity", "freshness"].map((step) => (
+              <circle
+                key={`${step}-data-out`}
+                cx={DAG_DATA_R}
+                cy={DAG_STEP_Y[step]}
+                r={3}
+                fill="#fff"
+                stroke={stepColorHex(step)}
+                strokeWidth={1.75}
+              />
+            ))}
             <circle
-              cx={DAG_DIRECT_PULL.embedding.dropX}
+              cx={DAG_DIRECT_PULL.semantic_score.dropX}
               cy={DAG_XGB_TOP_Y}
               r={3}
               fill="#fff"
@@ -1595,56 +2010,51 @@ function FunctionChainFlow({ comparison }: { comparison: SearchComparison }) {
               stroke={stepColorHex("popularity")}
               strokeWidth={1.75}
             />
+            <circle
+              cx={DAG_XGB_R}
+              cy={DAG_XGB_Y}
+              r={3}
+              fill="#fff"
+              stroke={stepColorHex("xgboost_rerank")}
+              strokeWidth={1.75}
+            />
+            <circle
+              cx={DAG_OUT_X}
+              cy={DAG_OUT_Y}
+              r={3}
+              fill="#fff"
+              stroke={stepColorHex("xgboost_rerank")}
+              strokeWidth={1.75}
+            />
           </g>
 
-          {/* Column 0: the source product card, a pixel-identical replica of
-              the search cards below. Its consumed fields are boxed in place
-              and their pull edges run straight into the consuming steps. */}
-          {sourceProduct ? (
-            <foreignObject
-              x={DAG_CARD_X}
-              y={DAG_CARD_TOP}
-              width={DAG_CARD_W}
-              height={DAG_CARD_H}
-            >
-              <FlowProductCard
-                product={sourceProduct}
-                onEnterField={() => setHover(null)}
+          {/* The semantic score chip's box and its source port dot. The ring is
+              drawn in SVG (not CSS) so it shares no pixels with the pull line,
+              and it is painted AFTER every opaque layer so it is never clipped.
+              The ring is outset 2px on all sides so the value's last digit keeps
+              breathing room, and the SOLID source dot sits in its own clear gap
+              just right of the ring — it never touches the ring or the number.
+              The pull line starts on the dot's center. */}
+          {anchors?.semantic ? (
+            <g className="flow-dag-ports" aria-hidden="true">
+              <rect
+                x={anchors.semantic.l - 2}
+                y={anchors.semantic.t - 2}
+                width={anchors.semantic.r - anchors.semantic.l + 4}
+                height={anchors.semantic.b - anchors.semantic.t + 4}
+                rx={6}
+                fill="none"
+                stroke={SOURCE_FEATURE_HEX}
+                strokeWidth={1.5}
               />
-            </foreignObject>
+              <circle
+                cx={anchors.semantic.r + 7}
+                cy={anchors.semantic.cy}
+                r={2.5}
+                fill={SOURCE_FEATURE_HEX}
+              />
+            </g>
           ) : null}
-
-          {/* Column 2: the three feature-producing steps. */}
-          {featureSteps.map(({ step }) =>
-            renderStepNode(
-              step!,
-              DAG_STEP_X,
-              DAG_STEP_Y[step!.name],
-              DAG_STEP_H,
-            ),
-          )}
-
-          {/* Column 3: the single xgboost rerank step. */}
-          {rerankStep
-            ? renderStepNode(rerankStep.step!, DAG_XGB_X, DAG_XGB_Y, DAG_XGB_H)
-            : null}
-
-          {/* Column 4: the final $score. */}
-          <foreignObject
-            x={DAG_OUT_X}
-            y={DAG_OUT_Y - DAG_CHIP_H / 2}
-            width={DAG_OUT_W}
-            height={DAG_CHIP_H}
-          >
-            <div className="dag-node-host dag-node-host--output">
-              <FeatureChip
-                name="$score"
-                step="xgboost_rerank"
-                active={isStepActive("xgboost_rerank")}
-                onEnter={() => setHover(null)}
-              />
-            </div>
-          </foreignObject>
         </svg>
       </div>
 

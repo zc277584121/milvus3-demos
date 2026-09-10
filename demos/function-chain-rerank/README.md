@@ -7,8 +7,8 @@ XGBoost UBJ FileResource inside Milvus. FastAPI preserves both returned arrays a
 `vector_order` and `business_order`; it does not perform the final sort.
 
 ```text
-FastAPI → Milvus 3.0 vector recall
-                └→ L0 Function Chain → XGBoost UBJ FileResource
+Portal → FastAPI → Milvus 3.0 vector recall
+                         └→ L0 Function Chain → XGBoost UBJ FileResource
 ```
 
 ## Fully synthetic catalog
@@ -32,30 +32,26 @@ the 20 types (the six intent types included), so every query's vector Top-20 fil
 candidates instead of a single cross-category super-item. Every title is authored directly; there
 are no localized titles and no derived English title summaries in this revision.
 
-> **Repository note:** the 240 placeholder JPEG files are intentionally **not committed** to
-> this repository. The catalog metadata, hash manifests, and training records below are included;
-> images will be added once final, clearly licensed product photography is available. Until then,
-> the strict loader's image validation and the asset route will not pass.
-
-Every product image is a deterministic 640×480 solid-color JPEG placeholder, one muted
-representative color per product type. Placeholders are labeled `synthetic-placeholder` in the
-source manifest and are not product photographs. `source-objects.json` freezes the authored
-fields, selection rank, synthetic URL, byte count, MD5, SHA-256, and dimensions, plus the hashes
-of the project's own `SYNTHETIC-README.md` and CC0 `LICENSE.txt`. `hash-manifest.sha256` makes
-the checked-in revision verifiable without network access. The strict loader rejects missing
-files, extra files, traversal, symlinks, hash/size changes, invalid JPEG bytes or dimensions,
-changed source relationships, inferred authored values, and altered deterministic fields.
+Every product has a unique 256×256 project-generated synthetic catalog image. These images are
+hash-pinned and explicitly described as synthetic renderings rather than photographs of real
+products. `source-objects.json` freezes the authored fields, selection rank, synthetic URL, byte
+count, MD5, SHA-256, and dimensions, plus the hashes of the project's own
+`SYNTHETIC-README.md` and CC0 `LICENSE.txt`. `hash-manifest.sha256` makes the checked-in revision
+verifiable without network access. The strict loader rejects missing files, extra files,
+traversal, symlinks, hash/size changes, invalid JPEG bytes or dimensions, changed source
+relationships, inferred authored values, and altered deterministic fields.
 
 Provenance labels distinguish every source of data in the manifest and per-field:
 
 - `synthetic_authored_metadata` — authored catalog text;
 - `synthetic_catalog_identity` — synthetic item IDs and image IDs;
-- `synthetic_placeholder_image_object` — deterministic solid-color JPEGs;
+- `synthetic_generated_product_image_object` — project-generated synthetic catalog JPEGs;
 - `deterministic_simulated_operational_signal` — fictional business telemetry and labels.
 
 ### Source preparation
 
-The generator writes the two static texts and 240 placeholder JPEGs into a bounded cache below
+The source-preparation command copies the two static texts and the 240 canonical checked-in
+synthetic JPEGs into a bounded cache below
 `artifacts/runtime/synthetic-commerce-catalog-r1/cache`, then emits a frozen source manifest. It
 never downloads anything. Prepare and regenerate with the backend's uv environment:
 
@@ -76,15 +72,15 @@ uv run --offline python -m function_chain_demo.dataset validate
 
 ## License
 
-The authored catalog metadata and the solid-color placeholder images are project-authored and
-dedicated to the public domain under CC0 1.0
+The authored catalog metadata and project-generated synthetic images are dedicated to the public
+domain under CC0 1.0
 (https://creativecommons.org/publicdomain/zero/1.0/). No third-party metadata, photography, or
 license texts are included, so there is no attribution obligation and no license conflict
 record. `publication_review_required` is `false`.
 
-The images remain honest synthetic placeholders, not product photographs. This Phase 1 revision
-runs the full text pipeline and must not be published as if it contained real product
-photography. See [`NOTICE.md`](data/synthetic-commerce-catalog-r1/NOTICE.md) and
+The images remain synthetic renderings, not photographs of real products. This revision must not
+be published as if it contained real product photography. See
+[`NOTICE.md`](data/synthetic-commerce-catalog-r1/NOTICE.md) and
 [`LICENSE-CONFLICT.md`](data/synthetic-commerce-catalog-r1/LICENSE-CONFLICT.md).
 
 ## Simulated operations
@@ -206,7 +202,10 @@ The asset route serves only the 240 manifest-listed JPEG paths. It rejects unkno
 traversal, returns `image/jpeg`, and includes immutable caching, dataset revision, SHA-256, and
 `nosniff` headers.
 
-The Web route submits both the selected `query_id` and its exact `query_text`; it consumes
+The Portal keeps this backend contract intact. Nginx maps
+`/api/function-chain/v1/{status,queries,search,assets/...}` to the dedicated backend's
+`/api/v1/{status,queries,search,assets/...}` without changing request or response JSON. The Web
+route submits both the selected `query_id` and its exact `query_text`; it consumes
 `vector_order` and `business_order` in response order and performs no `sort`, `reverse`, or
 `toSorted`.
 
@@ -225,7 +224,7 @@ simulated display-only and is not referenced by this text. Changing a query clea
 immediately; loading, error, retry, disabled controls, and reduced-motion states share the same
 request lifecycle.
 
-## Isolated runtime and entry points
+## Isolated runtime and one-command entry points
 
 The default development names remain limited to this demo:
 
@@ -233,18 +232,36 @@ The default development names remain limited to this demo:
 - FileResource: `milvus3_demos_function_chain_rerank_model`
 - object: `files/milvus3-demos/function-chain-rerank/xgb-reranker.ubj`
 
-The backend checks for exactly Milvus 3.0.0. It targets the already-running project Milvus at
+The backend checks for exactly Milvus 3.0.0. A shared or unknown runtime must use
+`FUNCTION_CHAIN_RUN_NAMESPACE` plus unused ports. The lifecycle derives a unique container,
+network, two Compose projects, Collection, FileResource, MinIO object prefix, and UBJ cache name;
+preflight refuses any collision. It targets the already-running project Milvus at
 `http://127.0.0.1:49530` but must not start, stop, restart, upgrade, or rename that deployment.
 
 ```bash
 make function-chain-rerank-data-check
+make function-chain-rerank-integration
+make function-chain-rerank-image-check
+make function-chain-rerank-e2e
+make function-chain-rerank-regression
 ```
 
-## Development verification
+Example isolated E2E invocation:
 
-> **Note:** `dataset validate` and the `make function-chain-rerank-data-check` target will fail
-> in this checkout because the 240 placeholder JPEGs are intentionally absent. Unit and type
-> checks below do not depend on the image files.
+```bash
+FUNCTION_CHAIN_RUN_NAMESPACE=s20260826-executor-r3 \
+FUNCTION_CHAIN_PORT=48120 API_PORT=48100 PORTAL_PORT=4183 \
+FUNCTION_CHAIN_ARTIFACT_DIR="$PWD/artifacts/validation/S-20260826-001/executor-r3-repair/e2e" \
+  ./scripts/function_chain_rerank.sh e2e
+```
+
+All current lifecycle evidence is constrained below
+`artifacts/validation/S-20260826-001/executor-r3-repair/`. Preflight refuses to take over any
+selected container, Compose project, network, listener, Collection, FileResource, object, or
+cache name. Cleanup is gated by per-run ownership flags and removes only resources named in that
+run's `command.json`.
+
+## Development verification
 
 ```bash
 uv lock --check --project demos/function-chain-rerank/backend
@@ -266,10 +283,8 @@ RUN_FUNCTION_CHAIN_INTEGRATION=1 \
 ## Limitations
 
 This is an explanatory demo, not a production ranker. Its catalog metadata is authored and its
-images are solid-color placeholders, so Phase 1 runs the text, embedding, rerank, and UI path
-without real product photography. A later image phase must replace the placeholders with
-author-produced or clearly licensed images before any publication. All business signals and
-labels are fictional. The text encoder is a frozen deterministic BGE-M3 ONNX int8 model, not a
-fine-tuned ranking model. The model is not calibrated for revenue, fairness, safety, or search
-quality. Production systems also need authorization, monitoring, realistic evaluation,
+images are synthetic catalog renderings rather than photographs of real products. All business
+signals and labels are fictional. The text encoder is a frozen deterministic BGE-M3 ONNX int8
+model, not a fine-tuned ranking model. The model is not calibrated for revenue, fairness, safety,
+or search quality. Production systems also need authorization, monitoring, realistic evaluation,
 controlled model promotion, and an explicit data-retention policy.

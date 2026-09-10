@@ -2,7 +2,7 @@
 
 To the extent possible under law, the milvus3-demos project has waived all
 copyright and related or neighboring rights to the synthetic catalog content
-(metadata, placeholder images, and this notice).
+(metadata, synthetic generated product images, and this notice).
 
 The full legal text is published by Creative Commons at:
 https://creativecommons.org/publicdomain/zero/1.0/legalcode

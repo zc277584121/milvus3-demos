@@ -13,6 +13,3 @@ test-results/
 .vite/
 .cc-use/
 .memsearch/
-
-# Placeholder product images are intentionally not committed; see the README.
-demos/function-chain-rerank/data/synthetic-commerce-catalog-r1/images/

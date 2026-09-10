@@ -5,10 +5,10 @@ descriptions, bullet points, colors, and all other metadata are authored by the
 milvus3-demos project for the Function Chain reranking demonstration. They are
 not derived from any real retailer, merchant, or public dataset.
 
-Every product image is a deterministic solid-color JPEG placeholder
-(640 x 480, baseline JPEG) and is not a product photograph. Placeholder images
-are labeled `synthetic-placeholder` in the source manifest; this revision must
-not be published as if it contained real product photography.
+Every product image is a 256 x 256 project-generated synthetic catalog rendering,
+not a photograph of a real product. Images are hash-pinned and labeled as synthetic
+generated product images in the source manifest. This revision must not be
+published as if it contained real product photography.
 
 Operational values (display price, rating, inventory, return rate, release age,
 clicks, and sales) are deterministic simulated signals and are labeled as such
