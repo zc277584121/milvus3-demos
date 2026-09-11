@@ -22,9 +22,7 @@ def test_runtime_config_keeps_sample_under_data_root() -> None:
     assert config.prefix_path.name == "video_data_10_samples.json"
 
 
-def test_real_bundle_has_30_videos_and_some_observations(
-    bundle, covla_data_present: bool
-) -> None:
+def test_real_bundle_has_30_videos_and_some_observations(bundle, covla_data_present: bool) -> None:
     if not covla_data_present:
         pytest.skip("CoVLA data is not committed; set COVLA_DATA_DIR to run data-backed tests")
     assert bundle.video_count == 30
@@ -37,9 +35,7 @@ def test_real_bundle_has_30_videos_and_some_observations(
     assert max(len(video.observations) for video in bundle.videos) <= 128
 
 
-def test_prefix_preserves_10_record_order(
-    config: RuntimeConfig, covla_data_present: bool
-) -> None:
+def test_prefix_preserves_10_record_order(config: RuntimeConfig, covla_data_present: bool) -> None:
     if not covla_data_present:
         pytest.skip("CoVLA data is not committed; set COVLA_DATA_DIR to run data-backed tests")
     bundle = build_dataset(config)

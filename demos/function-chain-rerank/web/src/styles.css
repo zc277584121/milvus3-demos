@@ -67,6 +67,24 @@
   font-size: 0.62rem;
 }
 
+.status-badge {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: var(--fc-brand-strong);
+  background: var(--fc-brand-soft);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.status-badge--available {
+  color: var(--fc-brand-strong);
+  background: var(--fc-brand-soft);
+}
+
 .milvus-label {
   padding: 3px 7px;
   border: 1px solid #b6cdf8;

@@ -103,8 +103,7 @@ def test_fixed_source_inventory_and_jpeg_hashes_are_complete() -> None:
         "synthetic_authored_metadata"
     }
     assert all(
-        item["image_width"] == PRODUCT_IMAGE_WIDTH
-        and item["image_height"] == PRODUCT_IMAGE_HEIGHT
+        item["image_width"] == PRODUCT_IMAGE_WIDTH and item["image_height"] == PRODUCT_IMAGE_HEIGHT
         for item in items
     )
     assert {item["http_head"].get("media_type") for item in items} == {"image/jpeg"}

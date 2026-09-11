@@ -6,10 +6,23 @@ import {
   type CSSProperties,
 } from "react";
 
-import { type DemoDefinition } from "@milvus3-demos/demo-ui";
 import simpleheat from "simpleheat";
 
 import "./styles.css";
+
+export type DemoStatus = "available" | "implemented" | "foundation-ready" | "planned";
+
+export interface DemoDefinition {
+  id: string;
+  title: string;
+  shortTitle: string;
+  capability: string;
+  description: string;
+  route: string;
+  status: DemoStatus;
+  accent: string;
+  highlights: string[];
+}
 
 export const QUERY_OPTIONS = [
   {
@@ -248,7 +261,7 @@ interface SearchResponse {
   latency_ms: number;
 }
 
-const API_BASE = "/api/embedding-list/v1";
+const API_BASE = "/api/v1";
 
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -708,7 +721,7 @@ export function EmbeddingListDemoPage() {
     <main className="embedding-demo-page">
       <header className="embedding-topbar">
         <a className="back-link" href="/">
-          ← Portal
+          ← Home
         </a>
         <h1>{embeddingListDemo.title}</h1>
       </header>

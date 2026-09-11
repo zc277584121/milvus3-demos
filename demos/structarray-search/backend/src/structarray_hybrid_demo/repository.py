@@ -503,9 +503,7 @@ class StructArrayHybridRepository:
         finally:
             client.close()
         hits: list[FusionHit] = []
-        fused_videos = [
-            self._hydrate_parent(hit, videos_by_id) for hit in raw[0]
-        ]
+        fused_videos = [self._hydrate_parent(hit, videos_by_id) for hit in raw[0]]
         top_by_id = self._top_observations(
             query_vector=query_vector,
             videos_by_id=videos_by_id,

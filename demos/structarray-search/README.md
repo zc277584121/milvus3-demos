@@ -19,9 +19,8 @@ prepare time. There is no precomputed companion-vector file and no external
 embedding API.
 
 ```text
-Browser
-  → Portal /api/structarray/
-  → independent StructArray FastAPI on 127.0.0.1:48030
+Browser /
+  → unified StructArray FastAPI static+API server on 127.0.0.1:48030
   → Milvus 3.0.0 on http://127.0.0.1:49530
   → BGE-M3 ONNX (CPU) embeds the query to 1024 dims
   → summary_vector           parent-only search
@@ -111,8 +110,8 @@ file mounts:
 - `/tmp` as an ephemeral tmpfs while the image root filesystem remains
   read-only.
 
-The backend uses host networking and binds only `127.0.0.1:48030`. The Portal
-proxies `/api/structarray/` to that address.
+The backend uses host networking and binds only `127.0.0.1:48030`, serving both
+the browser UI and the `/api/v1/` endpoints from that single address.
 
 ## Development checks
 
@@ -129,11 +128,10 @@ npm test --workspace @milvus3-demos/structarray-search
 npm run typecheck --workspace @milvus3-demos/structarray-search
 ```
 
-Real Milvus integration and the Playwright browser path are opt-in:
+Real Milvus integration is opt-in:
 
 ```bash
 make structarray-search-image-check
-make structarray-search-e2e
 ```
 
 ## Known limitations

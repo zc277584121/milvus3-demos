@@ -120,10 +120,7 @@ def _predictions(
     jitter: float = 0.0,
 ) -> np.ndarray:
     features = np.asarray(
-        [
-            model_features(raw_semantic[product.item_id] + jitter, product)
-            for product in products
-        ],
+        [model_features(raw_semantic[product.item_id] + jitter, product) for product in products],
         dtype=np.float32,
     )
     return model.predict(xgb.DMatrix(features))
@@ -184,9 +181,7 @@ def business_gate_report(dataset: CatalogDataset, model: xgb.Booster) -> dict[st
                 favorable_signals(
                     dataset.product_by_id(
                         next(
-                            product.id
-                            for product in vector_products
-                            if product.item_id == item_id
+                            product.id for product in vector_products if product.item_id == item_id
                         )
                     )
                 )
@@ -198,9 +193,7 @@ def business_gate_report(dataset: CatalogDataset, model: xgb.Booster) -> dict[st
             for item_id in downward
             if risk_signals(
                 dataset.product_by_id(
-                    next(
-                        product.id for product in vector_products if product.item_id == item_id
-                    )
+                    next(product.id for product in vector_products if product.item_id == item_id)
                 )
             )
         ]

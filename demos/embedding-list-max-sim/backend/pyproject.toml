@@ -7,9 +7,9 @@ dependencies = [
     "accelerate>=1,<2",
     "colpali-engine==0.3.17",
     "fastapi>=0.116,<1",
-    "milvus-demo-common",
     "numpy>=1.26,<3",
     "pillow>=11,<13",
+    "pymilvus==3.0.1",
     "pymupdf==1.28.2",
     "safetensors>=0.5,<1",
     "torch==2.7.1",
@@ -33,7 +33,6 @@ dev = [
 ]
 
 [tool.uv.sources]
-milvus-demo-common = { path = "../../../packages/python/milvus-demo-common", editable = true }
 torch = { index = "pytorch-cpu" }
 torchvision = { index = "pytorch-cpu" }
 

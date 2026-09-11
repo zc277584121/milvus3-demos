@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException, Response, status
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from embedding_list_demo.api_models import (
     CleanupResponse,
@@ -134,6 +138,10 @@ def create_app(*, service: EmbeddingListService | None = None) -> FastAPI:
             return CleanupResponse.model_validate(resolved.cleanup())
         except CONTRACT_ERRORS as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    static_dir = os.environ.get("STATIC_DIR")
+    if static_dir and Path(static_dir).is_dir():
+        application.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
     return application
 

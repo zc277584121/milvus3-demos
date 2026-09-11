@@ -1,3 +1,15 @@
+FROM node:22.14.0-alpine AS web
+
+WORKDIR /workspace/web
+COPY demos/embedding-list-max-sim/web/package.json \
+    demos/embedding-list-max-sim/web/package-lock.json ./
+RUN npm ci
+COPY demos/embedding-list-max-sim/web/index.html \
+    demos/embedding-list-max-sim/web/vite.config.ts \
+    demos/embedding-list-max-sim/web/tsconfig.json ./
+COPY demos/embedding-list-max-sim/web/src src
+RUN npm run build
+
 FROM ghcr.io/astral-sh/uv:0.11.26 AS uv
 
 FROM python:3.12-slim
@@ -5,7 +17,6 @@ FROM python:3.12-slim
 COPY --from=uv /uv /uvx /bin/
 WORKDIR /workspace
 
-COPY packages/python/milvus-demo-common packages/python/milvus-demo-common
 COPY demos/embedding-list-max-sim/backend/pyproject.toml \
     demos/embedding-list-max-sim/backend/uv.lock \
     demos/embedding-list-max-sim/backend/
@@ -14,9 +25,11 @@ COPY demos/embedding-list-max-sim/data/nasa-systems-engineering-handbook-rev2 \
 
 WORKDIR /workspace/demos/embedding-list-max-sim/backend
 COPY demos/embedding-list-max-sim/backend/src src
+COPY --from=web /workspace/web/dist ../web/dist
 RUN uv sync --frozen --no-dev
 
 ENV PATH="/workspace/demos/embedding-list-max-sim/backend/.venv/bin:$PATH" \
+    STATIC_DIR="/workspace/demos/embedding-list-max-sim/web/dist" \
     COLSMOL_DEVICE="cpu" \
     EMBEDDING_LIST_PORT="48040" \
     EMBEDDING_LIST_RUNTIME_DIR="/workspace/artifacts/runtime/embedding-list-max-sim/volume/run" \

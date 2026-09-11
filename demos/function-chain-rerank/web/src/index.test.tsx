@@ -291,7 +291,7 @@ describe("FunctionChainDemoPage", () => {
       name: /Product image for/,
     });
     expect(productImages[0].getAttribute("src")).toBe(
-      "/api/function-chain/v1/assets/images/001-SYN-DESK-001.jpg?v=2ab8e3c3eee3edf1fe1f8bd98a2ce3e2fd450cb778160f325585da1590a0f398",
+      "/api/v1/assets/images/001-SYN-DESK-001.jpg?v=2ab8e3c3eee3edf1fe1f8bd98a2ce3e2fd450cb778160f325585da1590a0f398",
     );
     expect(screen.getAllByAltText("Product image for DESK")).toHaveLength(2);
 
@@ -633,10 +633,10 @@ describe("FunctionChainDemoPage", () => {
 
   it("encodes every JPEG asset path segment", () => {
     expect(productImageUrl("images/a b.jpg")).toBe(
-      "/api/function-chain/v1/assets/images/a%20b.jpg",
+      "/api/v1/assets/images/a%20b.jpg",
     );
     expect(productImageUrl("images/a b.jpg", "c".repeat(64))).toBe(
-      `/api/function-chain/v1/assets/images/a%20b.jpg?v=${"c".repeat(64)}`,
+      `/api/v1/assets/images/a%20b.jpg?v=${"c".repeat(64)}`,
     );
   });
 });

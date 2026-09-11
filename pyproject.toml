@@ -1,7 +1,7 @@
 [project]
 name = "milvus3-demos"
 version = "0.1.0"
-description = "Interactive Milvus 3.0 capability demos"
+description = "Three independent, self-contained Milvus 3.0 capability demos"
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
 dependencies = [

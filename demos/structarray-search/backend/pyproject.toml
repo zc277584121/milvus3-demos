@@ -5,9 +5,9 @@ description = "StructArray parent + child semantic hybrid search demo backend"
 requires-python = ">=3.10,<3.13"
 dependencies = [
     "fastapi>=0.116,<1",
-    "milvus-demo-common",
     "numpy>=1.26,<3",
     "onnxruntime>=1.19,<2",
+    "pymilvus==3.0.1",
     "tokenizers>=0.20,<1",
     "uvicorn>=0.35,<1",
 ]
@@ -25,9 +25,6 @@ dev = [
     "pytest>=8,<9",
     "ruff>=0.11,<1",
 ]
-
-[tool.uv.sources]
-milvus-demo-common = { path = "../../../packages/python/milvus-demo-common", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/structarray_hybrid_demo"]

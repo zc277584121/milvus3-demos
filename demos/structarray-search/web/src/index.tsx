@@ -1,8 +1,20 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 
-import { type DemoDefinition } from "@milvus3-demos/demo-ui";
-
 import "./styles.css";
+
+export type DemoStatus = "available" | "implemented" | "foundation-ready" | "planned";
+
+export interface DemoDefinition {
+  id: string;
+  title: string;
+  shortTitle: string;
+  capability: string;
+  description: string;
+  route: string;
+  status: DemoStatus;
+  accent: string;
+  highlights: string[];
+}
 
 export const structArrayDemo: DemoDefinition = {
   id: "structarray-search",
@@ -21,7 +33,7 @@ export const structArrayDemo: DemoDefinition = {
   ],
 };
 
-const API_BASE = "/api/structarray/v1";
+const API_BASE = "/api/v1";
 
 export interface QueryPreset {
   id: string;
@@ -1227,7 +1239,7 @@ export function StructArrayDemoPage() {
     <main className="structarray-hybrid-page">
       <header className="hybrid-topbar">
         <a className="back-link" href="/">
-          ← Portal
+          ← Home
         </a>
         <div className="hybrid-title">
           <h1>{structArrayDemo.title}</h1>

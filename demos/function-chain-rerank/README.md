@@ -7,7 +7,7 @@ XGBoost UBJ FileResource inside Milvus. FastAPI preserves both returned arrays a
 `vector_order` and `business_order`; it does not perform the final sort.
 
 ```text
-Portal → FastAPI → Milvus 3.0 vector recall
+Browser → FastAPI → Milvus 3.0 vector recall
                          └→ L0 Function Chain → XGBoost UBJ FileResource
 ```
 
@@ -202,12 +202,9 @@ The asset route serves only the 240 manifest-listed JPEG paths. It rejects unkno
 traversal, returns `image/jpeg`, and includes immutable caching, dataset revision, SHA-256, and
 `nosniff` headers.
 
-The Portal keeps this backend contract intact. Nginx maps
-`/api/function-chain/v1/{status,queries,search,assets/...}` to the dedicated backend's
-`/api/v1/{status,queries,search,assets/...}` without changing request or response JSON. The Web
-route submits both the selected `query_id` and its exact `query_text`; it consumes
-`vector_order` and `business_order` in response order and performs no `sort`, `reverse`, or
-`toSorted`.
+The unified server keeps this backend contract intact. The Web route submits both the selected
+`query_id` and its exact `query_text`; it consumes `vector_order` and `business_order` in
+response order and performs no `sort`, `reverse`, or `toSorted`.
 
 The page is a compact single-column shopping-results view. Each row uses a server-returned array
 without mutation and shows the actual semantic, rating, clicks, sales, and listed-date inputs.
@@ -240,19 +237,7 @@ preflight refuses any collision. It targets the already-running project Milvus a
 
 ```bash
 make function-chain-rerank-data-check
-make function-chain-rerank-integration
 make function-chain-rerank-image-check
-make function-chain-rerank-e2e
-make function-chain-rerank-regression
-```
-
-Example isolated E2E invocation:
-
-```bash
-FUNCTION_CHAIN_RUN_NAMESPACE=s20260826-executor-r3 \
-FUNCTION_CHAIN_PORT=48120 API_PORT=48100 PORTAL_PORT=4183 \
-FUNCTION_CHAIN_ARTIFACT_DIR="$PWD/artifacts/validation/S-20260826-001/executor-r3-repair/e2e" \
-  ./scripts/function_chain_rerank.sh e2e
 ```
 
 All current lifecycle evidence is constrained below

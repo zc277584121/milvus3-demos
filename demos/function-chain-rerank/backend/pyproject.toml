@@ -6,12 +6,13 @@ requires-python = ">=3.10,<3.13"
 dependencies = [
     "fastapi>=0.116,<1",
     "minio>=7.2,<8",
-    "milvus-demo-common",
     "numpy>=1.26,<3",
+    "onnxruntime>=1.20,<2",
+    "pydantic-settings>=2.10,<3",
+    "pymilvus==3.0.1",
+    "tokenizers>=0.20,<1",
     "uvicorn>=0.35,<1",
     "xgboost>=3,<4",
-    "onnxruntime>=1.20,<2",
-    "tokenizers>=0.20,<1",
 ]
 
 [build-system]
@@ -24,9 +25,6 @@ dev = [
     "pytest>=8,<9",
     "ruff>=0.11,<1",
 ]
-
-[tool.uv.sources]
-milvus-demo-common = { path = "../../../packages/python/milvus-demo-common", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/function_chain_demo"]

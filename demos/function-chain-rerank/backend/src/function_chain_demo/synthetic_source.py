@@ -202,9 +202,7 @@ def _static_content(kind: str) -> bytes:
 # output decodes with any JPEG reader without a Pillow runtime dependency.
 # ---------------------------------------------------------------------------
 
-_APP0: Final = bytes.fromhex(
-    "ffe000104a46494600010100000100010000"
-)
+_APP0: Final = bytes.fromhex("ffe000104a46494600010100000100010000")
 _DQT: Final = bytes.fromhex(
     "ffdb004300080606070605080707070909080a0c140d0c0b0b0c1912130f141d1a1f1e1d1a1c1c20242e2720222c231c1c2837292c30313434341f27393d38323c2e333432"
     "ffdb0043010909090c0b0c180d0d1832211c213232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232"
@@ -330,16 +328,7 @@ def solid_color_jpeg(rgb: tuple[int, int, int], width: int, height: int) -> byte
         + bytes.fromhex("03012200021101031101")
     )
     sos = b"\xff\xda" + _SOS_HEADER
-    return (
-        b"\xff\xd8"
-        + _APP0
-        + _DQT
-        + sof0
-        + _DHT
-        + sos
-        + writer.bytes()
-        + b"\xff\xd9"
-    )
+    return b"\xff\xd8" + _APP0 + _DQT + sof0 + _DHT + sos + writer.bytes() + b"\xff\xd9"
 
 
 def jpeg_dimensions(path: Path) -> tuple[int, int]:

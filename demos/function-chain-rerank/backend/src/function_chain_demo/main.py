@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Response, status
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from function_chain_demo.api_models import (
     DemoStatusResponse,
@@ -136,6 +139,10 @@ def create_app(
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         return SearchResponse.model_validate(comparison.public_dict())
+
+    static_dir = os.environ.get("STATIC_DIR")
+    if static_dir and Path(static_dir).is_dir():
+        application.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
     return application
 

@@ -260,7 +260,7 @@ describe("EmbeddingListDemoPage", () => {
     expect(screen.queryByText(/expects page/)).toBeNull();
     expect(screen.queryByText(/hard negative/i)).toBeNull();
     expect(screen.getAllByRole("img")[0].getAttribute("src")).toBe(
-      "/api/embedding-list/v1/pages/nasa-seh-printed-053",
+      "/api/v1/pages/nasa-seh-printed-053",
     );
     const heatmap = screen.getByTestId("local-colsmol-heatmap");
     expect(heatmap.tagName).toBe("CANVAS");

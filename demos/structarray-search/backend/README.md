@@ -47,15 +47,14 @@ refuses to replace an existing exact collection, embeds the 30 summaries and
 loads it, and waits for both HNSW indexes to finish. `cleanup` drops only the
 exact collection and reports the pre-drop index names.
 
-The stable container entries are:
+The stable container entry is:
 
 ```bash
 make structarray-search-image-check
-make structarray-search-e2e
 ```
 
-Both use the exact cleanup trap and raw SDK name audit in
-`scripts/structarray_search.sh`.
+It builds the unified image, starts it, health-checks the live endpoint, and uses
+the exact cleanup trap.
 
 ## Data and model safety
 

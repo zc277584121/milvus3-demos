@@ -1,3 +1,15 @@
+FROM node:22.14.0-alpine AS web
+
+WORKDIR /workspace/web
+COPY demos/function-chain-rerank/web/package.json \
+    demos/function-chain-rerank/web/package-lock.json ./
+RUN npm ci
+COPY demos/function-chain-rerank/web/index.html \
+    demos/function-chain-rerank/web/vite.config.ts \
+    demos/function-chain-rerank/web/tsconfig.json ./
+COPY demos/function-chain-rerank/web/src src
+RUN npm run build
+
 FROM ghcr.io/astral-sh/uv:0.11.26 AS uv
 
 FROM python:3.12-slim
@@ -7,7 +19,6 @@ WORKDIR /workspace
 
 RUN groupadd --gid 10001 app && useradd --uid 10001 --gid app --no-create-home app
 
-COPY packages/python/milvus-demo-common packages/python/milvus-demo-common
 COPY demos/function-chain-rerank/backend/pyproject.toml \
     demos/function-chain-rerank/backend/uv.lock \
     demos/function-chain-rerank/backend/
@@ -15,9 +26,11 @@ COPY demos/function-chain-rerank/backend/pyproject.toml \
 WORKDIR /workspace/demos/function-chain-rerank/backend
 COPY demos/function-chain-rerank/backend/src src
 COPY demos/function-chain-rerank/data ../data
+COPY --from=web /workspace/web/dist ../web/dist
 RUN uv sync --frozen --no-dev
 
 ENV PATH="/workspace/demos/function-chain-rerank/backend/.venv/bin:$PATH" \
+    STATIC_DIR="/workspace/demos/function-chain-rerank/web/dist" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 USER 10001:10001

@@ -1,6 +1,5 @@
 import pytest
 
-from function_chain_demo.synthetic_source import TARGET_TYPES
 from function_chain_demo.catalog import (
     DATASET,
     EMBEDDING_DIMENSION,
@@ -9,6 +8,7 @@ from function_chain_demo.catalog import (
     QUERIES,
     get_query,
 )
+from function_chain_demo.synthetic_source import TARGET_TYPES
 
 
 def test_catalog_uses_fixed_synthetic_identity_and_feature_order() -> None:

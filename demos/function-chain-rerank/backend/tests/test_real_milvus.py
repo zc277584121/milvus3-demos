@@ -119,12 +119,12 @@ def test_real_milvus_runs_all_acceptance_scenarios_and_cleans_up() -> None:
 
                 assert len(vector_ids) == 20
                 assert set(business_ids) == set(vector_ids)
-                assert [
-                    product["item_id"] for product in repeat_comparison["vector_order"]
-                ] == [product["item_id"] for product in vector_order]
-                assert [
-                    product["item_id"] for product in repeat_comparison["business_order"]
-                ] == [product["item_id"] for product in business_order]
+                assert [product["item_id"] for product in repeat_comparison["vector_order"]] == [
+                    product["item_id"] for product in vector_order
+                ]
+                assert [product["item_id"] for product in repeat_comparison["business_order"]] == [
+                    product["item_id"] for product in business_order
+                ]
                 oracle_ranking = local_model_ranking(model, vector_order)
                 oracle_ids = [product_id for product_id, _ in oracle_ranking]
                 oracle_scores = {product_id: score for product_id, score in oracle_ranking}

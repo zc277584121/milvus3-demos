@@ -7,9 +7,35 @@ import {
   type FormEvent,
 } from "react";
 
-import { StatusBadge, type DemoDefinition } from "@milvus3-demos/demo-ui";
-
 import "./styles.css";
+
+export type DemoStatus = "available" | "implemented" | "foundation-ready" | "planned";
+
+export interface DemoDefinition {
+  id: string;
+  title: string;
+  shortTitle: string;
+  capability: string;
+  description: string;
+  route: string;
+  status: DemoStatus;
+  accent: string;
+  highlights: string[];
+}
+
+export function StatusBadge({ status }: { status: DemoStatus }) {
+  const labels: Record<DemoStatus, string> = {
+    available: "Available",
+    implemented: "Implemented",
+    "foundation-ready": "Foundation ready",
+    planned: "Planned",
+  };
+  return (
+    <span className={`status-badge status-badge--${status}`}>
+      {labels[status]}
+    </span>
+  );
+}
 
 export const functionChainDemo: DemoDefinition = {
   id: "function-chain-rerank",
@@ -164,7 +190,7 @@ interface CompareRow {
   business: RankedProduct;
 }
 
-const API_BASE = "/api/function-chain/v1";
+const API_BASE = "/api/v1";
 const DERIVED_TITLE_PROVENANCE =
   "deterministic_english_summary_from_synthetic_authored_metadata";
 
@@ -2924,7 +2950,7 @@ export function FunctionChainDemoPage() {
       <header className="commerce-header">
         <div className="commerce-identity">
           <a className="back-link" href="/">
-            ← Portal
+            ← Home
           </a>
           <StatusBadge status={functionChainDemo.status} />
           <span className="milvus-label">Milvus 3.0</span>

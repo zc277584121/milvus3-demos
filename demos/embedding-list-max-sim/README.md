@@ -9,9 +9,8 @@ Milvus Top 3, the app also computes a local spatial explanation from the same re
 multi-vectors; this explanation is not returned by Milvus.
 
 ```text
-Browser /demos/embedding-list-max-sim
-  -> Portal proxy
-  -> isolated FastAPI backend on 127.0.0.1:48040
+Browser /
+  -> unified FastAPI static+API server on 127.0.0.1:48040
   -> CPU FP32 vidore/colSmol-256M
   -> Milvus 3.0.0 GA on 127.0.0.1:49530
   -> EmbeddingList + HNSW/MAX_SIM_COSINE
@@ -42,7 +41,7 @@ saved official PDF. NASA does not endorse Milvus or this demo.
 dimensions, renderer, source metadata, author affiliations, and SHA-256 for every selected page.
 `SHA256SUMS` closes the complete dataset file set. `queries.json` contains the eight approved natural
 questions plus internal target and same-PDF hard-negative mappings. Only query IDs and natural text
-are exposed by the API; answer mappings are not returned to the Portal.
+are exposed by the API; answer mappings are not returned to the browser.
 
 Validate the tracked bytes and reproduce all 40 page renders into a new, non-overwriting directory:
 
@@ -134,28 +133,26 @@ make embedding-list-max-sim-data-check
 UV_OFFLINE=1 uv run --offline --project demos/embedding-list-max-sim/backend --group dev \
   pytest demos/embedding-list-max-sim/backend/tests -m "not integration"
 npm test --workspace @milvus3-demos/embedding-list-max-sim
-npm test --workspace @milvus3-demos/portal
 npm run typecheck
 ```
 
 ## Deferred real lifecycle
 
-The following lifecycle commands intentionally build an isolated CPU image, load the real model,
-use only the project GA endpoint at `127.0.0.1:49530`, and then prove exact cleanup. They are not
+The following lifecycle command intentionally builds an isolated CPU image, loads the real model,
+uses only the project GA endpoint at `127.0.0.1:49530`, and then proves exact cleanup. It is not
 part of the safe validation above:
 
 ```bash
 make embedding-list-max-sim-image-check
-make embedding-list-max-sim-e2e
 ```
 
 The real lifecycle covers cold and warm preparation, all eight natural queries, browser screenshots
 and traces at the required viewports, CPU and memory evidence, latency reports, image inspection,
-raw SDK audits, and exact cleanup. It also submits a 513-character query through the real Portal and
-FastAPI path, requires the API's 422 rejection and cleared stale evidence, then retries a canonical
-query and requires real Milvus ranking plus the local explanation to recover. The four pre-existing
-Milvus deployments are captured before and after and must remain unchanged; only the isolated NASA
-demo Collection on the project GA endpoint is in scope.
+raw SDK audits, and exact cleanup. It also submits a 513-character query through the unified static
+and FastAPI path, requires the API's 422 rejection and cleared stale evidence, then retries a
+canonical query and requires real Milvus ranking plus the local explanation to recover. The four
+pre-existing Milvus deployments are captured before and after and must remain unchanged; only the
+isolated NASA demo Collection on the project GA endpoint is in scope.
 
 Lifecycle evidence defaults below `artifacts/validation/S-20260826-002/`. Evidence directories are
 unique and non-overwriting and receive a semantic SHA-256 manifest.

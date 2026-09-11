@@ -2,19 +2,23 @@
 
 from __future__ import annotations
 
-from milvus_demo_common import MilvusSettings
 from pydantic import SecretStr, field_validator
-from pydantic_settings import SettingsConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 NAMESPACE_PREFIX = "milvus3_demos_function_chain_rerank"
 
 
-class DemoSettings(MilvusSettings):
+class DemoSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    milvus_uri: str = "http://127.0.0.1:49530"
+    milvus_token: SecretStr = SecretStr("")
+    milvus_expected_version: str = "3.0.0"
+    milvus_timeout_seconds: float = 5.0
 
     minio_endpoint: str = "minio:9000"
     minio_access_key: SecretStr = SecretStr("")
@@ -47,3 +51,8 @@ class DemoSettings(MilvusSettings):
         if not access_key or not secret_key:
             raise RuntimeError("MINIO_ACCESS_KEY and MINIO_SECRET_KEY are required")
         return access_key, secret_key
+
+    def token_value(self) -> str:
+        """Return the Milvus token only for the client constructor."""
+
+        return self.milvus_token.get_secret_value()

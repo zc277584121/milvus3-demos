@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException, Response, status
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from structarray_hybrid_demo.api_models import (
     CleanupResponse,
@@ -132,6 +136,10 @@ def create_app(*, service: StructArrayHybridService | None = None) -> FastAPI:
         except (EvidencePathError, OSError) as exc:
             raise HTTPException(status_code=404, detail="Evidence frame not found") from exc
         return FileResponse(path, media_type="image/jpeg", filename=path.name)
+
+    static_dir = os.environ.get("STATIC_DIR")
+    if static_dir and Path(static_dir).is_dir():
+        application.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
     return application
 

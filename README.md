@@ -101,12 +101,15 @@ schema, source-data contract, and use restrictions.
 demos/function-chain-rerank/        Demo 1: backend, web UI, and synthetic catalog
 demos/embedding-list-max-sim/       Demo 2: backend, web UI, and NASA handbook dataset
 demos/structarray-search/           Demo 3: backend and web UI (code only, no CoVLA data)
-packages/python/milvus-demo-common/ shared settings and Milvus health probe
-packages/web/demo-ui/               shared UI primitives (badge, page frame)
-infra/function-chain-rerank/        Docker Compose for the isolated rerank backend
-infra/embedding-list-max-sim/       Docker Compose for the isolated ColSmol backend
-infra/structarray-search/           Docker Compose for the isolated hybrid backend
+infra/function-chain-rerank/        Docker Compose for the isolated rerank image
+infra/embedding-list-max-sim/       Docker Compose for the isolated ColSmol image
+infra/structarray-search/           Docker Compose for the isolated hybrid image
 ```
+
+Each demo is fully self-contained: its backend declares its own Python dependencies, its web
+directory declares its own Node dependencies, and its Dockerfile builds the UI and the API into a
+single image. The backend serves both the compiled front-end and the `/api/v1/` endpoints from one
+port — there is no shared package, portal, or gateway layer between demos.
 
 ## Quick start
 
