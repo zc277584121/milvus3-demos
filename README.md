@@ -113,6 +113,9 @@ port — there is no shared package, portal, or gateway layer between demos.
 
 ## Quick start
 
+For step-by-step build and run instructions — starting Milvus, building the three independent
+images, and deploying each demo — see [DEPLOYMENT.md](DEPLOYMENT.md).
+
 Each demo has its own prerequisites and fixed runtime boundary. Demo 1 requires Milvus 3.0.0 and
 MinIO-backed FileResource storage; Demo 2 requires a local offline ColSmol model cache; Demo 3
 requires the gated CoVLA dataset and a local BGE-M3 ONNX model cache. See each demo's README for
