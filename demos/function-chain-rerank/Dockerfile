@@ -31,6 +31,7 @@ RUN uv sync --frozen --no-dev
 
 ENV PATH="/workspace/demos/function-chain-rerank/backend/.venv/bin:$PATH" \
     STATIC_DIR="/workspace/demos/function-chain-rerank/web/dist" \
+    HF_HUB_CACHE="/models/hub" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 USER 10001:10001
