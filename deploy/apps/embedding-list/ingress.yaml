@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: embedding-list
+  namespace: demo
+  labels:
+    app.kubernetes.io/name: embedding-list
+    app.kubernetes.io/part-of: milvus-demo
+  annotations:
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/group.name: milvus-io
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    kubernetes.io/ingress.class: alb
+spec:
+  ingressClassName: alb
+  rules:
+  - host: demos.milvus.io
+    http:
+      paths:
+      - path: /embedding-list
+        pathType: Prefix
+        backend:
+          service:
+            name: embedding-list-svc
+            port:
+              number: 48040
+  tls:
+  - hosts:
+    - demos.milvus.io

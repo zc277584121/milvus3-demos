@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: function-chain-rerank
+  namespace: demo
+  labels:
+    app.kubernetes.io/name: function-chain-rerank
+    app.kubernetes.io/part-of: milvus-demo
+  annotations:
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/group.name: milvus-io
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    kubernetes.io/ingress.class: alb
+spec:
+  ingressClassName: alb
+  rules:
+  - host: demos.milvus.io
+    http:
+      paths:
+      - path: /function-chain-rerank
+        pathType: Prefix
+        backend:
+          service:
+            name: function-chain-rerank-svc
+            port:
+              number: 8000
+  tls:
+  - hosts:
+    - demos.milvus.io

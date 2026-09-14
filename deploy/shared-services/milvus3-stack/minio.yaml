@@ -1,0 +1,116 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: milvus3-minio
+  namespace: demo
+  labels:
+    app.kubernetes.io/name: milvus3-minio
+    app.kubernetes.io/part-of: milvus-demo
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: milvus3-minio
+  ports:
+  - name: api
+    port: 9000
+    targetPort: api
+    protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: milvus3-minio
+  namespace: demo
+  labels:
+    app.kubernetes.io/name: milvus3-minio
+    app.kubernetes.io/part-of: milvus-demo
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: milvus3-minio
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: milvus3-minio
+        app.kubernetes.io/part-of: milvus-demo
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: minio
+        image: minio/minio:RELEASE.2024-05-28T17-19-04Z
+        command:
+        - minio
+        - server
+        - /minio_data
+        - --console-address
+        - ":9001"
+        env:
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: milvus3-minio-secret
+              key: access_key
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: milvus3-minio-secret
+              key: secret_key
+        ports:
+        - name: api
+          containerPort: 9000
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - mc
+            - ready
+            - local
+          initialDelaySeconds: 5
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          exec:
+            command:
+            - mc
+            - ready
+            - local
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: "2"
+            memory: 2Gi
+        volumeMounts:
+        - name: data
+          mountPath: /minio_data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: milvus3-minio
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: milvus3-minio
+  namespace: demo
+  labels:
+    app.kubernetes.io/name: milvus3-minio
+    app.kubernetes.io/part-of: milvus-demo
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi

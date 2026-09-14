@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: embedding-list
+  namespace: demo
+  labels:
+    app.kubernetes.io/name: embedding-list
+    app.kubernetes.io/part-of: milvus-demo
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: embedding-list
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: embedding-list
+        app.kubernetes.io/part-of: milvus-demo
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: embedding-list
+        image: embedding-list:bootstrap
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MILVUS_URI
+          value: http://milvus3:19530
+        - name: APP_ROOT_PATH
+          value: /embedding-list
+        - name: EMBEDDING_LIST_RUNTIME_DIR
+          value: /workspace/artifacts/runtime/embedding-list-max-sim/volume/run
+        ports:
+        - name: http
+          containerPort: 48040
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /healthz/ready
+            port: http
+          # Cold start runs ColSmol CPU inference over 40 pages (~3-4 min)
+          # before the server begins listening; give it ample runway.
+          initialDelaySeconds: 360
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /healthz/live
+            port: http
+          # Liveness starts after readiness has had time to complete the cold
+          # prepare; live is always 200 once the server is up.
+          initialDelaySeconds: 400
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 500m
+            memory: 2Gi
+          limits:
+            cpu: "4"
+            memory: 6Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: embedding-cache
+          mountPath: /workspace/artifacts/runtime/embedding-list-max-sim/volume
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: embedding-cache
+        persistentVolumeClaim:
+          claimName: embedding-list-cache
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: embedding-list-cache
+  namespace: demo
+  labels:
+    app.kubernetes.io/name: embedding-list
+    app.kubernetes.io/part-of: milvus-demo
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: embedding-list-svc
+  namespace: demo
+  labels:
+    app.kubernetes.io/name: embedding-list
+    app.kubernetes.io/part-of: milvus-demo
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: embedding-list
+  ports:
+  - name: http
+    port: 48040
+    targetPort: http
+    protocol: TCP
