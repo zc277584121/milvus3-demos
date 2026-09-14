@@ -39,6 +39,10 @@ RUN .venv/bin/hf download vidore/colSmol-256M \
         --revision ff628001884d6bfb066658e86a32b5f233906bf5 \
     && .venv/bin/hf download vidore/ColSmolVLM-Instruct-256M-base \
         --revision 99ca96f1f6b95b3a69e6abef74a2416cb738fed0 \
+    && mkdir -p /models/hub/models--vidore--colSmol-256M/refs \
+    && printf 'ff628001884d6bfb066658e86a32b5f233906bf5' > /models/hub/models--vidore--colSmol-256M/refs/main \
+    && mkdir -p /models/hub/models--vidore--ColSmolVLM-Instruct-256M-base/refs \
+    && printf '99ca96f1f6b95b3a69e6abef74a2416cb738fed0' > /models/hub/models--vidore--ColSmolVLM-Instruct-256M-base/refs/main \
     && rm -rf /models/hub/.cache \
     && chmod -R a+rX /models
 
