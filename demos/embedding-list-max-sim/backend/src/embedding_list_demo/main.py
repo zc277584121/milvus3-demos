@@ -56,6 +56,9 @@ def create_app(*, service: EmbeddingListService | None = None) -> FastAPI:
     # pre-existing Collection, so restarts stay fast. Test doubles skip this
     # (they enter lifespan only under an explicit context manager).
     auto_prepare = service is None
+    # Deployable under a sub-path (e.g. demos.milvus.io/embedding-list) by
+    # setting APP_ROOT_PATH; empty means served at "/" as in local development.
+    root_path = os.environ.get("APP_ROOT_PATH", "").rstrip("/")
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
@@ -68,6 +71,7 @@ def create_app(*, service: EmbeddingListService | None = None) -> FastAPI:
         version="0.2.0",
         docs_url="/api/docs",
         openapi_url="/api/openapi.json",
+        root_path=root_path,
         lifespan=lifespan,
     )
 

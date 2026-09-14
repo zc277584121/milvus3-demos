@@ -1,5 +1,9 @@
 FROM node:22.14.0-alpine AS web
 
+# Deployable under a sub-path: pass --build-arg VITE_BASE_PATH=/embedding-list
+ARG VITE_BASE_PATH=/
+ENV VITE_BASE_PATH=${VITE_BASE_PATH}
+
 WORKDIR /workspace/web
 COPY demos/embedding-list-max-sim/web/package.json \
     demos/embedding-list-max-sim/web/package-lock.json ./
@@ -44,4 +48,4 @@ ENV PATH="/workspace/demos/embedding-list-max-sim/backend/.venv/bin:$PATH" \
 EXPOSE 48040
 HEALTHCHECK --interval=10s --timeout=5s --start-period=360s --retries=3 \
     CMD ["python", "-c", "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ[\"EMBEDDING_LIST_PORT\"]}/healthz/live', timeout=5)"]
-CMD ["sh", "-c", "exec uvicorn embedding_list_demo.main:app --host 127.0.0.1 --port \"${EMBEDDING_LIST_PORT}\""]
+CMD ["sh", "-c", "exec uvicorn embedding_list_demo.main:app --host 127.0.0.1 --port \"${EMBEDDING_LIST_PORT}\" --root-path \"${APP_ROOT_PATH:-}\""]

@@ -190,7 +190,7 @@ interface CompareRow {
   business: RankedProduct;
 }
 
-const API_BASE = "/api/v1";
+const API_BASE = `${import.meta.env.BASE_URL}api/v1`;
 const DERIVED_TITLE_PROVENANCE =
   "deterministic_english_summary_from_synthetic_authored_metadata";
 

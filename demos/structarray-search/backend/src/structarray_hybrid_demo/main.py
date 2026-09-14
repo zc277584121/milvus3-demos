@@ -43,6 +43,9 @@ def create_app(*, service: StructArrayHybridService | None = None) -> FastAPI:
     # Test doubles skip this because they only enter lifespan when wrapped in
     # a context manager, and the double has no prepare() to run.
     auto_prepare = service is None
+    # Deployable under a sub-path (e.g. demos.milvus.io/structarray-search) by
+    # setting APP_ROOT_PATH; empty means served at "/" as in local development.
+    root_path = os.environ.get("APP_ROOT_PATH", "").rstrip("/")
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
@@ -58,6 +61,7 @@ def create_app(*, service: StructArrayHybridService | None = None) -> FastAPI:
         version="3.0.0",
         docs_url="/api/docs",
         openapi_url="/api/openapi.json",
+        root_path=root_path,
         lifespan=lifespan,
     )
 

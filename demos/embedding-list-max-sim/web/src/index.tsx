@@ -261,7 +261,7 @@ interface SearchResponse {
   latency_ms: number;
 }
 
-const API_BASE = "/api/v1";
+const API_BASE = `${import.meta.env.BASE_URL}api/v1`;
 
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {

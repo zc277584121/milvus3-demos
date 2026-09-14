@@ -37,6 +37,9 @@ def create_app(
     resolved_settings = settings or DemoSettings()
     resolved_provisioner = provisioner or DemoProvisioner(resolved_settings)
     resolved_search = search_service or SearchService(resolved_settings)
+    # Deployable under a sub-path (e.g. demos.milvus.io/function-chain-rerank)
+    # by setting APP_ROOT_PATH; empty means served at "/" as in local dev.
+    root_path = os.environ.get("APP_ROOT_PATH", "").rstrip("/")
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
@@ -54,6 +57,7 @@ def create_app(
         version="0.2.0",
         docs_url="/api/docs",
         openapi_url="/api/openapi.json",
+        root_path=root_path,
         lifespan=lifespan,
     )
     application.state.manifest = None
