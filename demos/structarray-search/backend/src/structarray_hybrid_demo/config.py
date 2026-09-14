@@ -9,7 +9,9 @@ from pathlib import Path
 DEMO_ID = "structarray-search"
 CAPABILITY = "Parent + child semantic hybrid search"
 
-MILVUS_URI = "http://127.0.0.1:49530"
+# Deployable against a shared Milvus by setting MILVUS_URI; defaults to the
+# local standalone endpoint for development.
+MILVUS_URI = os.environ.get("MILVUS_URI", "http://127.0.0.1:49530")
 MILVUS_EXPECTED_VERSION = "3.0.0"
 MILVUS_TIMEOUT_SECONDS = 30.0
 

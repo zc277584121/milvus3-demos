@@ -32,6 +32,16 @@ COPY demos/embedding-list-max-sim/backend/src src
 COPY --from=web /workspace/web/dist ../web/dist
 RUN uv sync --frozen --no-dev
 
+# Bake the pinned ColSmol adapter and base snapshots into the image so no
+# external model mount is required at runtime.
+ENV HF_HOME=/models
+RUN .venv/bin/hf download vidore/colSmol-256M \
+        --revision ff628001884d6bfb066658e86a32b5f233906bf5 \
+    && .venv/bin/hf download vidore/ColSmolVLM-Instruct-256M-base \
+        --revision 99ca96f1f6b95b3a69e6abef74a2416cb738fed0 \
+    && rm -rf /models/hub/.cache \
+    && chmod -R a+rX /models
+
 ENV PATH="/workspace/demos/embedding-list-max-sim/backend/.venv/bin:$PATH" \
     STATIC_DIR="/workspace/demos/embedding-list-max-sim/web/dist" \
     COLSMOL_DEVICE="cpu" \

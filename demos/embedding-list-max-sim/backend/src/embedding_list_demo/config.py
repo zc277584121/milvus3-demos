@@ -9,7 +9,9 @@ from pathlib import Path
 DEMO_ID = "embedding-list-max-sim"
 CAPABILITY = "EmbeddingList + MAX_SIM_COSINE"
 
-MILVUS_URI = "http://127.0.0.1:49530"
+# Deployable against a shared Milvus by setting MILVUS_URI; defaults to the
+# local standalone endpoint for development.
+MILVUS_URI = os.environ.get("MILVUS_URI", "http://127.0.0.1:49530")
 MILVUS_EXPECTED_VERSION = "3.0.0"
 MILVUS_TIMEOUT_SECONDS = 30.0
 COLLECTION_NAME = "milvus3_demos_nasa_seh_colsmol_pages"

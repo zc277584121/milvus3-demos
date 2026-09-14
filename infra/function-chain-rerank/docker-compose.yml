@@ -10,7 +10,6 @@ services:
     environment:
       CLEANUP_ON_SHUTDOWN: "true"
       COLLECTION_NAME: ${FUNCTION_CHAIN_COLLECTION_NAME:-milvus3_demos_function_chain_rerank_products}
-      HF_HUB_CACHE: /models/hub
       HF_HUB_OFFLINE: "1"
       MILVUS_EXPECTED_VERSION: "3.0.0"
       MILVUS_TIMEOUT_SECONDS: "10"
@@ -28,8 +27,6 @@ services:
       OMP_NUM_THREADS: "1"
       OPENBLAS_NUM_THREADS: "1"
       PYTHONUNBUFFERED: "1"
-    volumes:
-      - ${HF_HUB_CACHE_HOST:?HF_HUB_CACHE_HOST must be set to a local Hugging Face hub cache directory}:/models/hub:ro
     ports:
       - "127.0.0.1:${FUNCTION_CHAIN_PORT:-48020}:8000"
     networks:

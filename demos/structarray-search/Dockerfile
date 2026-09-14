@@ -30,11 +30,21 @@ COPY demos/structarray-search/backend/src src
 COPY --from=web /workspace/web/dist ../web/dist
 RUN uv sync --frozen --no-dev
 
+# Bake the pinned BGE-M3 ONNX snapshot into the image so no external model
+# mount is required at runtime.
+ENV HF_HOME=/models
+RUN .venv/bin/hf download gpahal/bge-m3-onnx-int8 \
+        --revision 2b34e84df040034d4b9eabb62383a87c18955822 \
+    && rm -rf /models/hub/.cache \
+    && chmod -R a+rX /models
+
 ENV PATH="/workspace/demos/structarray-search/backend/.venv/bin:$PATH" \
     STATIC_DIR="/workspace/demos/structarray-search/web/dist" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    HF_HUB_CACHE=/model-cache/huggingface/hub \
+    HF_HUB_CACHE=/models/hub \
+    HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1 \
     STRUCTARRAY_PORT=48030
 EXPOSE 48030
 HEALTHCHECK --interval=10s --timeout=5s --start-period=120s --retries=3 \

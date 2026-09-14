@@ -33,9 +33,19 @@ COPY demos/function-chain-rerank/data ../data
 COPY --from=web /workspace/web/dist ../web/dist
 RUN uv sync --frozen --no-dev
 
+# Bake the pinned BGE-M3 ONNX snapshot into the image so no external model
+# mount is required at runtime.
+ENV HF_HOME=/models
+RUN .venv/bin/hf download gpahal/bge-m3-onnx-int8 \
+        --revision 2b34e84df040034d4b9eabb62383a87c18955822 \
+    && rm -rf /models/hub/.cache \
+    && chmod -R a+rX /models
+
 ENV PATH="/workspace/demos/function-chain-rerank/backend/.venv/bin:$PATH" \
     STATIC_DIR="/workspace/demos/function-chain-rerank/web/dist" \
     HF_HUB_CACHE="/models/hub" \
+    HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 USER 10001:10001
