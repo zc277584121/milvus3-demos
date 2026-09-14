@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Response, status
@@ -41,14 +43,32 @@ CONTRACT_ERRORS = (
 
 
 def create_app(*, service: EmbeddingListService | None = None) -> FastAPI:
-    """Create an injectable FastAPI application without loading the CPU model."""
+    """Create an injectable FastAPI application.
+
+    The real (uninjected) service prepares itself on startup so the packaged
+    image is search-ready immediately; injected test doubles keep the deferred
+    prepare() contract.
+    """
 
     resolved = service or EmbeddingListService()
+    # Auto-prepare only the real, uninjected service so the packaged image is
+    # search-ready on startup. It reuses the disk embedding cache and adopts a
+    # pre-existing Collection, so restarts stay fast. Test doubles skip this
+    # (they enter lifespan only under an explicit context manager).
+    auto_prepare = service is None
+
+    @asynccontextmanager
+    async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+        if auto_prepare:
+            resolved.prepare()
+        yield
+
     application = FastAPI(
         title="ColSmol EmbeddingList MAX_SIM Demo",
         version="0.2.0",
         docs_url="/api/docs",
         openapi_url="/api/openapi.json",
+        lifespan=lifespan,
     )
 
     @application.get("/healthz/live", response_model=LiveHealthResponse)

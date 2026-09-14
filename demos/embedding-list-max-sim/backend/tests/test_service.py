@@ -116,6 +116,10 @@ class FakeRepository:
     def raw_audit(self) -> FakeAudit:
         return FakeAudit(target_exists=self.owns_collection)
 
+    def adopt(self, page_count: int) -> bool:
+        # The fake never has a pre-existing, unowned Collection; always prepare.
+        return False
+
     def prepare(self, manual: ManualManifest, vectors: Any) -> PublicValue:
         assert manual.page_count == PAGE_COUNT
         assert len(vectors) == PAGE_COUNT

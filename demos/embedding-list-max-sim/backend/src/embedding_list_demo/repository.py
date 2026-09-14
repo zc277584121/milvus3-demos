@@ -435,6 +435,40 @@ class EmbeddingListRepository:
         finally:
             client.close()
 
+    def adopt(self, page_count: int) -> bool:
+        """Take ownership of a pre-existing exact Collection after validating it.
+
+        This is used on startup so a container restart can reuse the Collection
+        it (or a prior identical run) already built instead of refusing to
+        search. Returns True when the Collection was adopted, False when it is
+        absent (caller should then prepare from scratch).
+        """
+
+        client = self._client_factory()
+        try:
+            audit = self._audit_client(client)
+            if audit.server_version != MILVUS_EXPECTED_VERSION:
+                raise RepositoryContractError(
+                    f"Expected Milvus {MILVUS_EXPECTED_VERSION}, got {audit.server_version}"
+                )
+            if not audit.target_exists:
+                return False
+            if audit.index_names != (INDEX_NAME,):
+                raise RepositoryContractError(
+                    f"Pre-existing Collection index differs: expected={[INDEX_NAME]}, "
+                    f"actual={list(audit.index_names)}"
+                )
+            stats = audit.collection_stats
+            if stats is None or int(stats.get("row_count", -1)) != page_count:
+                raise RepositoryContractError(
+                    "Pre-existing Collection row count differs from page count"
+                )
+            self._owns_collection = True
+            self._cleanup_authorized = True
+            return True
+        finally:
+            client.close()
+
     def search(self, query_vectors: torch.Tensor, *, limit: int) -> tuple[MilvusHit, ...]:
         """Return Milvus-ranked pages without application-side sorting or reranking."""
 

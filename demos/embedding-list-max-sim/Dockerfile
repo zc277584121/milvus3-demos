@@ -42,6 +42,6 @@ ENV PATH="/workspace/demos/embedding-list-max-sim/backend/.venv/bin:$PATH" \
     UV_LINK_MODE="copy"
 
 EXPOSE 48040
-HEALTHCHECK --interval=3s --timeout=4s --start-period=5s --retries=20 \
-    CMD ["python", "-c", "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ[\"EMBEDDING_LIST_PORT\"]}/healthz/live', timeout=4)"]
+HEALTHCHECK --interval=10s --timeout=5s --start-period=360s --retries=3 \
+    CMD ["python", "-c", "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ[\"EMBEDDING_LIST_PORT\"]}/healthz/live', timeout=5)"]
 CMD ["sh", "-c", "exec uvicorn embedding_list_demo.main:app --host 127.0.0.1 --port \"${EMBEDDING_LIST_PORT}\""]

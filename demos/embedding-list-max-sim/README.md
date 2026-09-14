@@ -136,11 +136,14 @@ npm test --workspace @milvus3-demos/embedding-list-max-sim
 npm run typecheck
 ```
 
-## Deferred real lifecycle
+## Real lifecycle
 
-The following lifecycle command intentionally builds an isolated CPU image, loads the real model,
-uses only the project GA endpoint at `127.0.0.1:49530`, and then proves exact cleanup. It is not
-part of the safe validation above:
+On startup the backend prepares automatically: it reuses the disk page-embedding cache when present,
+adopts the pre-existing Collection when it is already built, and otherwise runs the cold ColSmol CPU
+inference before serving. The packaged image is therefore search-ready as soon as it is healthy. The
+following lifecycle command builds an isolated CPU image, loads the real model, uses only the project
+GA endpoint at `127.0.0.1:49530`, and then proves exact cleanup. It is not part of the safe validation
+above:
 
 ```bash
 make embedding-list-max-sim-image-check

@@ -241,12 +241,14 @@ class EmbeddingListService:
                 "audit": self.repository.raw_audit().public_dict(),
             }
         else:
-            existing = self.repository.raw_audit()
-            if existing.target_exists:
-                raise ServiceContractError(
-                    f"Refusing to use pre-existing Collection {COLLECTION_NAME}"
-                )
-            repository_report = self.repository.prepare(manifest, vectors).public_dict()
+            adopted = self.repository.adopt(page_count=len(manifest.pages))
+            if adopted:
+                repository_report = {
+                    "status": "adopted_pre_existing_collection",
+                    "audit": self.repository.raw_audit().public_dict(),
+                }
+            else:
+                repository_report = self.repository.prepare(manifest, vectors).public_dict()
         milvus_prepare_ms = (time.perf_counter() - milvus_started) * 1000
         total_ms = (time.perf_counter() - started) * 1000
         timings = {

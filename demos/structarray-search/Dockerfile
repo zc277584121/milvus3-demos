@@ -33,6 +33,6 @@ ENV PATH="/workspace/demos/structarray-search/backend/.venv/bin:$PATH" \
     HF_HUB_CACHE=/model-cache/huggingface/hub \
     STRUCTARRAY_PORT=48030
 EXPOSE 48030
-HEALTHCHECK --interval=3s --timeout=4s --start-period=5s --retries=20 \
-    CMD ["python", "-c", "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ[\"STRUCTARRAY_PORT\"]}/healthz/live', timeout=4)"]
+HEALTHCHECK --interval=10s --timeout=5s --start-period=120s --retries=3 \
+    CMD ["python", "-c", "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ[\"STRUCTARRAY_PORT\"]}/healthz/live', timeout=5)"]
 CMD ["sh", "-c", "exec uvicorn structarray_hybrid_demo.main:app --host 127.0.0.1 --port \"${STRUCTARRAY_PORT}\""]

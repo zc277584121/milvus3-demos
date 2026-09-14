@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Response, status
@@ -37,11 +39,26 @@ CONTRACT_ERRORS = (
 
 def create_app(*, service: StructArrayHybridService | None = None) -> FastAPI:
     resolved = service or StructArrayHybridService()
+    # Auto-prepare only the real, uninjected service (startup-ready image).
+    # Test doubles skip this because they only enter lifespan when wrapped in
+    # a context manager, and the double has no prepare() to run.
+    auto_prepare = service is None
+
+    @asynccontextmanager
+    async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+        if auto_prepare:
+            # Rebuild from scratch so a stale collection left by a previous
+            # container never blocks a fresh, search-ready start.
+            resolved.cleanup()
+            resolved.prepare()
+        yield
+
     application = FastAPI(
         title="StructArray Parent + Child Semantic Hybrid Demo",
         version="3.0.0",
         docs_url="/api/docs",
         openapi_url="/api/openapi.json",
+        lifespan=lifespan,
     )
 
     @application.get("/healthz/live", response_model=LiveHealthResponse)
