@@ -1,0 +1,754 @@
+{
+  "dataset_id": "synthetic-driving-scenes-r1",
+  "version": 1,
+  "description": "Original synthetic driving scenes authored for the Milvus StructArray search demo.",
+  "observation_phases": [
+    { "frame_offset": 0, "motion": "approaches steadily" },
+    { "frame_offset": 12, "motion": "continues through the camera view" },
+    { "frame_offset": 24, "motion": "moves farther ahead" }
+  ],
+  "scenes": [
+    {
+      "video_id": "synthetic-drive-001",
+      "image": "synthetic-drive-001.jpg",
+      "summary": "Environment: road type: intersection, broad urban crossroads in clear morning light || Traffic: 1 truck, 2 cars, 1 van, 1 bus, and 1 bicycle moving through moderate traffic.",
+      "image_prompt": "Front-facing dashcam view at a broad urban intersection in clear morning light. A white medium delivery truck waits near the center, with two passenger cars, a small van, a city bus, and one distant cyclist. Natural road photography, realistic spacing and scale.",
+      "objects": [
+        [
+          "truck",
+          "white",
+          "delivery truck",
+          "ahead",
+          "off",
+          [374, 158, 566, 326]
+        ],
+        ["car", "blue", "sedan", "left", "off", [170, 205, 315, 326]],
+        ["car", "silver", "hatchback", "right", "off", [650, 215, 774, 325]],
+        ["van", "gray", "cargo van", "ahead", "off", [575, 187, 669, 293]],
+        ["bus", "red", "city bus", "left", "off", [34, 150, 205, 319]],
+        ["bicycle", "yellow", "bicycle", "right", "off", [796, 230, 846, 318]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-002",
+      "image": "synthetic-drive-002.jpg",
+      "summary": "Environment: road type: intersection, compact downtown junction after light rain || Traffic: 1 truck, 3 cars, 1 van, and 1 motorcycle crossing slowly.",
+      "image_prompt": "Front-facing dashcam view at a compact downtown intersection just after light rain. A white box truck is crossing the junction, surrounded by three ordinary cars, a gray van, and a distant motorcycle. Wet asphalt reflections, soft overcast daylight, realistic road scene.",
+      "objects": [
+        [
+          "truck",
+          "white",
+          "box truck",
+          "crossing",
+          "off",
+          [346, 150, 575, 326]
+        ],
+        ["car", "red", "sedan", "left", "off", [122, 210, 284, 333]],
+        ["car", "black", "compact car", "ahead", "on", [586, 218, 689, 310]],
+        ["car", "silver", "sedan", "right", "off", [708, 226, 825, 327]],
+        ["van", "gray", "passenger van", "ahead", "off", [260, 188, 351, 293]],
+        ["motorcycle", "blue", "motorcycle", "left", "on", [61, 236, 112, 323]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-003",
+      "image": "synthetic-drive-003.jpg",
+      "summary": "Environment: road type: intersection, suburban signalized crossroads at midday || Traffic: 1 truck, 2 cars, 2 vans, and 1 bus waiting at the lights.",
+      "image_prompt": "Front-facing dashcam view at a suburban signalized intersection at midday. A white flatbed truck is stopped in the middle lane, accompanied by two cars, two unbranded vans, and a small local bus. Bright but natural daylight, modest roadside landscaping.",
+      "objects": [
+        [
+          "truck",
+          "white",
+          "flatbed truck",
+          "ahead",
+          "off",
+          [366, 164, 569, 327]
+        ],
+        ["car", "green", "compact car", "left", "off", [176, 225, 300, 326]],
+        ["car", "black", "sedan", "right", "off", [684, 228, 803, 327]],
+        ["van", "blue", "cargo van", "ahead", "off", [578, 196, 675, 302]],
+        ["van", "silver", "passenger van", "left", "off", [275, 202, 365, 303]],
+        ["bus", "orange", "local bus", "far ahead", "off", [790, 181, 913, 297]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-004",
+      "image": "synthetic-drive-004.jpg",
+      "summary": "Environment: road type: intersection, industrial district crossroads near warehouses || Traffic: 2 trucks, 2 cars, 1 van, and 1 motorcycle in sparse traffic.",
+      "image_prompt": "Front-facing dashcam view of an industrial district intersection beside generic warehouses. One prominent black semi truck and a smaller gray utility truck share the junction with two cars, a van, and a motorcycle. Late afternoon light, realistic commercial roadway, no company markings.",
+      "objects": [
+        [
+          "truck",
+          "black",
+          "semi truck",
+          "crossing",
+          "off",
+          [330, 140, 595, 331]
+        ],
+        [
+          "truck",
+          "gray",
+          "utility truck",
+          "ahead",
+          "off",
+          [611, 191, 720, 310]
+        ],
+        ["car", "silver", "sedan", "left", "off", [132, 224, 280, 331]],
+        ["car", "blue", "compact car", "right", "off", [742, 232, 857, 328]],
+        ["van", "red", "cargo van", "far ahead", "off", [252, 197, 347, 300]],
+        [
+          "motorcycle",
+          "black",
+          "motorcycle",
+          "right",
+          "on",
+          [868, 239, 915, 324]
+        ]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-005",
+      "image": "synthetic-drive-005.jpg",
+      "summary": "Environment: road type: intersection, tree-lined neighborhood crossroads near sunset || Traffic: 1 truck, 3 cars, 1 van, and 1 bicycle moving cautiously.",
+      "image_prompt": "Front-facing dashcam view at a tree-lined neighborhood intersection near sunset. A red pickup truck is the main vehicle ahead, with three ordinary cars, a compact van, and a cyclist farther to the side. Warm natural light, calm realistic traffic.",
+      "objects": [
+        ["truck", "red", "pickup truck", "ahead", "off", [371, 177, 563, 327]],
+        ["car", "maroon", "sedan", "left", "off", [155, 222, 292, 329]],
+        ["car", "silver", "hatchback", "right", "off", [675, 230, 792, 328]],
+        ["car", "blue", "sedan", "far ahead", "off", [572, 211, 661, 296]],
+        ["van", "gray", "compact van", "left", "off", [276, 204, 369, 305]],
+        ["bicycle", "red", "bicycle", "right", "off", [820, 239, 867, 322]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-006",
+      "image": "synthetic-drive-006.jpg",
+      "summary": "Environment: road type: bridge, wide river crossing under a bright sky || Traffic: 1 van, 3 cars, 1 truck, and 1 motorcycle traveling in open lanes.",
+      "image_prompt": "Front-facing dashcam view driving across a wide modern river bridge under a bright sky. A white passenger van is centered ahead, with three cars, one small truck, and a motorcycle distributed across open lanes. Realistic travel photography, no recognizable landmark.",
+      "objects": [
+        ["van", "white", "passenger van", "ahead", "off", [388, 170, 555, 320]],
+        ["car", "blue", "sedan", "left", "off", [197, 218, 321, 323]],
+        ["car", "gray", "hatchback", "right", "off", [663, 222, 776, 322]],
+        ["car", "red", "sedan", "far ahead", "off", [570, 205, 660, 291]],
+        ["truck", "silver", "light truck", "left", "off", [85, 194, 211, 316]],
+        [
+          "motorcycle",
+          "black",
+          "motorcycle",
+          "right",
+          "on",
+          [801, 231, 850, 319]
+        ]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-007",
+      "image": "synthetic-drive-007.jpg",
+      "summary": "Environment: road type: bridge, steel truss crossing on an overcast day || Traffic: 2 vans, 2 cars, 1 truck, and 1 bus moving steadily.",
+      "image_prompt": "Front-facing dashcam view inside a generic steel truss bridge on an overcast day. A white cargo van leads the lane, another blue van and two cars travel nearby, with one truck and one small bus farther away. Photorealistic, safe lane spacing, no signage text.",
+      "objects": [
+        ["van", "white", "cargo van", "ahead", "off", [384, 165, 556, 322]],
+        ["van", "blue", "passenger van", "right", "off", [650, 201, 760, 312]],
+        ["car", "black", "sedan", "left", "off", [190, 225, 309, 324]],
+        [
+          "car",
+          "silver",
+          "compact car",
+          "far ahead",
+          "off",
+          [567, 212, 649, 291]
+        ],
+        ["truck", "red", "box truck", "left", "off", [68, 181, 203, 314]],
+        ["bus", "green", "local bus", "right", "off", [778, 187, 906, 313]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-008",
+      "image": "synthetic-drive-008.jpg",
+      "summary": "Environment: road type: bridge, low concrete causeway above marshland || Traffic: 1 van, 2 cars, 2 trucks, and 1 motorcycle in light traffic.",
+      "image_prompt": "Front-facing dashcam view on a low concrete bridge crossing marshland. A white minivan is ahead, accompanied by two cars, two unbranded work trucks, and a motorcycle. Soft hazy daylight, flat open landscape, realistic documentary road photo.",
+      "objects": [
+        ["van", "white", "minivan", "ahead", "off", [390, 176, 552, 321]],
+        ["car", "green", "hatchback", "left", "off", [201, 224, 320, 324]],
+        ["car", "black", "sedan", "right", "off", [666, 226, 779, 324]],
+        [
+          "truck",
+          "orange",
+          "work truck",
+          "far ahead",
+          "off",
+          [574, 203, 671, 298]
+        ],
+        ["truck", "gray", "pickup truck", "left", "off", [84, 204, 211, 318]],
+        ["motorcycle", "red", "motorcycle", "right", "on", [808, 234, 854, 320]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-009",
+      "image": "synthetic-drive-009.jpg",
+      "summary": "Environment: road type: bridge, cable-supported crossing during golden hour || Traffic: 1 van, 3 cars, 1 bus, and 1 truck flowing smoothly.",
+      "image_prompt": "Front-facing dashcam view on a generic cable-supported bridge at golden hour. A blue panel van travels in the center lane with three cars, a small bus, and a utility truck. Warm sun, subtle long shadows, no iconic skyline or recognizable bridge.",
+      "objects": [
+        ["van", "blue", "panel van", "ahead", "off", [390, 173, 555, 320]],
+        ["car", "red", "sedan", "left", "off", [199, 222, 321, 324]],
+        ["car", "black", "hatchback", "right", "off", [665, 225, 779, 323]],
+        ["car", "silver", "sedan", "far ahead", "off", [574, 208, 657, 292]],
+        ["bus", "blue", "local bus", "left", "off", [60, 184, 198, 316]],
+        [
+          "truck",
+          "green",
+          "utility truck",
+          "right",
+          "off",
+          [787, 203, 906, 318]
+        ]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-010",
+      "image": "synthetic-drive-010.jpg",
+      "summary": "Environment: road type: bridge, short urban overpass in cool evening light || Traffic: 2 vans, 2 cars, 1 truck, and 1 motorcycle slowing together.",
+      "image_prompt": "Front-facing dashcam view on a short urban bridge in cool early-evening light. A black shuttle van is prominent ahead, with a red van, two cars, one delivery truck, and a motorcycle. Generic city background, realistic headlights beginning to glow.",
+      "objects": [
+        ["van", "black", "shuttle van", "ahead", "on", [385, 169, 558, 322]],
+        ["van", "red", "cargo van", "right", "on", [647, 200, 761, 313]],
+        ["car", "blue", "sedan", "left", "on", [194, 225, 315, 326]],
+        [
+          "car",
+          "silver",
+          "compact car",
+          "far ahead",
+          "on",
+          [573, 209, 657, 292]
+        ],
+        ["truck", "red", "delivery truck", "left", "on", [65, 188, 202, 317]],
+        [
+          "motorcycle",
+          "black",
+          "motorcycle",
+          "right",
+          "on",
+          [805, 235, 853, 322]
+        ]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-011",
+      "image": "synthetic-drive-011.jpg",
+      "summary": "Environment: road type: ramp, sweeping highway entrance beneath clear daylight || Traffic: 1 truck, 3 cars, 1 van, and 1 motorcycle merging at speed.",
+      "image_prompt": "Front-facing dashcam view on a sweeping highway entrance ramp in clear daylight. A white freight truck merges ahead, with three cars, one van, and a motorcycle following the curve. Realistic highway geometry, barriers, and lane markings, no readable signs.",
+      "objects": [
+        [
+          "truck",
+          "white",
+          "freight truck",
+          "ahead",
+          "off",
+          [376, 154, 569, 321]
+        ],
+        ["car", "blue", "sedan", "left", "off", [194, 222, 318, 325]],
+        ["car", "black", "hatchback", "right", "off", [668, 226, 781, 324]],
+        ["car", "silver", "sedan", "far ahead", "off", [575, 208, 659, 293]],
+        ["van", "red", "cargo van", "left", "off", [82, 201, 213, 317]],
+        [
+          "motorcycle",
+          "green",
+          "motorcycle",
+          "right",
+          "on",
+          [810, 235, 859, 322]
+        ]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-012",
+      "image": "synthetic-drive-012.jpg",
+      "summary": "Environment: road type: ramp, elevated freeway connector under overcast skies || Traffic: 2 trucks, 2 cars, 1 van, and 1 bus merging gradually.",
+      "image_prompt": "Front-facing dashcam view on an elevated freeway connector under soft overcast skies. A white box truck leads the curve, joined by a gray truck, two cars, a van, and a distant bus. Photorealistic roadway scene with concrete rails, no legible text.",
+      "objects": [
+        ["truck", "white", "box truck", "ahead", "off", [375, 155, 571, 323]],
+        [
+          "truck",
+          "gray",
+          "flatbed truck",
+          "right",
+          "off",
+          [649, 191, 775, 313]
+        ],
+        ["car", "red", "sedan", "left", "off", [189, 224, 313, 326]],
+        [
+          "car",
+          "black",
+          "compact car",
+          "far ahead",
+          "off",
+          [577, 210, 659, 293]
+        ],
+        ["van", "blue", "passenger van", "left", "off", [74, 203, 209, 319]],
+        ["bus", "orange", "local bus", "right", "off", [790, 193, 910, 315]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-013",
+      "image": "synthetic-drive-013.jpg",
+      "summary": "Environment: road type: ramp, cloverleaf curve bordered by dry grass || Traffic: 1 truck, 2 cars, 2 vans, and 1 motorcycle traveling in open traffic.",
+      "image_prompt": "Front-facing dashcam view on a cloverleaf highway ramp bordered by dry summer grass. A white dump truck follows the curve, alongside two cars, two vans, and a motorcycle. Bright afternoon sun, believable speed and spacing, no branding.",
+      "objects": [
+        ["truck", "white", "dump truck", "ahead", "off", [374, 156, 570, 324]],
+        ["car", "green", "hatchback", "left", "off", [190, 225, 315, 327]],
+        ["car", "silver", "sedan", "right", "off", [669, 226, 782, 325]],
+        ["van", "blue", "cargo van", "far ahead", "off", [574, 207, 663, 295]],
+        ["van", "red", "minivan", "left", "off", [73, 207, 210, 321]],
+        [
+          "motorcycle",
+          "black",
+          "motorcycle",
+          "right",
+          "on",
+          [811, 236, 860, 323]
+        ]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-014",
+      "image": "synthetic-drive-014.jpg",
+      "summary": "Environment: road type: ramp, descending motorway exit during light rain || Traffic: 1 truck, 3 cars, 1 van, and 1 bus slowing on wet pavement.",
+      "image_prompt": "Front-facing dashcam view descending a motorway exit ramp during light rain. A silver tanker truck is ahead, with three ordinary cars, a red cargo van, and a small green bus braking gently on wet pavement. Natural gray light and restrained reflections, no company logos.",
+      "objects": [
+        [
+          "truck",
+          "silver",
+          "tanker truck",
+          "ahead",
+          "on",
+          [370, 151, 575, 325]
+        ],
+        ["car", "blue", "sedan", "left", "on", [186, 224, 313, 328]],
+        ["car", "black", "hatchback", "right", "on", [672, 228, 786, 326]],
+        ["car", "silver", "sedan", "far ahead", "on", [578, 210, 663, 294]],
+        ["van", "red", "cargo van", "left", "on", [70, 204, 210, 322]],
+        ["bus", "green", "local bus", "right", "on", [793, 194, 912, 318]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-015",
+      "image": "synthetic-drive-015.jpg",
+      "summary": "Environment: road type: ramp, compact city on-ramp at dusk || Traffic: 2 trucks, 2 cars, 1 van, and 1 motorcycle entering dense traffic.",
+      "image_prompt": "Front-facing dashcam view on a compact city highway on-ramp at dusk. A red utility truck is prominent ahead, with a dark truck, two cars, a van, and a motorcycle joining denser traffic. Cool dusk tones, practical roadway lighting, no readable signs.",
+      "objects": [
+        ["truck", "red", "utility truck", "ahead", "on", [373, 157, 572, 325]],
+        [
+          "truck",
+          "black",
+          "delivery truck",
+          "right",
+          "on",
+          [648, 193, 776, 316]
+        ],
+        ["car", "red", "sedan", "left", "on", [187, 225, 313, 328]],
+        [
+          "car",
+          "silver",
+          "compact car",
+          "far ahead",
+          "on",
+          [578, 211, 662, 295]
+        ],
+        ["van", "blue", "passenger van", "left", "on", [69, 206, 209, 322]],
+        [
+          "motorcycle",
+          "green",
+          "motorcycle",
+          "right",
+          "on",
+          [811, 237, 860, 324]
+        ]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-016",
+      "image": "synthetic-drive-016.jpg",
+      "summary": "Environment: road type: local_residential, quiet tree-lined neighborhood street || Traffic: 1 suv, 3 cars, 1 van, and 1 bicycle moving slowly.",
+      "image_prompt": "Front-facing dashcam view on a quiet tree-lined residential neighborhood street. A black SUV drives ahead, with three parked or slowly moving cars, a small van, and one cyclist near the curb. Natural morning light, generic homes, no people close to camera.",
+      "objects": [
+        [
+          "suv",
+          "black",
+          "sport utility vehicle",
+          "ahead",
+          "off",
+          [382, 174, 559, 325]
+        ],
+        ["car", "blue", "sedan", "left", "off", [173, 226, 306, 329]],
+        ["car", "silver", "hatchback", "right", "off", [677, 229, 797, 327]],
+        ["car", "red", "sedan", "parked left", "off", [46, 214, 183, 326]],
+        [
+          "van",
+          "white",
+          "compact van",
+          "parked right",
+          "off",
+          [793, 204, 914, 322]
+        ],
+        ["bicycle", "green", "bicycle", "right", "off", [721, 242, 763, 321]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-017",
+      "image": "synthetic-drive-017.jpg",
+      "summary": "Environment: road type: local_residential, suburban street with small front gardens || Traffic: 2 suvs, 2 cars, 1 van, and 1 bicycle sharing the road.",
+      "image_prompt": "Front-facing dashcam view on a suburban residential street with modest front gardens. A black crossover SUV is centered ahead, another gray SUV and two cars are nearby, with a van and a distant cyclist. Soft midday daylight, realistic unbranded vehicles.",
+      "objects": [
+        ["suv", "black", "crossover suv", "ahead", "off", [381, 173, 560, 326]],
+        [
+          "suv",
+          "gray",
+          "sport utility vehicle",
+          "right",
+          "off",
+          [674, 211, 799, 323]
+        ],
+        ["car", "blue", "sedan", "left", "off", [168, 228, 304, 330]],
+        ["car", "red", "hatchback", "parked left", "off", [39, 215, 179, 328]],
+        [
+          "van",
+          "white",
+          "cargo van",
+          "parked right",
+          "off",
+          [793, 200, 920, 323]
+        ],
+        ["bicycle", "yellow", "bicycle", "right", "off", [719, 242, 764, 322]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-018",
+      "image": "synthetic-drive-018.jpg",
+      "summary": "Environment: road type: local_residential, narrow neighborhood road after rain || Traffic: 1 suv, 3 cars, 1 van, and 1 motorcycle proceeding carefully.",
+      "image_prompt": "Front-facing dashcam view on a narrow residential road just after rain. A black SUV moves ahead, while three cars, a small van, and a motorcycle occupy the damp neighborhood street. Overcast light, wet road texture, generic houses, no readable plates.",
+      "objects": [
+        [
+          "suv",
+          "black",
+          "sport utility vehicle",
+          "ahead",
+          "on",
+          [382, 174, 559, 326]
+        ],
+        ["car", "green", "hatchback", "left", "off", [168, 228, 304, 330]],
+        ["car", "silver", "sedan", "right", "off", [676, 230, 798, 328]],
+        [
+          "car",
+          "red",
+          "compact car",
+          "parked left",
+          "off",
+          [40, 216, 180, 329]
+        ],
+        [
+          "van",
+          "white",
+          "minivan",
+          "parked right",
+          "off",
+          [794, 203, 918, 324]
+        ],
+        [
+          "motorcycle",
+          "blue",
+          "motorcycle",
+          "right",
+          "on",
+          [720, 239, 767, 323]
+        ]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-019",
+      "image": "synthetic-drive-019.jpg",
+      "summary": "Environment: road type: local_residential, planned community boulevard in afternoon sun || Traffic: 2 suvs, 2 cars, 1 truck, and 1 bicycle in light traffic.",
+      "image_prompt": "Front-facing dashcam view on a broad residential community boulevard in afternoon sun. A blue SUV leads the lane, joined by a gray SUV, two cars, a small work truck, and a cyclist at the edge. New but generic homes and trees, photorealistic.",
+      "objects": [
+        [
+          "suv",
+          "blue",
+          "sport utility vehicle",
+          "ahead",
+          "off",
+          [380, 171, 560, 326]
+        ],
+        ["suv", "gray", "crossover suv", "right", "off", [674, 213, 801, 324]],
+        ["car", "silver", "sedan", "left", "off", [166, 228, 303, 331]],
+        ["car", "red", "hatchback", "parked left", "off", [37, 215, 179, 329]],
+        [
+          "truck",
+          "white",
+          "pickup truck",
+          "parked right",
+          "off",
+          [790, 199, 920, 325]
+        ],
+        ["bicycle", "green", "bicycle", "right", "off", [717, 242, 763, 323]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-020",
+      "image": "synthetic-drive-020.jpg",
+      "summary": "Environment: road type: local_residential, older neighborhood street near sunset || Traffic: 1 suv, 3 cars, 1 van, and 1 motorcycle moving through warm light.",
+      "image_prompt": "Front-facing dashcam view on an older residential neighborhood street near sunset. A red SUV drives ahead, accompanied by three cars, a small van, and a motorcycle farther along the curb. Warm natural light, mature trees, generic homes, no recognizable location.",
+      "objects": [
+        [
+          "suv",
+          "red",
+          "sport utility vehicle",
+          "ahead",
+          "on",
+          [382, 173, 559, 327]
+        ],
+        ["car", "blue", "sedan", "left", "off", [169, 229, 305, 331]],
+        ["car", "silver", "hatchback", "right", "off", [676, 231, 798, 329]],
+        [
+          "car",
+          "white",
+          "compact car",
+          "parked left",
+          "off",
+          [40, 216, 181, 329]
+        ],
+        [
+          "van",
+          "red",
+          "passenger van",
+          "parked right",
+          "off",
+          [794, 203, 918, 325]
+        ],
+        [
+          "motorcycle",
+          "green",
+          "motorcycle",
+          "right",
+          "on",
+          [719, 240, 767, 324]
+        ]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-021",
+      "image": "synthetic-drive-021.jpg",
+      "summary": "Environment: road type: city_arterial, multilane downtown avenue in morning light || Traffic: 1 bus, 3 cars, 1 truck, and 1 van moving in dense traffic.",
+      "image_prompt": "Front-facing dashcam view on a generic multilane downtown avenue in morning light. A blue city bus is prominent with three cars, a red delivery truck, and a gray van in dense but orderly traffic. Unbranded buildings, no readable storefront text.",
+      "objects": [
+        ["bus", "blue", "city bus", "ahead", "off", [374, 146, 568, 325]],
+        ["car", "black", "sedan", "left", "off", [175, 226, 306, 330]],
+        ["car", "silver", "hatchback", "right", "off", [675, 229, 797, 328]],
+        ["car", "white", "sedan", "far ahead", "off", [573, 209, 661, 296]],
+        ["truck", "red", "delivery truck", "left", "off", [38, 192, 182, 321]],
+        ["van", "gray", "cargo van", "right", "off", [797, 201, 920, 323]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-022",
+      "image": "synthetic-drive-022.jpg",
+      "summary": "Environment: road type: city_arterial, broad commercial avenue under clouds || Traffic: 1 bus, 2 cars, 2 vans, and 1 motorcycle slowing near a junction.",
+      "image_prompt": "Front-facing dashcam view on a broad generic commercial avenue under cloudy daylight. A green local bus travels ahead with two cars, two vans, and a motorcycle slowing near a junction. Realistic city road photography, blank or illegible signage.",
+      "objects": [
+        ["bus", "green", "local bus", "ahead", "off", [373, 147, 569, 326]],
+        ["car", "red", "sedan", "left", "off", [174, 227, 306, 331]],
+        ["car", "black", "compact car", "right", "off", [675, 230, 797, 329]],
+        ["van", "white", "cargo van", "far ahead", "off", [570, 203, 665, 301]],
+        ["van", "blue", "passenger van", "left", "off", [37, 201, 184, 322]],
+        [
+          "motorcycle",
+          "silver",
+          "motorcycle",
+          "right",
+          "on",
+          [805, 239, 853, 324]
+        ]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-023",
+      "image": "synthetic-drive-023.jpg",
+      "summary": "Environment: road type: city_arterial, urban corridor during evening drizzle || Traffic: 1 bus, 3 cars, 1 truck, and 1 motorcycle moving under streetlights.",
+      "image_prompt": "Front-facing dashcam view on a generic urban arterial during a gentle evening drizzle. An orange city bus and three cars share the road with a gray truck and a motorcycle. Wet reflections and streetlights, no logos, no readable ads.",
+      "objects": [
+        ["bus", "orange", "city bus", "ahead", "on", [373, 147, 570, 327]],
+        ["car", "blue", "sedan", "left", "on", [173, 227, 306, 331]],
+        ["car", "black", "hatchback", "right", "on", [676, 230, 799, 330]],
+        ["car", "silver", "sedan", "far ahead", "on", [574, 211, 661, 297]],
+        ["truck", "gray", "box truck", "left", "on", [35, 193, 184, 324]],
+        ["motorcycle", "red", "motorcycle", "right", "on", [806, 240, 854, 325]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-024",
+      "image": "synthetic-drive-024.jpg",
+      "summary": "Environment: road type: city_arterial, modern boulevard with planted median || Traffic: 2 buses, 2 cars, 1 van, and 1 bicycle moving at moderate speed.",
+      "image_prompt": "Front-facing dashcam view on a modern city boulevard with a planted median. A red city bus is ahead, another blue bus farther away, with two cars, one van, and a cyclist near a separated lane. Bright natural daylight, generic architecture.",
+      "objects": [
+        ["bus", "red", "city bus", "ahead", "off", [374, 147, 569, 326]],
+        ["bus", "blue", "local bus", "far ahead", "off", [572, 185, 682, 302]],
+        ["car", "black", "sedan", "left", "off", [173, 227, 306, 331]],
+        ["car", "silver", "compact car", "right", "off", [676, 230, 799, 329]],
+        ["van", "white", "cargo van", "left", "off", [37, 201, 184, 322]],
+        ["bicycle", "green", "bicycle", "right", "off", [813, 241, 858, 324]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-025",
+      "image": "synthetic-drive-025.jpg",
+      "summary": "Environment: road type: city_arterial, older mixed-use avenue at dusk || Traffic: 1 bus, 2 cars, 2 trucks, and 1 van proceeding through traffic.",
+      "image_prompt": "Front-facing dashcam view on an older mixed-use city avenue at dusk. A silver local bus leads the lane, with two cars, two unbranded trucks, and a van. Warm shop-window glow without readable words, realistic traffic and buildings.",
+      "objects": [
+        ["bus", "silver", "local bus", "ahead", "on", [374, 147, 569, 327]],
+        ["car", "blue", "sedan", "left", "on", [173, 227, 306, 332]],
+        ["car", "black", "hatchback", "right", "on", [676, 230, 799, 330]],
+        [
+          "truck",
+          "white",
+          "delivery truck",
+          "far ahead",
+          "on",
+          [570, 197, 671, 304]
+        ],
+        ["truck", "red", "utility truck", "left", "on", [34, 196, 184, 324]],
+        ["van", "green", "passenger van", "right", "on", [800, 204, 921, 324]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-026",
+      "image": "synthetic-drive-026.jpg",
+      "summary": "Environment: road type: rural, two-lane country road between open fields || Traffic: 1 tractor, 2 cars, 1 truck, 1 van, and 1 motorcycle traveling lightly.",
+      "image_prompt": "Front-facing dashcam view on a two-lane country road between open green fields. A green farm tractor travels ahead with two cars, a small truck, a van, and a distant motorcycle. Clear natural daylight, quiet rural setting, no logos.",
+      "objects": [
+        [
+          "tractor",
+          "green",
+          "farm tractor",
+          "ahead",
+          "off",
+          [381, 171, 559, 326]
+        ],
+        ["car", "blue", "sedan", "left", "off", [170, 228, 304, 331]],
+        ["car", "silver", "hatchback", "right", "off", [676, 230, 798, 329]],
+        [
+          "truck",
+          "red",
+          "pickup truck",
+          "far ahead",
+          "off",
+          [572, 207, 664, 298]
+        ],
+        ["van", "white", "cargo van", "left", "off", [39, 207, 181, 326]],
+        [
+          "motorcycle",
+          "black",
+          "motorcycle",
+          "right",
+          "on",
+          [806, 240, 854, 325]
+        ]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-027",
+      "image": "synthetic-drive-027.jpg",
+      "summary": "Environment: road type: rural, wooded country lane under overcast light || Traffic: 1 tractor, 3 cars, 1 van, and 1 bicycle moving carefully.",
+      "image_prompt": "Front-facing dashcam view on a wooded country lane under soft overcast light. An orange compact tractor is ahead with three cars, a van, and a cyclist near the roadside. Photorealistic, damp foliage, safe spacing, no branding.",
+      "objects": [
+        [
+          "tractor",
+          "orange",
+          "compact tractor",
+          "ahead",
+          "off",
+          [381, 171, 559, 326]
+        ],
+        ["car", "red", "sedan", "left", "off", [170, 228, 304, 331]],
+        ["car", "black", "hatchback", "right", "off", [676, 230, 798, 329]],
+        ["car", "silver", "sedan", "far ahead", "off", [574, 211, 661, 297]],
+        ["van", "white", "passenger van", "left", "off", [39, 207, 181, 326]],
+        ["bicycle", "blue", "bicycle", "right", "off", [810, 241, 856, 324]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-028",
+      "image": "synthetic-drive-028.jpg",
+      "summary": "Environment: road type: rural, rolling farmland road during golden hour || Traffic: 1 tractor, 2 cars, 2 trucks, and 1 motorcycle moving through sparse traffic.",
+      "image_prompt": "Front-facing dashcam view on a rolling farmland road during golden hour. A red farm tractor moves ahead with two cars, two practical work trucks, and a motorcycle. Warm low sun, long fields, natural documentary photography.",
+      "objects": [
+        [
+          "tractor",
+          "red",
+          "farm tractor",
+          "ahead",
+          "off",
+          [381, 171, 559, 326]
+        ],
+        ["car", "blue", "sedan", "left", "off", [170, 228, 304, 331]],
+        ["car", "silver", "hatchback", "right", "off", [676, 230, 798, 329]],
+        [
+          "truck",
+          "white",
+          "pickup truck",
+          "far ahead",
+          "off",
+          [572, 205, 665, 299]
+        ],
+        ["truck", "gray", "work truck", "left", "off", [37, 202, 183, 326]],
+        [
+          "motorcycle",
+          "black",
+          "motorcycle",
+          "right",
+          "on",
+          [808, 240, 855, 325]
+        ]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-029",
+      "image": "synthetic-drive-029.jpg",
+      "summary": "Environment: road type: rural, straight desert highway beneath a pale sky || Traffic: 1 truck, 3 cars, 1 van, and 1 motorcycle traveling with wide spacing.",
+      "image_prompt": "Front-facing dashcam view on a straight rural desert highway beneath a pale blue sky. A tan work truck travels ahead with three cars, a van, and a distant motorcycle, all widely spaced. Photorealistic dry landscape, no readable signs.",
+      "objects": [
+        ["truck", "tan", "work truck", "ahead", "off", [378, 167, 562, 325]],
+        ["car", "blue", "sedan", "left", "off", [171, 228, 305, 331]],
+        ["car", "black", "hatchback", "right", "off", [676, 230, 798, 329]],
+        ["car", "silver", "sedan", "far ahead", "off", [574, 210, 661, 297]],
+        ["van", "white", "cargo van", "left", "off", [39, 207, 181, 326]],
+        ["motorcycle", "red", "motorcycle", "right", "on", [809, 240, 856, 325]]
+      ]
+    },
+    {
+      "video_id": "synthetic-drive-030",
+      "image": "synthetic-drive-030.jpg",
+      "summary": "Environment: road type: rural, mountain valley road in cool morning haze || Traffic: 1 bus, 2 cars, 1 truck, 1 van, and 1 motorcycle moving steadily.",
+      "image_prompt": "Front-facing dashcam view on a mountain valley country road in cool morning haze. A small blue regional bus travels ahead with two cars, a truck, a van, and a motorcycle. Layered hills, realistic road surface, no landmark or logos.",
+      "objects": [
+        ["bus", "blue", "regional bus", "ahead", "off", [376, 154, 565, 326]],
+        ["car", "red", "sedan", "left", "off", [170, 228, 304, 331]],
+        ["car", "silver", "hatchback", "right", "off", [676, 230, 798, 329]],
+        [
+          "truck",
+          "white",
+          "pickup truck",
+          "far ahead",
+          "off",
+          [572, 204, 666, 300]
+        ],
+        ["van", "gray", "passenger van", "left", "off", [38, 207, 182, 326]],
+        [
+          "motorcycle",
+          "black",
+          "motorcycle",
+          "right",
+          "on",
+          [808, 240, 855, 325]
+        ]
+      ]
+    }
+  ]
+}
