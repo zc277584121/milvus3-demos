@@ -39,9 +39,11 @@ These are generous for the tiny demo datasets; SRE may tune them down.
    `demo` namespace with `access_key` and `secret_key` keys, via the approved
    offline SRE channel. The manifests reference it and never inline it.
 
-2. **Image tags**: each app `kustomization.yaml` pins
-   `harbor-us1.zilliz.cc/uso/milvus3-demos-*` with an immutable tag. Push the
-   images there and bump the tag in the same PR.
+2. **Image tags**: each `deployment.yaml` references a full
+   `harbor-us1.zilliz.cc/uso/milvus3-demos-*:v0.1.0` image directly (matching
+   the `multimodal-image-search` convention, not the Jenkins allowlist
+   convention). Push the images there first and bump the tag in the same PR on
+   any subsequent change.
 
 3. **Synthetic driving data (structarray-search)**: the 30-scene manifest and
    generated representative frames are baked into the application image, so

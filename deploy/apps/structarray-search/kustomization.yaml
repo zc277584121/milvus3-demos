@@ -4,8 +4,3 @@ kind: Kustomization
 resources:
 - deployment.yaml
 - ingress.yaml
-
-images:
-- name: structarray-search
-  newName: harbor-us1.zilliz.cc/uso/milvus3-demos-structarray-search
-  newTag: v0.1.0

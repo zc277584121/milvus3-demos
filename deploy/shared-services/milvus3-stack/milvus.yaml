@@ -41,6 +41,10 @@ spec:
         app.kubernetes.io/part-of: milvus-demo
     spec:
       automountServiceAccountToken: false
+      # The milvus image runs as uid 999 (milvus:milvus); ensure the data PVC
+      # is group-writable by that user so standalone can initialize /var/lib/milvus.
+      securityContext:
+        fsGroup: 999
       containers:
       - name: milvus
         image: milvusdb/milvus:v3.0.0

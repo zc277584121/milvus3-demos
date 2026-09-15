@@ -37,10 +37,6 @@ spec:
         app.kubernetes.io/part-of: milvus-demo
     spec:
       automountServiceAccountToken: false
-      securityContext:
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
       containers:
       - name: minio
         image: minio/minio:RELEASE.2024-05-28T17-19-04Z

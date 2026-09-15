@@ -4,8 +4,3 @@ kind: Kustomization
 resources:
 - deployment.yaml
 - ingress.yaml
-
-images:
-- name: function-chain-rerank
-  newName: harbor-us1.zilliz.cc/uso/milvus3-demos-function-chain-rerank
-  newTag: v0.1.0

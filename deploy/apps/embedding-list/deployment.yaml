@@ -19,13 +19,9 @@ spec:
         app.kubernetes.io/part-of: milvus-demo
     spec:
       automountServiceAccountToken: false
-      securityContext:
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
       containers:
       - name: embedding-list
-        image: embedding-list:bootstrap
+        image: harbor-us1.zilliz.cc/uso/milvus3-demos-embedding-list:v0.1.0
         imagePullPolicy: IfNotPresent
         env:
         - name: MILVUS_URI

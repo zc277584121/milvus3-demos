@@ -4,8 +4,3 @@ kind: Kustomization
 resources:
 - deployment.yaml
 - ingress.yaml
-
-images:
-- name: embedding-list
-  newName: harbor-us1.zilliz.cc/uso/milvus3-demos-embedding-list
-  newTag: v0.1.0
