@@ -13,30 +13,20 @@ from structarray_hybrid_demo.main import create_app
 
 @pytest.fixture
 def evidence_config(tmp_path: Path) -> RuntimeConfig:
-    raw_dir = tmp_path / "yolo_result/behavior_frames_output/frames"
-    annotated_dir = tmp_path / "yolo_result/draw_boxes/frame_wise"
-    raw_dir.mkdir(parents=True)
-    annotated_dir.mkdir(parents=True)
-    (raw_dir / "0000b7dc6478371b_0-22_lane_keep_frame_000000.jpg").write_bytes(b"\xff\xd8fake")
-    (annotated_dir / "0000b7dc6478371b_0-22_lane_keep_frame_000000_annotated.jpg").write_bytes(
-        b"\xff\xd8fake"
-    )
-    sample = tmp_path / "video_data_100_samples.json"
-    prefix = tmp_path / "video_data_10_samples.json"
-    sample.write_text("[]")
-    prefix.write_text("[]")
+    image_dir = tmp_path / "images"
+    image_dir.mkdir(parents=True)
+    (image_dir / "synthetic-drive-001.jpg").write_bytes(b"\xff\xd8fake")
+    manifest = tmp_path / "scenes.json"
+    manifest.write_text("{}")
     return replace(
         RuntimeConfig.from_environment(),
         data_root=tmp_path,
-        sample_path=sample,
-        prefix_path=prefix,
+        manifest_path=manifest,
     )
 
 
 def test_resolver_rejects_unsafe_names(evidence_config: RuntimeConfig) -> None:
-    resolver = EvidenceResolver(
-        config=evidence_config, allowed_names=["0000b7dc6478371b_0-22_lane_keep_frame_000000.jpg"]
-    )
+    resolver = EvidenceResolver(config=evidence_config, allowed_names=["synthetic-drive-001.jpg"])
     with pytest.raises(EvidencePathError, match="kind"):
         resolver.resolve(kind="evil", file_name="anything.jpg")
     with pytest.raises(EvidencePathError, match="not allowlisted"):
@@ -44,25 +34,18 @@ def test_resolver_rejects_unsafe_names(evidence_config: RuntimeConfig) -> None:
     with pytest.raises(EvidencePathError, match="safe frame name"):
         resolver.resolve(
             kind="raw",
-            file_name="../0000b7dc6478371b_0-22_lane_keep_frame_000000.jpg",
+            file_name="../synthetic-drive-001.jpg",
         )
 
 
 def test_resolver_resolves_allowlisted_frame(evidence_config: RuntimeConfig) -> None:
     resolver = EvidenceResolver(
         config=evidence_config,
-        allowed_names=[
-            "0000b7dc6478371b_0-22_lane_keep_frame_000000.jpg",
-            "0000b7dc6478371b_0-22_lane_keep_frame_000000_annotated.jpg",
-        ],
+        allowed_names=["synthetic-drive-001.jpg"],
     )
-    raw = resolver.resolve(kind="raw", file_name="0000b7dc6478371b_0-22_lane_keep_frame_000000.jpg")
-    annotated = resolver.resolve(
-        kind="annotated",
-        file_name="0000b7dc6478371b_0-22_lane_keep_frame_000000_annotated.jpg",
-    )
-    assert raw.name.endswith(".jpg")
-    assert "_annotated" in annotated.name
+    raw = resolver.resolve(kind="raw", file_name="synthetic-drive-001.jpg")
+    annotated = resolver.resolve(kind="annotated", file_name="synthetic-drive-001.jpg")
+    assert raw == annotated
 
 
 def test_evidence_endpoint_serves_allowlisted_frame(evidence_config: RuntimeConfig) -> None:
@@ -71,15 +54,12 @@ def test_evidence_endpoint_serves_allowlisted_frame(evidence_config: RuntimeConf
             self.config = config
 
         def evidence_frame_names(self) -> list[str]:
-            return [
-                "0000b7dc6478371b_0-22_lane_keep_frame_000000.jpg",
-                "0000b7dc6478371b_0-22_lane_keep_frame_000000_annotated.jpg",
-            ]
+            return ["synthetic-drive-001.jpg"]
 
     app = create_app(service=EvidenceService(evidence_config))
     client = TestClient(app)
 
-    ok = client.get("/api/v1/evidence/raw/0000b7dc6478371b_0-22_lane_keep_frame_000000.jpg")
+    ok = client.get("/api/v1/evidence/raw/synthetic-drive-001.jpg")
     assert ok.status_code == 200
     assert ok.headers["content-type"] == "image/jpeg"
 

@@ -37,9 +37,9 @@ class FakeRepository:
         return {
             "milvus_uri": "http://127.0.0.1:49530",
             "server_version": "3.0.0",
-            "collection_name": "milvus3_demos_structarray_hybrid_covla",
+            "collection_name": "milvus3_demos_structarray_hybrid_synthetic",
             "collection_exists": True,
-            "raw_collection_names": ["milvus3_demos_structarray_hybrid_covla"],
+            "raw_collection_names": ["milvus3_demos_structarray_hybrid_synthetic"],
             "row_count": 30,
             "index_names": ["a", "b"],
         }
@@ -48,7 +48,7 @@ class FakeRepository:
         return {
             "status": "clean",
             "server_version": "3.0.0",
-            "collection_name": "milvus3_demos_structarray_hybrid_covla",
+            "collection_name": "milvus3_demos_structarray_hybrid_synthetic",
             "dropped": True,
             "indexes_deleted_with_collection": ["a", "b"],
             "collection_absent_after": True,
@@ -70,11 +70,12 @@ class FakeService(StructArrayHybridService):
                 "cache_available": True,
             },
             "dataset": {
+                "dataset_id": "synthetic-driving-scenes-r1",
+                "dataset_version": 1,
                 "video_count": 30,
-                "observation_count": 519,
-                "evidence_frame_count": 478,
-                "sample_sha256": "s",
-                "prefix_sha256": "p",
+                "observation_count": 540,
+                "evidence_frame_count": 30,
+                "manifest_sha256": "m",
             },
             "milvus": self.repository.status(),
             "query_presets": [

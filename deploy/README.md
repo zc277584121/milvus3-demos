@@ -43,11 +43,9 @@ These are generous for the tiny demo datasets; SRE may tune them down.
    `harbor-us1.zilliz.cc/uso/milvus3-demos-*` with an immutable tag. Push the
    images there and bump the tag in the same PR.
 
-3. **CoVLA data (structarray-search)**: the deployment mounts the approved
-   CoVLA 30-video slice via NFS. Replace the placeholder
-   `server: 10.1.2.68 / path: /covla-dataset` with the SRE-approved NFS
-   location. Remove this volume once the demo switches to fully synthetic
-   generated frames (planned follow-up).
+3. **Synthetic driving data (structarray-search)**: the 30-scene manifest and
+   generated representative frames are baked into the application image, so
+   this deployment has no external dataset volume.
 
 4. **Sub-path routing**: each app is served at `demos.milvus.io/<name>` and
    built/run with `VITE_BASE_PATH` / `APP_ROOT_PATH` set to the same value.

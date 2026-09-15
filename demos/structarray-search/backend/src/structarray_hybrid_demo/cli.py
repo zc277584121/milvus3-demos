@@ -1,4 +1,4 @@
-"""Strict CLI for CoVLA data checks and the fixed hybrid lifecycle."""
+"""Strict CLI for synthetic data checks and the fixed hybrid lifecycle."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="structarray-hybrid")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    subparsers.add_parser("data-check", description="Validate the approved CoVLA 30-video slice")
+    subparsers.add_parser("data-check", description="Validate the synthetic 30-video dataset")
     subparsers.add_parser("status", description="Inspect the fixed hybrid collection")
     subparsers.add_parser("prepare", description="Embed and prepare the fixed collection")
     subparsers.add_parser("cleanup", description="Drop only the exact demo collection")
@@ -46,10 +46,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         _print_json(
             {
                 "status": "passed",
+                "dataset_id": bundle.dataset_id,
+                "dataset_version": bundle.dataset_version,
                 "video_count": bundle.video_count,
                 "observation_count": bundle.observation_count,
-                "sample_sha256": bundle.sample_sha256,
-                "prefix_sha256": bundle.prefix_sha256,
+                "evidence_frame_count": bundle.evidence_frame_count,
+                "manifest_sha256": bundle.manifest_sha256,
             }
         )
         return 0

@@ -30,8 +30,6 @@ spec:
         env:
         - name: MILVUS_URI
           value: http://milvus3:19530
-        - name: COVLA_DATA_DIR
-          value: /data/covla
         - name: APP_ROOT_PATH
           value: /structarray-search
         - name: STRUCTARRAY_RUNTIME_DIR
@@ -44,7 +42,7 @@ spec:
           httpGet:
             path: /healthz/ready
             port: http
-          # Cold start embeds 30 summaries + 519 observations and builds the
+          # Cold start embeds 30 summaries + 540 observations and builds the
           # collection (~15s); give it comfortable runway.
           initialDelaySeconds: 60
           periodSeconds: 10
@@ -72,19 +70,9 @@ spec:
             - ALL
           readOnlyRootFilesystem: true
         volumeMounts:
-        - name: covla
-          mountPath: /data/covla
-          readOnly: true
         - name: tmp
           mountPath: /tmp
       volumes:
-      - name: covla
-        nfs:
-          # TODO: replace with the SRE-approved NFS server/path for the approved
-          # CoVLA 30-video slice. Remove this volume entirely once the demo
-          # switches to fully synthetic generated frames.
-          server: 10.1.2.68
-          path: /covla-dataset
       - name: tmp
         emptyDir: {}
 ---

@@ -26,18 +26,19 @@ const status: StructArrayStatus = {
     cache_available: true,
   },
   dataset: {
+    dataset_id: "synthetic-driving-scenes-r1",
+    dataset_version: 1,
     video_count: 30,
-    observation_count: 519,
-    evidence_frame_count: 478,
-    sample_sha256: "c7ac",
-    prefix_sha256: "4dbb",
+    observation_count: 540,
+    evidence_frame_count: 30,
+    manifest_sha256: "abcd",
   },
   milvus: {
     milvus_uri: "http://127.0.0.1:49530",
     server_version: "3.0.0",
-    collection_name: "milvus3_demos_structarray_hybrid_covla",
+    collection_name: "milvus3_demos_structarray_hybrid_synthetic",
     collection_exists: true,
-    raw_collection_names: ["milvus3_demos_structarray_hybrid_covla"],
+    raw_collection_names: ["milvus3_demos_structarray_hybrid_synthetic"],
     row_count: 30,
     index_names: ["i1", "i2"],
   },
@@ -83,7 +84,7 @@ const searchResponse: SearchResponse = {
         {
           rank: 1,
           score: 0.91,
-          video_id: "0000b7dc6478371b",
+          video_id: "synthetic-drive-001",
           video_summary:
             "Driving environment: Road type: intersection, Weather: rainy || Driving behaviors: Segment 1 (lane_keep): Driving straight through an intersection. || Detected objects: 1 car, 2 truck",
           source_ordinal: 0,
@@ -95,9 +96,8 @@ const searchResponse: SearchResponse = {
           actual_color: "black",
           preview: {
             frame_id: 240,
-            annotated_frame:
-              "0000b7dc6478371b_0-22_lane_keep_frame_000240_annotated.jpg",
-            raw_frame: "0000b7dc6478371b_0-22_lane_keep_frame_000240.jpg",
+            annotated_frame: "synthetic-drive-001.jpg",
+            raw_frame: "synthetic-drive-001.jpg",
           },
         },
       ],
@@ -110,7 +110,7 @@ const searchResponse: SearchResponse = {
         {
           rank: 1,
           score: 0.82,
-          video_id: "0000b7dc6478371b",
+          video_id: "synthetic-drive-001",
           video_summary: "A rainy drive through an intersection.",
           source_ordinal: 0,
           offset: 3,
@@ -132,10 +132,9 @@ const searchResponse: SearchResponse = {
             lights_on: "no",
             v_ego: 13.0,
             a_ego: 0.15,
-            clip_id: "0000b7dc6478371b_0_22",
-            raw_frame: "0000b7dc6478371b_0-22_lane_keep_frame_000240.jpg",
-            annotated_frame:
-              "0000b7dc6478371b_0-22_lane_keep_frame_000240_annotated.jpg",
+            clip_id: "synthetic-drive-001-clip-1",
+            raw_frame: "synthetic-drive-001.jpg",
+            annotated_frame: "synthetic-drive-001.jpg",
           },
         },
       ],
@@ -149,7 +148,7 @@ const searchResponse: SearchResponse = {
         {
           rank: 1,
           score: 0.87,
-          video_id: "0000b7dc6478371b",
+          video_id: "synthetic-drive-001",
           video_summary:
             "Driving environment: Road type: intersection, Weather: rainy || Driving behaviors: Segment 1 (lane_keep): Driving straight through an intersection. || Detected objects: 1 car, 2 truck",
           source_ordinal: 0,
@@ -161,9 +160,8 @@ const searchResponse: SearchResponse = {
           actual_color: "white",
           preview: {
             frame_id: 240,
-            annotated_frame:
-              "0000b7dc6478371b_0-22_lane_keep_frame_000240_annotated.jpg",
-            raw_frame: "0000b7dc6478371b_0-22_lane_keep_frame_000240.jpg",
+            annotated_frame: "synthetic-drive-001.jpg",
+            raw_frame: "synthetic-drive-001.jpg",
           },
         },
       ],

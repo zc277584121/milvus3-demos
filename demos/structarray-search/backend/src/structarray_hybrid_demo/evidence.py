@@ -5,11 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from pathlib import Path
 
-from structarray_hybrid_demo.config import (
-    ANNOTATED_FRAME_DIRECTORY,
-    RAW_FRAME_DIRECTORY,
-    RuntimeConfig,
-)
+from structarray_hybrid_demo.config import FRAME_DIRECTORY, RuntimeConfig
 
 
 class EvidencePathError(ValueError):
@@ -37,9 +33,7 @@ class EvidenceResolver:
             raise EvidencePathError("Evidence path is not allowlisted by the prepared sample")
 
         data_root = self.config.data_root
-        directory = (
-            data_root / (RAW_FRAME_DIRECTORY if kind == "raw" else ANNOTATED_FRAME_DIRECTORY)
-        ).resolve()
+        directory = (data_root / FRAME_DIRECTORY).resolve()
         resolved = (directory / file_name).resolve(strict=True)
         if not resolved.is_relative_to(directory) or not resolved.is_file():
             raise EvidencePathError("Evidence path escaped the read-only data root")

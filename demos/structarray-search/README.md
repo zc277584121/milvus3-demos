@@ -1,22 +1,22 @@
 # StructArray Parent + Child Semantic Hybrid
 
 One query, one model, three answers. This demo shows how Milvus 3.0's
-StructArray (`ARRAY<STRUCT>`) keeps a coarse parent record (a driving video)
-and its fine child records (object observations) in a single row, and how one
-semantic query can be answered three ways:
+StructArray (`ARRAY<STRUCT>`) keeps a coarse parent record (a synthetic driving
+video) and its fine child records (object observations) in a single row, and
+how one semantic query can be answered three ways:
 
-1. **Parent-only** — search the `summary_vector` field for the best matching
+1. **Parent-only** searches the `summary_vector` field for the best matching
    video.
-2. **Child-only** — search the nested `observations[description_vector]`
-   element field and group every hit back to one parent `video_id`.
-3. **Fused** — collapse each parent's best three child scores (`topk_sum(3)`)
-   and weighted-rerank the collapsed child route against the parent route with
+2. **Child-only** searches the nested `observations[description_vector]`
+   element field and groups every hit back to one parent `video_id`.
+3. **Fused** collapses each parent's best three child scores (`topk_sum(3)`)
+   and weighted-reranks the child route against the parent route with
    `WeightedRanker`.
 
 The query is embedded at request time by a CPU-only, quantized BGE-M3 ONNX
-model; the same model embedded the parent summaries and child descriptions at
-prepare time. There is no precomputed companion-vector file and no external
-embedding API.
+model. The same model embeds the parent summaries and child descriptions at
+prepare time. Images are representative video frames used only for display;
+they do not participate in embedding or retrieval.
 
 ```text
 Browser /
@@ -30,29 +30,52 @@ Browser /
 
 ## Fixed runtime boundaries
 
-- **Collection** `milvus3_demos_structarray_hybrid_covla` (exact, not
+- **Collection** `milvus3_demos_structarray_hybrid_synthetic` (exact, not
   overridable).
 - **Milvus** `http://127.0.0.1:49530`, version exactly `3.0.0`.
 - **Model** `gpahal/bge-m3-onnx-int8` @ revision
   `2b34e84df040034d4b9eabb62383a87c18955822`, dense output `dense_vecs`,
   1024 dimensions, CPU float32.
-- **Slice** the first 30 videos of `video_ready/video_data_100_samples.json`
-  (SHA-256 `c7accf8cd63c77ba860242aa6415b9a3c44089731312818a50e6d89cde673b0a`),
-  with the 10-record prefix independently verified
-  (`4dbbc43b9ccb97602f28a93acc10428bf51ae62a2b6e8503abe200d54d0524f1`).
-- **Observations** only non-empty descriptions are searchable. The 30-video
-  slice yields 519 searchable observations across 27 of 30 parents, below the
+- **Dataset** `synthetic-driving-scenes-r1`: 30 fictional video records and 30
+  generated representative frames checked into this repository.
+- **Observations** 540 deterministic child records: 18 per video and below the
   StructArray capacity of 128.
 
 The model is resolved from the local Hugging Face hub cache at
-`${HF_HUB_CACHE:-~/.cache/huggingface/hub}`. No download is performed.
+`${HF_HUB_CACHE:-~/.cache/huggingface/hub}`. No download is performed during
+normal local execution.
+
+## Synthetic data design
+
+The manifest lives at
+`data/synthetic-driving-scenes-r1/scenes.json`. It defines 30 original scene
+summaries, six visible traffic objects per scene, and the prompt used to create
+each representative frame. Three observation phases per object expand into
+540 searchable children at load time.
+
+The four query presets deliberately split intent across levels:
+
+- the parent summary contains the road environment and object counts but no
+  vehicle colors;
+- a child description contains the vehicle type and color but no global road
+  environment;
+- the fused path combines both levels.
+
+Each preset has three positive videos and two same-scene, wrong-color
+distractors. This prevents the parent route from inferring the answer from
+scene and object count alone.
+
+Parent, child, and fusion result cards all show a full video-level
+representative frame. The same video always resolves to the same image in all
+three columns, keeping the comparison visually aligned. See
+`data/synthetic-driving-scenes-r1/NOTICE.md` for asset provenance.
 
 ## Milvus schema
 
 | Parent field     | Type                     | Purpose                          |
 | ---------------- | ------------------------ | -------------------------------- |
 | `video_id`       | `VARCHAR(64)` primary    | Parent identity and group key    |
-| `video_summary`  | `VARCHAR(4096)`          | Source video context             |
+| `video_summary`  | `VARCHAR(4096)`          | Video-level context              |
 | `source_ordinal` | `INT64`                  | Deterministic source position    |
 | `summary_vector` | `FLOAT_VECTOR(1024)`     | Parent semantic route            |
 | `observations`   | `ARRAY<STRUCT>`, max 128 | Searchable child elements        |
@@ -61,7 +84,8 @@ Each `observations` element holds `description VARCHAR(512)`,
 `description_vector FLOAT_VECTOR(1024)`, `object_type VARCHAR(32)`,
 `frame_id INT64`, `image_id VARCHAR(64)`, and `bbox_x1…y2 INT64` scalars.
 
-Indexes are HNSW/COSINE with `M=16`, `efConstruction=128`; search uses `ef=128`.
+Indexes are HNSW/COSINE with `M=16`, `efConstruction=128`; search uses
+`ef=128`.
 
 ## API
 
@@ -77,58 +101,32 @@ always unions both routes, so a 0/1 weight would only zero-fill the other side
 rather than disable it.
 
 Search responses contain `paths.parent`, `paths.child`, and `paths.fusion`.
-The child path returns each hit's `offset` and the matched observation; the
-fusion path is entity-level and therefore carries no child offset (documented
-Milvus behavior). Scores are COSINE similarity, not probabilities; fused scores
-are arctan-normalized per route then summed, so they are not bounded to [0,1].
+The child path returns each hit's `offset` and matched observation; the fusion
+path is entity-level and therefore carries no child offset. Scores are COSINE
+similarity, not probabilities. Fused scores are arctan-normalized per route
+then summed, so they are not bounded to `[0, 1]`.
 
-## Data source and use restrictions
+## Container boundary
 
-The read-only source root is supplied via the `COVLA_DATA_DIR` environment
-variable (defaulting to `~/.cache/covla-dataset`). The approved inputs are:
-
-- `video_ready/video_data_10_samples.json`;
-- `video_ready/video_data_100_samples.json`.
-
-The local CoVLA pipeline notice restricts this gated data to
-academic/non-commercial use and prohibits unauthorized redistribution of the
-dataset or derivative works. Do not commit, copy into images, redistribute, or
-publicly serve the source JSON, vectors, model weights, or credentials. Review
-the current authoritative CoVLA terms before any public deployment or
-commercial use.
-
-## Container and mount boundary
-
-`demos/structarray-search/Dockerfile` installs only the backend's frozen uv
-runtime and never copies CoVLA data, model weights, or reports. The Compose
-file mounts:
-
-- `${COVLA_DATA_DIR}` at `/data/covla:ro`;
-- `${HF_HUB_CACHE}` at `/model-cache/huggingface/hub:ro`;
-- the ignored `artifacts/runtime/structarray-search` directory as the only
-  writable mount;
-- `/tmp` as an ephemeral tmpfs while the image root filesystem remains
-  read-only.
-
-The backend uses host networking and binds only `127.0.0.1:48030`, serving both
-the browser UI and the `/api/v1/` endpoints from that single address.
+The Docker image includes the synthetic manifest, its 30 generated JPEGs, the
+backend runtime, the web build, and the pinned BGE-M3 ONNX snapshot. It does
+not require an external dataset or model mount. The only persistent writable
+mount is the ignored `artifacts/runtime/structarray-search` directory; `/tmp`
+is ephemeral and the application image filesystem remains read-only.
 
 ## Development checks
 
 ```bash
-# Offline data contract check
 make structarray-search-data-check
 
-# Backend unit tests (embedding and Milvus are stubbed)
 UV_OFFLINE=1 uv run --offline --project demos/structarray-search/backend \
   --group dev pytest demos/structarray-search/backend/tests
 
-# Web unit tests and typecheck
 npm test --workspace @milvus3-demos/structarray-search
 npm run typecheck --workspace @milvus3-demos/structarray-search
 ```
 
-Real Milvus integration is opt-in:
+Real container and Milvus integration is opt-in:
 
 ```bash
 make structarray-search-image-check
@@ -136,9 +134,10 @@ make structarray-search-image-check
 
 ## Known limitations
 
-- This is an explanatory 30-video slice, not a benchmark or a complete driving
-  retrieval system.
-- Empty-description observations are excluded at prepare time.
+- This is an explanatory 30-video synthetic dataset, not a benchmark or a
+  complete driving retrieval system.
+- Each video uses one representative still across its observations; the demo
+  does not stream or play source video.
 - One best matching child element is hydrated per grouped parent in the child
   column; the fusion column is entity-level with no child offset.
 - Query input is free-form text embedded by the local model, not an image.

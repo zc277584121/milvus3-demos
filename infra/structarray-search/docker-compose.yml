@@ -8,12 +8,10 @@ services:
       context: ../..
       dockerfile: demos/structarray-search/Dockerfile
     environment:
-      COVLA_DATA_DIR: /data/covla
       STRUCTARRAY_PORT: "48030"
       STRUCTARRAY_RUNTIME_DIR: /workspace/artifacts/runtime/structarray-search
     network_mode: host
     volumes:
-      - ${COVLA_DATA_DIR:?COVLA_DATA_DIR must be set to the approved CoVLA dataset root}:/data/covla:ro
       - ../../artifacts/runtime/structarray-search:/workspace/artifacts/runtime/structarray-search
     read_only: true
     tmpfs:

@@ -48,11 +48,12 @@ class ModelModel(StrictModel):
 
 
 class DatasetModel(StrictModel):
+    dataset_id: str
+    dataset_version: int
     video_count: int
     observation_count: int
     evidence_frame_count: int
-    sample_sha256: str
-    prefix_sha256: str
+    manifest_sha256: str
 
 
 class MilvusModel(StrictModel):

@@ -17,17 +17,13 @@ PYTHON_PROJECTS := \
 	embedding-list-max-sim-data-check embedding-list-max-sim-image-check \
 	validate
 
-# Set COVLA_DATA_DIR to the approved CoVLA dataset root (required by
-# structarray-search-data-check and structarray-search-image-check).
-COVLA_DATA_DIR ?=
-
 help:
 	@echo "Milvus 3.0 Demos commands"
 	@echo "  make bootstrap             Install development dependencies"
 	@echo "  make validate              Run fast validation without container checks"
 	@echo "  make function-chain-rerank-data-check   Verify the synthetic commerce catalog offline"
 	@echo "  make function-chain-rerank-image-check  Build and health-check the isolated rerank image"
-	@echo "  make structarray-search-data-check      Validate approved CoVLA data"
+	@echo "  make structarray-search-data-check      Validate synthetic driving data"
 	@echo "  make structarray-search-image-check     Build and health-check the StructArray image"
 	@echo "  make embedding-list-max-sim-data-check  Rebuild and byte-check NASA PDF pages"
 	@echo "  make embedding-list-max-sim-image-check Build and health-check the ColSmol image"
@@ -72,15 +68,12 @@ function-chain-rerank-image-check:
 	curl --fail --silent --show-error "http://127.0.0.1:$${FUNCTION_CHAIN_PORT:-48020}/healthz/ready"
 
 structarray-search-data-check:
-	test -n "$(COVLA_DATA_DIR)" || { echo "COVLA_DATA_DIR is required" >&2; exit 1; }
-	COVLA_DATA_DIR="$(COVLA_DATA_DIR)" UV_OFFLINE=1 uv run --offline \
+	UV_OFFLINE=1 uv run --offline \
 		--project demos/structarray-search/backend \
 		python -m structarray_hybrid_demo.cli data-check
 
 structarray-search-image-check:
 	@set -euo pipefail; \
-	test -n "$${COVLA_DATA_DIR:-}" || { echo "COVLA_DATA_DIR is required" >&2; exit 1; }; \
-	test -n "$${HF_HUB_CACHE_HOST:-}" || { echo "HF_HUB_CACHE_HOST is required" >&2; exit 1; }; \
 	trap '$(STRUCTARRAY_COMPOSE) down --remove-orphans' EXIT; \
 	$(STRUCTARRAY_COMPOSE) build --no-cache; \
 	$(STRUCTARRAY_COMPOSE) up --detach --wait; \

@@ -87,20 +87,20 @@ Browser → StructArray FastAPI
         → WeightedRanker + element_scope collapse(topk_sum, 3)
 ```
 
-**Data.** The CoVLA driving-video source is gated to academic/non-commercial use and is **not
-committed** to this repository. This demo publishes code only; the source JSON, vectors, model
-weights, and credentials must be supplied out-of-tree and are never redistributed or served.
-Review the current authoritative CoVLA terms before any public deployment or commercial use.
+**Data.** `synthetic-driving-scenes-r1` contains 30 original fictional video records, 540
+deterministic child observations, and 30 generated representative frames. The text and images are
+checked into the repository, and no external driving dataset is required. Images are display-only;
+retrieval uses the parent summaries and child descriptions.
 
 See [`demos/structarray-search/README.md`](demos/structarray-search/README.md) for the full
-schema, source-data contract, and use restrictions.
+schema, synthetic-data contract, and provenance.
 
 ## Repository layout
 
 ```text
 demos/function-chain-rerank/        Demo 1: backend, web UI, and synthetic catalog
 demos/embedding-list-max-sim/       Demo 2: backend, web UI, and NASA handbook dataset
-demos/structarray-search/           Demo 3: backend and web UI (code only, no CoVLA data)
+demos/structarray-search/           Demo 3: backend, web UI, and synthetic driving dataset
 infra/function-chain-rerank/        Docker Compose for the isolated rerank image
 infra/embedding-list-max-sim/       Docker Compose for the isolated ColSmol image
 infra/structarray-search/           Docker Compose for the isolated hybrid image
@@ -118,8 +118,8 @@ images, and deploying each demo — see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 Each demo has its own prerequisites and fixed runtime boundary. Demo 1 requires Milvus 3.0.0 and
 MinIO-backed FileResource storage; Demo 2 requires a local offline ColSmol model cache; Demo 3
-requires the gated CoVLA dataset and a local BGE-M3 ONNX model cache. See each demo's README for
-the full contracts.
+uses its checked-in synthetic dataset and requires a local BGE-M3 ONNX model cache. See each
+demo's README for the full contracts.
 
 ```bash
 # Install Python and Node dependencies
@@ -138,10 +138,11 @@ Project-authored catalog metadata, text, and synthetic images: CC0 1.0
 [`demos/function-chain-rerank/data/synthetic-commerce-catalog-r1/LICENSE-CONFLICT.md`](demos/function-chain-rerank/data/synthetic-commerce-catalog-r1/LICENSE-CONFLICT.md)
 and
 [`demos/function-chain-rerank/data/synthetic-commerce-catalog-r1/NOTICE.md`](demos/function-chain-rerank/data/synthetic-commerce-catalog-r1/NOTICE.md)
+and
+[`demos/structarray-search/data/synthetic-driving-scenes-r1/NOTICE.md`](demos/structarray-search/data/synthetic-driving-scenes-r1/NOTICE.md)
 for the dataset-specific notice and license record.
 
 The Demo 2 NASA Systems Engineering Handbook is a U.S. Government work with NTRS rights
 determination `PUBLIC_USE_PERMITTED`; it is redistributed as the official, unmodified PDF and
 page renders with full source metadata. Demo 3 publishes no third-party data, model weights, or
 vectors — only project-authored source code.
-

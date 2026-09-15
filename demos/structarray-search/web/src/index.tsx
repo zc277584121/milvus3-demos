@@ -2,7 +2,8 @@ import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 
 import "./styles.css";
 
-export type DemoStatus = "available" | "implemented" | "foundation-ready" | "planned";
+export type DemoStatus =
+  "available" | "implemented" | "foundation-ready" | "planned";
 
 export interface DemoDefinition {
   id: string;
@@ -54,11 +55,12 @@ export interface ModelStatus {
 }
 
 export interface DatasetStatus {
+  dataset_id: string;
+  dataset_version: number;
   video_count: number;
   observation_count: number;
   evidence_frame_count: number;
-  sample_sha256: string;
-  prefix_sha256: string;
+  manifest_sha256: string;
 }
 
 export interface MilvusStatus {
@@ -802,10 +804,11 @@ function SchemaTable({ rowCount }: { rowCount: number }) {
 
 function SearchPipeline({ status }: { status: StructArrayStatus | null }) {
   const collection =
-    status?.milvus.collection_name ?? "milvus3_demos_structarray_hybrid_covla";
+    status?.milvus.collection_name ??
+    "milvus3_demos_structarray_hybrid_synthetic";
   const rowCount =
     status?.milvus.row_count ?? status?.dataset.video_count ?? 30;
-  const observationCount = status?.dataset.observation_count ?? 519;
+  const observationCount = status?.dataset.observation_count ?? 540;
 
   return (
     <section className="search-pipeline" aria-label="Data model">
@@ -1183,7 +1186,8 @@ export function StructArrayDemoPage() {
 
   const ready = status?.status === "ready";
   const collectionName =
-    status?.milvus.collection_name ?? "milvus3_demos_structarray_hybrid_covla";
+    status?.milvus.collection_name ??
+    "milvus3_demos_structarray_hybrid_synthetic";
   const dimension = status?.model.vector_dimension ?? 1024;
   const groundTruth = result?.ground_truth ?? null;
 

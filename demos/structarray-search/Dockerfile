@@ -27,6 +27,7 @@ COPY demos/structarray-search/backend/pyproject.toml \
 
 WORKDIR /workspace/demos/structarray-search/backend
 COPY demos/structarray-search/backend/src src
+COPY demos/structarray-search/data ../data
 COPY --from=web /workspace/web/dist ../web/dist
 RUN uv sync --frozen --no-dev
 

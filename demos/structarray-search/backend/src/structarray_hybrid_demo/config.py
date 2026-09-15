@@ -15,7 +15,7 @@ MILVUS_URI = os.environ.get("MILVUS_URI", "http://127.0.0.1:49530")
 MILVUS_EXPECTED_VERSION = "3.0.0"
 MILVUS_TIMEOUT_SECONDS = 30.0
 
-COLLECTION_NAME = "milvus3_demos_structarray_hybrid_covla"
+COLLECTION_NAME = "milvus3_demos_structarray_hybrid_synthetic"
 CHILD_ARRAY_FIELD = "observations"
 CHILD_TEXT_FIELD = "description"
 CHILD_VECTOR_FIELD = "description_vector"
@@ -58,26 +58,23 @@ MODEL_BATCH_SIZE = 32
 SAMPLE_SIZE = 30
 SAMPLE_OFFSET = 0
 EXPECTED_VIDEO_COUNT = 30
-EXPECTED_MIN_OBSERVATIONS = 500
-EXPECTED_MAX_OBSERVATIONS = 900
+EXPECTED_OBSERVATION_COUNT = 540
 
 RUNTIME_RELATIVE_ROOT = Path("artifacts/runtime/structarray-search")
-DEFAULT_COVLA_DATA_ROOT = Path("~/.cache/covla-dataset").expanduser()
-SAMPLE_RELATIVE_PATH = Path("video_ready/video_data_100_samples.json")
-PREFIX_RELATIVE_PATH = Path("video_ready/video_data_10_samples.json")
-RAW_FRAME_DIRECTORY = Path("yolo_result/behavior_frames_output/frames")
-ANNOTATED_FRAME_DIRECTORY = Path("yolo_result/draw_boxes/frame_wise")
-EXPECTED_SAMPLE_SHA256 = "c7accf8cd63c77ba860242aa6415b9a3c44089731312818a50e6d89cde673b0a"
-EXPECTED_PREFIX_SHA256 = "4dbbc43b9ccb97602f28a93acc10428bf51ae62a2b6e8503abe200d54d0524f1"
+DATASET_RELATIVE_ROOT = Path("demos/structarray-search/data/synthetic-driving-scenes-r1")
+MANIFEST_FILE_NAME = "scenes.json"
+FRAME_DIRECTORY = Path("images")
+EXPECTED_DATASET_ID = "synthetic-driving-scenes-r1"
+EXPECTED_DATASET_VERSION = 1
 
 # Each preset pairs a scene term (matched against the environment segment of
 # video_summary) with an exact object_type AND an exact color, both matched
 # against the SAME observation. The parent summary only carries object counts
 # ("4 truck"), never colors, so a "color + object + scene" query is precisely
-# where the child path owns the discriminating signal and the fused column can
-# beat BOTH single paths on ranking (NDCG) while reaching full recall. The four
-# presets below are chosen so at least one single path misses and the fused
-# column both fills the gap and ranks the hits ahead of either single path.
+# where the child path owns the discriminating signal. The four presets below
+# include same-scene, wrong-color distractors; at the default result depth the
+# fused route reaches full recall and matches or improves the stronger single
+# route's NDCG while the weaker route exposes the missing semantic level.
 QUERY_PRESETS = (
     (
         "white-truck-intersection",
@@ -133,12 +130,9 @@ def default_hf_hub_cache() -> Path:
     return (hf_home / "hub").resolve()
 
 
-def default_covla_data_root() -> Path:
-    """Return the read-only CoVLA source root."""
-    configured = os.environ.get("COVLA_DATA_DIR")
-    if configured:
-        return Path(configured).expanduser().resolve()
-    return DEFAULT_COVLA_DATA_ROOT.resolve()
+def default_dataset_root() -> Path:
+    """Return the checked-in synthetic dataset root."""
+    return (repository_root() / DATASET_RELATIVE_ROOT).resolve()
 
 
 @dataclass(frozen=True)
@@ -148,12 +142,11 @@ class RuntimeConfig:
     runtime_root: Path
     hf_hub_cache: Path
     data_root: Path
-    sample_path: Path
-    prefix_path: Path
+    manifest_path: Path
 
     def __post_init__(self) -> None:
-        if self.sample_path.is_relative_to(self.data_root) is False:
-            raise ConfigurationError("Sample path must stay under the CoVLA data root")
+        if self.manifest_path.is_relative_to(self.data_root) is False:
+            raise ConfigurationError("Manifest path must stay under the synthetic data root")
 
     @classmethod
     def from_environment(cls) -> RuntimeConfig:
@@ -165,15 +158,13 @@ class RuntimeConfig:
             raise ConfigurationError(
                 "STRUCTARRAY_RUNTIME_DIR must stay under artifacts/runtime/structarray-search"
             )
-        data_root = default_covla_data_root()
-        sample_path = (data_root / SAMPLE_RELATIVE_PATH).resolve()
-        prefix_path = (data_root / PREFIX_RELATIVE_PATH).resolve()
+        data_root = default_dataset_root()
+        manifest_path = (data_root / MANIFEST_FILE_NAME).resolve()
         return cls(
             runtime_root=configured_root,
             hf_hub_cache=default_hf_hub_cache(),
             data_root=data_root,
-            sample_path=sample_path,
-            prefix_path=prefix_path,
+            manifest_path=manifest_path,
         )
 
     @property

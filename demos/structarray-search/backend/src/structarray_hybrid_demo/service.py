@@ -309,11 +309,12 @@ class StructArrayHybridService:
                 "cache_available": getattr(self.embedder, "cache_available", False),
             },
             "dataset": {
+                "dataset_id": dataset.dataset_id,
+                "dataset_version": dataset.dataset_version,
                 "video_count": dataset.video_count,
                 "observation_count": dataset.observation_count,
                 "evidence_frame_count": dataset.evidence_frame_count,
-                "sample_sha256": dataset.sample_sha256,
-                "prefix_sha256": dataset.prefix_sha256,
+                "manifest_sha256": dataset.manifest_sha256,
             },
             "milvus": repository_status,
             "query_presets": [

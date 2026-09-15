@@ -148,11 +148,11 @@ def test_search_reports_ground_truth_and_path_recall(
         query="a black suv in a residential neighborhood", limit=4, parent_weight=0.5
     )
     payload = report.public_dict()
-    assert payload["ground_truth"]["matched_count"] == 5
+    assert payload["ground_truth"]["matched_count"] == 3
     assert payload["ground_truth"]["color_terms"] == ["black"]
-    assert payload["path_recall"]["parent"]["gt_count"] == 5
+    assert payload["path_recall"]["parent"]["gt_count"] == 3
     # FakeRepository returns only the first video (local_residential, no suv),
-    # so it is not among the 5 residential+black-suv ground-truth videos.
+    # so it is not among the 3 residential+black-suv ground-truth videos.
     assert payload["path_recall"]["parent"]["matched"] == 0
     assert payload["path_recall"]["fusion"]["matched"] == 0
 
