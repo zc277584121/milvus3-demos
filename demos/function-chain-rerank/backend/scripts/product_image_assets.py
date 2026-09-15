@@ -34,8 +34,8 @@ PRODUCT_TYPE_ORDER = (
     "PLANTER",
 )
 
-DEFAULT_DATASET_ROOT = Path(__file__).resolve().parents[2] / "data" / (
-    "synthetic-commerce-catalog-r1"
+DEFAULT_DATASET_ROOT = (
+    Path(__file__).resolve().parents[2] / "data" / ("synthetic-commerce-catalog-r1")
 )
 DEFAULT_STAGING_ROOT = Path(__file__).resolve().parents[4] / "tmp" / "product-imagegen-v1"
 
@@ -104,9 +104,7 @@ def build_prompt(product_type: str, products: list[dict[str, Any]], rows: int) -
     for index, product in enumerate(products):
         row = index // columns + 1
         column = index % columns + 1
-        lines.append(
-            f"Row {row} column {column}: {visual_description(product)}"
-        )
+        lines.append(f"Row {row} column {column}: {visual_description(product)}")
     for index in range(len(products), cells):
         row = index // columns + 1
         column = index % columns + 1
@@ -186,9 +184,7 @@ def prepare(dataset_root: Path, staging_root: Path) -> None:
 
 
 def identify_dimensions(path: Path) -> tuple[int, int]:
-    output = subprocess.check_output(
-        ["identify", "-format", "%w %h", str(path)], text=True
-    )
+    output = subprocess.check_output(["identify", "-format", "%w %h", str(path)], text=True)
     width_text, height_text = output.split()
     return int(width_text), int(height_text)
 
@@ -268,9 +264,7 @@ def sha256_file(path: Path) -> str:
 def validate(staging_root: Path) -> None:
     manifest = read_json(staging_root / "atlas-manifest.json")
     expected_names = {
-        Path(item["image_path"]).name
-        for group in manifest["groups"]
-        for item in group["items"]
+        Path(item["image_path"]).name for group in manifest["groups"] for item in group["items"]
     }
     image_dir = staging_root / "images"
     actual = {path.name for path in image_dir.glob("*.jpg")}

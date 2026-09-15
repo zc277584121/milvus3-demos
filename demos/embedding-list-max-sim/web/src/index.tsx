@@ -10,7 +10,8 @@ import simpleheat from "simpleheat";
 
 import "./styles.css";
 
-export type DemoStatus = "available" | "implemented" | "foundation-ready" | "planned";
+export type DemoStatus =
+  "available" | "implemented" | "foundation-ready" | "planned";
 
 export interface DemoDefinition {
   id: string;

@@ -9,7 +9,8 @@ import {
 
 import "./styles.css";
 
-export type DemoStatus = "available" | "implemented" | "foundation-ready" | "planned";
+export type DemoStatus =
+  "available" | "implemented" | "foundation-ready" | "planned";
 
 export interface DemoDefinition {
   id: string;
@@ -238,7 +239,8 @@ const HARDCODED_SOURCE_PRODUCT: RankedProduct = {
   image_mime: "image/jpeg",
   image_width: 256,
   image_height: 256,
-  image_sha256: "2ab8e3c3eee3edf1fe1f8bd98a2ce3e2fd450cb778160f325585da1590a0f398",
+  image_sha256:
+    "2ab8e3c3eee3edf1fe1f8bd98a2ce3e2fd450cb778160f325585da1590a0f398",
   operational_signal_provenance: "deterministic_simulated_operational_signal",
   field_provenance: {
     brand: "synthetic_authored_metadata",
@@ -615,7 +617,13 @@ const STEP_FLOW: Record<
     // normalized_semantic_score before XGBoost consumes it, so the model reads
     // `semantic_score` and writes a new `$score`. Listing the input as $score
     // would make the node look like a self-loop.
-    inputs: ["semantic_score", "rating", "popularity", "price_affinity", "freshness"],
+    inputs: [
+      "semantic_score",
+      "rating",
+      "popularity",
+      "price_affinity",
+      "freshness",
+    ],
     output: "$score",
   },
 };
@@ -1447,10 +1455,7 @@ interface FlowAnchors {
 // interior corner is rounded with a quadratic arc whose radius is capped by
 // the two adjacent leg lengths, so a short lead-in (a box bottom only a few px
 // above its gap channel) never overshoots past the waypoint.
-function dagStair(
-  points: Array<{ x: number; y: number }>,
-  radius = 8,
-): string {
+function dagStair(points: Array<{ x: number; y: number }>, radius = 8): string {
   if (points.length < 2) {
     return "";
   }
@@ -1496,9 +1501,7 @@ function dagStair(
 // from the semantic chip's right edge and the rating box's right edge; the four
 // feature-column pulls exit their box's bottom edge and staircase through the
 // row gaps out to their step node.
-function buildDagEdges(
-  anchors: FlowAnchors,
-): Array<{
+function buildDagEdges(anchors: FlowAnchors): Array<{
   id: string;
   d: string;
   color: string;
