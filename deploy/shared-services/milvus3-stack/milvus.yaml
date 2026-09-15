@@ -59,6 +59,16 @@ spec:
           value: milvus3-etcd:2379
         - name: MINIO_ADDRESS
           value: milvus3-minio:9000
+        - name: MINIO_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: milvus3-minio-secret
+              key: access_key
+        - name: MINIO_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: milvus3-minio-secret
+              key: secret_key
         ports:
         - name: grpc
           containerPort: 19530

@@ -38,6 +38,9 @@ These are generous for the tiny demo datasets; SRE may tune them down.
 1. **MinIO credentials**: create the `milvus3-minio-secret` Secret in the
    `demo` namespace with `access_key` and `secret_key` keys, via the approved
    offline SRE channel. The manifests reference it and never inline it.
+   MinIO itself, Milvus (via `MINIO_ACCESS_KEY_ID`/`MINIO_SECRET_ACCESS_KEY`),
+   and the Function Chain app all read the same Secret, so any strong value
+   SRE chooses works across the stack.
 
 2. **Image tags**: each `deployment.yaml` references a full
    `harbor-us1.zilliz.cc/uso/milvus3-demos-*:v0.1.0` image directly (matching
