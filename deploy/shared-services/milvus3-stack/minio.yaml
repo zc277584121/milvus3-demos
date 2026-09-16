@@ -26,6 +26,8 @@ metadata:
     app.kubernetes.io/part-of: milvus-demo
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   revisionHistoryLimit: 2
   selector:
     matchLabels:
@@ -39,7 +41,7 @@ spec:
       automountServiceAccountToken: false
       containers:
       - name: minio
-        image: minio/minio:RELEASE.2024-05-28T17-19-04Z
+        image: quay.io/minio/minio:RELEASE.2024-05-28T17-19-04Z
         command:
         - minio
         - server
@@ -47,12 +49,12 @@ spec:
         - --console-address
         - ":9001"
         env:
-        - name: MINIO_ACCESS_KEY
+        - name: MINIO_ROOT_USER
           valueFrom:
             secretKeyRef:
               name: milvus3-minio-secret
               key: access_key
-        - name: MINIO_SECRET_KEY
+        - name: MINIO_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:
               name: milvus3-minio-secret

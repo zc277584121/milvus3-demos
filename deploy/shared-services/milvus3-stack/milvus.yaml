@@ -30,6 +30,8 @@ metadata:
     app.kubernetes.io/part-of: milvus-demo
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   revisionHistoryLimit: 2
   selector:
     matchLabels:

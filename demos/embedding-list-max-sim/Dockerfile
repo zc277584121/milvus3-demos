@@ -18,6 +18,8 @@ FROM ghcr.io/astral-sh/uv:0.11.26 AS uv
 
 FROM python:3.12-slim
 
+RUN groupadd --gid 10001 app && useradd --uid 10001 --gid app --no-create-home app
+
 COPY --from=uv /uv /uvx /bin/
 WORKDIR /workspace
 
@@ -59,7 +61,8 @@ ENV PATH="/workspace/demos/embedding-list-max-sim/backend/.venv/bin:$PATH" \
     PYTHONUNBUFFERED="1" \
     UV_LINK_MODE="copy"
 
+USER 10001:10001
 EXPOSE 48040
 HEALTHCHECK --interval=10s --timeout=5s --start-period=360s --retries=3 \
     CMD ["python", "-c", "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ[\"EMBEDDING_LIST_PORT\"]}/healthz/live', timeout=5)"]
-CMD ["sh", "-c", "exec uvicorn embedding_list_demo.main:app --host 127.0.0.1 --port \"${EMBEDDING_LIST_PORT}\" --root-path \"${APP_ROOT_PATH:-}\""]
+CMD ["sh", "-c", "exec uvicorn embedding_list_demo.main:app --host 0.0.0.0 --port \"${EMBEDDING_LIST_PORT}\" --root-path \"${APP_ROOT_PATH:-}\""]

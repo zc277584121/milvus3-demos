@@ -19,9 +19,16 @@ spec:
         app.kubernetes.io/part-of: milvus-demo
     spec:
       automountServiceAccountToken: false
+      # The image runs as uid 10001; fsGroup makes the emptyDir volumes
+      # (runtime dir and /tmp) writable by that user.
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+        fsGroup: 10001
       containers:
       - name: structarray-search
-        image: harbor-us1.zilliz.cc/uso/milvus3-demos-structarray-search:v0.1.0
+        image: harbor-us1.zilliz.cc/uso/milvus3-demos-structarray-search:v0.2.0
         imagePullPolicy: IfNotPresent
         env:
         - name: MILVUS_URI
@@ -29,7 +36,7 @@ spec:
         - name: APP_ROOT_PATH
           value: /structarray-search
         - name: STRUCTARRAY_RUNTIME_DIR
-          value: /tmp/runtime
+          value: /workspace/artifacts/runtime/structarray-search
         ports:
         - name: http
           containerPort: 48030
@@ -66,9 +73,13 @@ spec:
             - ALL
           readOnlyRootFilesystem: true
         volumeMounts:
+        - name: runtime
+          mountPath: /workspace/artifacts/runtime/structarray-search
         - name: tmp
           mountPath: /tmp
       volumes:
+      - name: runtime
+        emptyDir: {}
       - name: tmp
         emptyDir: {}
 ---

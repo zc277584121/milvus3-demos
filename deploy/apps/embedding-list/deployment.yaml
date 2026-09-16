@@ -8,6 +8,8 @@ metadata:
     app.kubernetes.io/part-of: milvus-demo
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   revisionHistoryLimit: 2
   selector:
     matchLabels:
@@ -19,9 +21,15 @@ spec:
         app.kubernetes.io/part-of: milvus-demo
     spec:
       automountServiceAccountToken: false
+      # The image runs as uid 10001; make the cache PVC writable by that group.
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+        fsGroup: 10001
       containers:
       - name: embedding-list
-        image: harbor-us1.zilliz.cc/uso/milvus3-demos-embedding-list:v0.1.0
+        image: harbor-us1.zilliz.cc/uso/milvus3-demos-embedding-list:v0.2.0
         imagePullPolicy: IfNotPresent
         env:
         - name: MILVUS_URI
