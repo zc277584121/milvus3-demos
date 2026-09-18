@@ -29,17 +29,19 @@ COPY demos/function-chain-rerank/backend/pyproject.toml \
 
 WORKDIR /workspace/demos/function-chain-rerank/backend
 COPY demos/function-chain-rerank/backend/src src
-COPY demos/function-chain-rerank/data ../data
-COPY --from=web /workspace/web/dist ../web/dist
 RUN uv sync --frozen --no-dev
 
 # Bake the pinned BGE-M3 ONNX snapshot into the image so no external model
-# mount is required at runtime.
+# mount is required at runtime. Kept BEFORE the frontend dist COPY so frontend
+# changes reuse this cached layer instead of re-downloading the model.
 ENV HF_HOME=/models
 RUN .venv/bin/hf download gpahal/bge-m3-onnx-int8 \
         --revision 2b34e84df040034d4b9eabb62383a87c18955822 \
     && rm -rf /models/hub/.cache \
     && chmod -R a+rX /models
+
+COPY demos/function-chain-rerank/data ../data
+COPY --from=web /workspace/web/dist ../web/dist
 
 ENV PATH="/workspace/demos/function-chain-rerank/backend/.venv/bin:$PATH" \
     STATIC_DIR="/workspace/demos/function-chain-rerank/web/dist" \

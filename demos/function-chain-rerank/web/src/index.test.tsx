@@ -264,7 +264,9 @@ describe("FunctionChainDemoPage", () => {
 
     // Results appear immediately on first load without a manual run click.
     await screen.findAllByText("num_combine");
-    expect(screen.getByText("Function Chain product search")).toBeTruthy();
+    expect(
+      screen.getByText("Multi-Phase Reranking with Function Chain"),
+    ).toBeTruthy();
     expect(
       (screen.getByLabelText("Query text") as HTMLInputElement).value,
     ).toBe(query.query_text);
