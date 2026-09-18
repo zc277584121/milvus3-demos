@@ -49,34 +49,74 @@
 
 .hybrid-topbar {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 18px;
   max-width: 1500px;
   margin: 0 auto 16px;
 }
 
-.structarray-hybrid-page .back-link {
-  margin: 0;
+.commerce-identity {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.milvus-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+}
+
+.milvus-brand-logo {
+  height: 19px;
+  width: auto;
+  color: #00b3ff;
+}
+
+.milvus-version-tag {
+  padding: 3px 7px;
+  border: 1px solid #b6cdf8;
+  border-radius: 6px;
+  color: #1e4e8c;
+  background: var(--sa-surface);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   color: var(--sa-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
   text-decoration: none;
-  font-size: 0.86rem;
-  font-weight: 600;
-  transition: color 140ms ease;
+  white-space: nowrap;
 }
 
-.structarray-hybrid-page .back-link:hover {
-  color: var(--sa-accent);
+.source-link:hover {
+  color: var(--sa-text);
 }
 
-.hybrid-title {
+.source-link-icon {
+  height: 15px;
+  width: auto;
+  color: #24292e;
+}
+
+.commerce-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
 }
 
-.hybrid-title h1 {
+.commerce-title h1 {
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -156,21 +196,6 @@
   font-weight: 850;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-}
-
-.pipeline-headline {
-  color: var(--sa-text);
-  font-size: 0.92rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.pipeline-meta {
-  flex: none;
-  color: var(--sa-faint);
-  font-size: 0.72rem;
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  white-space: nowrap;
 }
 
 .pipeline-body {
@@ -269,7 +294,7 @@
   vertical-align: top;
 }
 
-.schema-table tbody tr:nth-child(even):not(.nested-detail-row) > td {
+.schema-table tbody tr:nth-child(even) > td {
   background: var(--sa-surface-2);
 }
 
@@ -337,28 +362,34 @@
   white-space: nowrap;
 }
 
+/* The observations cell reads like a tree node: a rotating caret, a dashed
+   border, and a faint "hover" hint so it is obvious the cell expands on hover
+   instead of looking like a plain table value. */
 .nested-toggle {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 6px 13px;
-  border: 1px solid var(--sa-child);
-  border-radius: 999px;
+  padding: 6px 12px;
+  border: 1px dashed var(--sa-child);
+  border-radius: 8px;
   color: var(--sa-child);
   background: #eef4ff;
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   transition:
     background 140ms ease,
     color 140ms ease,
-    box-shadow 140ms ease;
+    box-shadow 140ms ease,
+    border-style 140ms ease;
 }
 
-.nested-toggle:hover {
+.nested-toggle:hover,
+.nested-toggle.is-open {
   background: #dbe6ff;
+  border-style: solid;
   box-shadow: 0 0 0 3px rgb(37 99 235 / 12%);
 }
 
@@ -367,20 +398,30 @@
   transition: transform 180ms ease;
 }
 
-.nested-caret.is-open {
+.nested-toggle.is-open .nested-caret {
   transform: rotate(90deg);
 }
 
-.nested-detail-row > td {
-  padding: 0 !important;
-  background: color-mix(in srgb, var(--sa-child) 4%, #ffffff);
-  animation: nested-reveal 180ms ease;
+/* The nested StructArray view floats above the parent table as its own panel
+   (rendered via portal at document.body), so it never reads as extra columns
+   of the parent grid. */
+.nested-popover {
+  position: fixed;
+  z-index: 80;
+  width: 780px;
+  max-width: calc(100vw - 24px);
+  overflow: hidden;
+  border: 1px solid var(--sa-border-strong);
+  border-radius: 14px;
+  background: var(--sa-surface);
+  box-shadow: 0 28px 64px rgb(15 23 42 / 30%);
+  animation: nested-popover-in 160ms ease;
 }
 
-@keyframes nested-reveal {
+@keyframes nested-popover-in {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(-6px);
   }
   to {
     opacity: 1;
@@ -388,12 +429,51 @@
   }
 }
 
+.nested-popover-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--sa-border);
+  background: color-mix(in srgb, var(--sa-child) 6%, #ffffff);
+}
+
+.nested-popover-kicker {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 6px;
+  color: #ffffff;
+  background: var(--sa-child);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.nested-popover-title {
+  color: var(--sa-text);
+  font-size: 0.78rem;
+  font-weight: 750;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nested-popover-scroll {
+  max-height: 420px;
+  overflow: auto;
+}
+
 .schema-table--nested {
+  width: 100%;
   font-size: 0.74rem;
   border: none;
 }
 
 .schema-table--nested thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   background: color-mix(in srgb, var(--sa-child) 7%, #ffffff);
   border-bottom-color: color-mix(in srgb, var(--sa-child) 45%, #ffffff);
 }
@@ -827,9 +907,9 @@
 
 .column-plan {
   margin: 0 0 12px;
-  color: var(--sa-muted);
-  font-size: 0.74rem;
-  font-weight: 650;
+  color: var(--sa-text);
+  font-size: 0.84rem;
+  font-weight: 700;
   line-height: 1.4;
   cursor: help;
   white-space: nowrap;
@@ -839,7 +919,7 @@
 }
 
 .column-plan-row.is-active .column-plan {
-  color: var(--sa-text);
+  color: var(--sa-accent);
 }
 
 /* Floating code overlay, widened beyond the column so long Python lines fit.
@@ -1066,17 +1146,6 @@
   letter-spacing: 0.04em;
 }
 
-.card-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex: none;
-  gap: 8px;
-  padding: 9px 12px;
-  border-top: 1px solid var(--sa-border);
-  background: var(--sa-surface-2);
-}
-
 /* Actual detected values per card: matched → highlighted, mismatched → struck. */
 .card-detected {
   display: flex;
@@ -1107,17 +1176,6 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--sa-text);
-}
-
-.card-vid {
-  color: #1e3a8a;
-  background: #eff6ff;
-  padding: 2px 7px;
-  border-radius: 6px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 /* Unified card body: one media + key text(s), fills the fixed card height */
@@ -1469,8 +1527,13 @@
 /* ------------------------------------------------------------------ */
 
 @media (max-width: 1180px) {
+  /* Keep the three result columns side by side even under browser zoom; only
+     tighten the gutters so they still fit. Do not collapse to one column here
+     or Cmd/Ctrl-plus zoom would stack the columns. */
   .hybrid-results-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    padding: 12px;
   }
 
   .route-band {
@@ -1484,12 +1547,11 @@
 
 @media (max-width: 760px) {
   .hybrid-topbar {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr;
   }
 
-  .hybrid-title {
-    grid-column: 1 / -1;
-    grid-row: 2;
+  .hybrid-results-grid {
+    grid-template-columns: 1fr;
   }
 
   .query-input-row {

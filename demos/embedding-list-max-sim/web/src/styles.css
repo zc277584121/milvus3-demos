@@ -21,22 +21,80 @@
 
 .embedding-topbar {
   display: grid;
-  grid-template-columns: 92px 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   min-height: 48px;
-  gap: 14px;
+  gap: 16px;
 }
 
-.embedding-topbar h1 {
+.commerce-identity {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.milvus-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+}
+
+.milvus-brand-logo {
+  height: 19px;
+  width: auto;
+  color: #00b3ff;
+}
+
+.milvus-version-tag {
+  padding: 3px 7px;
+  border: 1px solid #b6cdf8;
+  border-radius: 6px;
+  color: #1e4e8c;
+  background: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #5c7a86;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.source-link:hover {
+  color: #13313a;
+}
+
+.source-link-icon {
+  height: 15px;
+  width: auto;
+  color: #24292e;
+}
+
+.commerce-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.commerce-title h1 {
   margin: 0;
+  overflow: hidden;
+  color: #13313a;
   font-size: clamp(1.15rem, 2vw, 1.55rem);
   letter-spacing: -0.035em;
-}
-
-.back-link {
-  color: #256372;
-  font-weight: 750;
-  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .embedding-flow {
@@ -611,10 +669,6 @@
 
   .embedding-top-three {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .embedding-topbar {
-    grid-template-columns: auto 1fr;
   }
 
   .embedding-flow {

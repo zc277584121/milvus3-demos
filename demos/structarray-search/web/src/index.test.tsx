@@ -282,7 +282,9 @@ describe("StructArrayDemoPage", () => {
     render(<StructArrayDemoPage />);
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: "Parent + Child Semantic Hybrid" }),
+        screen.getByRole("heading", {
+          name: "Data Curation in Autonomous Driving with StructArray",
+        }),
       ).toBeTruthy();
     });
   });
@@ -316,8 +318,10 @@ describe("StructArrayDemoPage", () => {
     ).map((node) => node.textContent ?? "");
     expect(vectorTexts.some((text) => /0\.0023/.test(text))).toBe(true);
 
-    // The nested observations column expands to its own inner table.
-    fireEvent.click(screen.getByRole("button", { name: /12 objects/ }));
+    // Hovering the observations cell floats a nested StructArray panel above
+    // the parent table, instead of inserting rows into the parent grid.
+    fireEvent.mouseEnter(screen.getByRole("button", { name: /12 objects/ }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
     expect(screen.getByText("description_vector")).toBeTruthy();
   });
 

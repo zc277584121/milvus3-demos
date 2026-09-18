@@ -31,11 +31,12 @@ COPY demos/embedding-list-max-sim/data/nasa-systems-engineering-handbook-rev2 \
 
 WORKDIR /workspace/demos/embedding-list-max-sim/backend
 COPY demos/embedding-list-max-sim/backend/src src
-COPY --from=web /workspace/web/dist ../web/dist
 RUN uv sync --frozen --no-dev
 
 # Bake the pinned ColSmol adapter and base snapshots into the image so no
-# external model mount is required at runtime.
+# external model mount is required at runtime. Kept BEFORE the frontend dist
+# COPY so frontend-only changes reuse this cached layer instead of
+# re-downloading the models.
 ENV HF_HOME=/models
 RUN .venv/bin/hf download vidore/colSmol-256M \
         --revision ff628001884d6bfb066658e86a32b5f233906bf5 \
@@ -47,6 +48,8 @@ RUN .venv/bin/hf download vidore/colSmol-256M \
     && printf '99ca96f1f6b95b3a69e6abef74a2416cb738fed0' > /models/hub/models--vidore--ColSmolVLM-Instruct-256M-base/refs/main \
     && rm -rf /models/hub/.cache \
     && chmod -R a+rX /models
+
+COPY --from=web /workspace/web/dist ../web/dist
 
 ENV PATH="/workspace/demos/embedding-list-max-sim/backend/.venv/bin:$PATH" \
     STATIC_DIR="/workspace/demos/embedding-list-max-sim/web/dist" \

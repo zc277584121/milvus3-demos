@@ -384,7 +384,9 @@ describe("EmbeddingListDemoPage", () => {
 
     // The status/ready badges are intentionally not shown to users; the only
     // visible signal when offline is the disabled search button.
-    expect(await screen.findByText("Visual PDF Page Retrieval")).toBeTruthy();
+    expect(
+      await screen.findByText("Visual PDF Retrieval with EmbeddingList"),
+    ).toBeTruthy();
     expect(screen.queryByText("Implemented")).toBeNull();
     expect(screen.queryByText("Ready")).toBeNull();
     expect(screen.queryByText("Backend offline")).toBeNull();
