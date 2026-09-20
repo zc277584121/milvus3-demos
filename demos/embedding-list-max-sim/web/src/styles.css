@@ -684,3 +684,887 @@
     margin-bottom: 12px;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* MAX_SIM explainer popover                                          */
+/* ------------------------------------------------------------------ */
+
+.maxsim-trigger {
+  position: relative;
+  flex: none;
+  margin-left: auto;
+}
+
+.maxsim-trigger-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 1px solid #b8d6db;
+  border-radius: 8px;
+  color: #0a6e83;
+  background: rgb(255 255 255 / 72%);
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: help;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.maxsim-trigger-button:hover,
+.maxsim-trigger-button:focus-visible {
+  color: #063f4c;
+  border-color: #67c4d4;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgb(8 145 178 / 16%);
+}
+
+.maxsim-trigger-icon {
+  height: 16px;
+  width: 16px;
+  color: #0891b2;
+}
+
+.maxsim-trigger-icon circle {
+  fill: currentColor;
+}
+
+.maxsim-trigger-icon path {
+  stroke: currentColor;
+  stroke-linecap: round;
+}
+
+/* Floating panel. It is unmounted (display:none) until hover/focus, so the
+   inside animation restarts from frame 0 on every reveal. A short entrance
+   animation supplies the fade instead of a transition. */
+.maxsim-popover {
+  display: none;
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 90;
+  width: 640px;
+  max-width: calc(100vw - 24px);
+  overflow: hidden;
+  border: 1px solid #cfe2e5;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow:
+    0 24px 48px rgb(19 49 58 / 16%),
+    0 2px 8px rgb(19 49 58 / 8%);
+  animation: popover-in 180ms ease-out;
+}
+
+.maxsim-trigger:hover .maxsim-popover,
+.maxsim-trigger:focus-within .maxsim-popover {
+  display: block;
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.maxsim-popover-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 13px 16px 11px;
+  border-bottom: 1px solid #e6f0f2;
+  background: linear-gradient(180deg, #f5fbfc 0%, #ffffff 100%);
+}
+
+.maxsim-popover-kicker {
+  color: #13313a;
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.maxsim-popover-sub {
+  color: #4a6269;
+  font-size: 0.74rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.maxsim-anim {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: linear-gradient(180deg, #fbfdfe 0%, #f4fafb 100%);
+}
+
+/* ------------------------------------------------------------------ */
+/* Single 12s timeline (plays once, then holds the finished state)    */
+/*                                                                     */
+/* Every element animates with `forwards` over the SAME 12s period and */
+/* stops at its final visible state — no fade-out at the end, so the   */
+/* loop never looks like a glitch. The popover is display:none when    */
+/* hidden, so each reveal restarts the whole timeline from 0%.         */
+/*                                                                     */
+/* Timeline:                                                           */
+/*   0–28%     decomposition: query→tokens, image→patches              */
+/*   30–36%    matrix panel + labels fade in                           */
+/*   34–74%    row 1→4 compare + lock maxima                           */
+/*   74–82%    maxima flow into the "row max" column                   */
+/*   82–92%    equation + rank badge appear                            */
+/*   92–100%   finished state holds                                    */
+/* ── Decomposition band ── */
+.m-decomp-src-query,
+.m-decomp-src-text,
+.m-decomp-arrow,
+.m-decomp-chip,
+.m-page,
+.m-page-cut {
+  opacity: 0;
+}
+
+.m-decomp-lhs-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  fill: #46606a;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  animation: m-dquery 12s linear forwards;
+}
+
+.m-decomp-lhs-page {
+  animation: m-dpage 12s linear forwards;
+}
+
+.m-decomp-src-query {
+  fill: #eaf6f8;
+  stroke: #b8d6db;
+  stroke-width: 1;
+  animation: m-dquery 12s linear forwards;
+}
+
+.m-decomp-src-text {
+  font-size: 11.5px;
+  font-weight: 600;
+  fill: #33505a;
+}
+
+.m-decomp-src-query + .m-decomp-src-text {
+  animation: m-dquery 12s linear forwards;
+}
+
+.m-decomp-arrow {
+  stroke: #8ab3bb;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.m-decomp-arrow.query-arrow {
+  animation: m-dqa 12s linear forwards;
+}
+
+.m-decomp-arrow.image-arrow {
+  animation: m-dia 12s linear forwards;
+}
+
+.m-decomp-tok-box {
+  fill: #e0f4f8;
+  stroke: #67c4d4;
+  stroke-width: 1;
+}
+
+.m-decomp-tok-text {
+  font-size: 11px;
+  font-weight: 650;
+  fill: #0a6e83;
+}
+
+/* Page diagram: a sheet cut into patches. */
+.m-page {
+  animation: m-dpage 12s linear forwards;
+}
+
+.m-page-sheet {
+  fill: #ffffff;
+  stroke: #cfe0e3;
+  stroke-width: 1.2;
+}
+
+.m-page-lines line {
+  stroke: #c7d8dd;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.m-page-img {
+  fill: #dbe9ee;
+  stroke: #c7d8dd;
+  stroke-width: 1;
+}
+
+.m-page-dot {
+  fill: #c7d8dd;
+}
+
+.m-page-cut {
+  animation: m-dcut 12s linear forwards;
+}
+
+.m-page-cut line {
+  stroke: #f59e0b;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  stroke-linecap: round;
+}
+
+/* Patch fragments cut out of the page. */
+.m-decomp-patch-box {
+  fill: #fff7ea;
+  stroke: #f6c56e;
+  stroke-width: 1;
+}
+
+.m-decomp-patch-label {
+  font-size: 9px;
+  font-weight: 700;
+  fill: #b45309;
+}
+
+.m-decomp-patch-line {
+  stroke: #e8c48a;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.m-decomp-patch-img {
+  fill: #f3e3c8;
+  stroke: #e8c48a;
+  stroke-width: 1;
+}
+
+.m-decomp-patch-dot {
+  fill: #e8c48a;
+}
+
+.m-decomp-tok-1 {
+  animation: m-dtok-1 12s linear forwards;
+}
+.m-decomp-tok-2 {
+  animation: m-dtok-2 12s linear forwards;
+}
+.m-decomp-tok-3 {
+  animation: m-dtok-3 12s linear forwards;
+}
+.m-decomp-tok-4 {
+  animation: m-dtok-4 12s linear forwards;
+}
+.m-decomp-patch-1 {
+  animation: m-dpatch-1 12s linear forwards;
+}
+.m-decomp-patch-2 {
+  animation: m-dpatch-2 12s linear forwards;
+}
+.m-decomp-patch-3 {
+  animation: m-dpatch-3 12s linear forwards;
+}
+.m-decomp-patch-4 {
+  animation: m-dpatch-4 12s linear forwards;
+}
+
+@keyframes m-dquery {
+  0% {
+    opacity: 0;
+  }
+  4%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes m-dqa {
+  0%,
+  4% {
+    opacity: 0;
+  }
+  7%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes m-dtok-1 {
+  0%,
+  6% {
+    opacity: 0;
+  }
+  9%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes m-dtok-2 {
+  0%,
+  9% {
+    opacity: 0;
+  }
+  12%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes m-dtok-3 {
+  0%,
+  12% {
+    opacity: 0;
+  }
+  15%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes m-dtok-4 {
+  0%,
+  15% {
+    opacity: 0;
+  }
+  18%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes m-dpage {
+  0%,
+  10% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  15%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes m-dcut {
+  0%,
+  15% {
+    opacity: 0;
+  }
+  20%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes m-dia {
+  0%,
+  20% {
+    opacity: 0;
+  }
+  24%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes m-dpatch-1 {
+  0%,
+  16% {
+    opacity: 0;
+    transform: translateX(-150px);
+  }
+  22%,
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes m-dpatch-2 {
+  0%,
+  19% {
+    opacity: 0;
+    transform: translateX(-150px);
+  }
+  25%,
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes m-dpatch-3 {
+  0%,
+  22% {
+    opacity: 0;
+    transform: translateX(-150px);
+  }
+  28%,
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes m-dpatch-4 {
+  0%,
+  25% {
+    opacity: 0;
+    transform: translateX(-150px);
+  }
+  31%,
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ── Matrix panel + labels ── */
+.m-token {
+  opacity: 0;
+  animation: m-in 12s linear forwards;
+}
+
+.m-panel,
+.m-matrix-title,
+.m-matrix-axes,
+.m-patch-head,
+.m-max-head {
+  opacity: 0;
+  animation: m-in 12s linear forwards;
+}
+
+@keyframes m-in {
+  0%,
+  31% {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  37%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.m-token-label {
+  font-size: 12.5px;
+  font-weight: 650;
+  fill: #33505a;
+}
+
+.m-matrix-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  fill: #13313a;
+}
+
+.m-matrix-axes {
+  font-size: 11.5px;
+  font-weight: 550;
+  fill: #4a6269;
+}
+
+.m-patch-head {
+  font-size: 11.5px;
+  font-weight: 650;
+  fill: #0a8fa6;
+}
+
+.m-max-head {
+  font-size: 11.5px;
+  font-weight: 700;
+  fill: #b45309;
+}
+
+/* Row band: highlights the row currently being compared, then dims. */
+.m-rowband {
+  fill: #eaf6f8;
+  opacity: 0;
+}
+
+.m-rowband-1 {
+  animation: m-rowband-1 12s linear forwards;
+}
+.m-rowband-2 {
+  animation: m-rowband-2 12s linear forwards;
+}
+.m-rowband-3 {
+  animation: m-rowband-3 12s linear forwards;
+}
+.m-rowband-4 {
+  animation: m-rowband-4 12s linear forwards;
+}
+
+@keyframes m-rowband-1 {
+  0%,
+  37% {
+    opacity: 0;
+  }
+  40%,
+  45% {
+    opacity: 1;
+  }
+  48%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes m-rowband-2 {
+  0%,
+  47% {
+    opacity: 0;
+  }
+  50%,
+  55% {
+    opacity: 1;
+  }
+  58%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes m-rowband-3 {
+  0%,
+  57% {
+    opacity: 0;
+  }
+  60%,
+  65% {
+    opacity: 1;
+  }
+  68%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes m-rowband-4 {
+  0%,
+  67% {
+    opacity: 0;
+  }
+  70%,
+  75% {
+    opacity: 1;
+  }
+  78%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Cells: appear row by row, then stay visible for the finished state. */
+.m-cell {
+  fill: #eef3f4;
+  stroke: #cfe0e3;
+  stroke-width: 1;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.m-cell-r1,
+.m-cell-val-r1 {
+  animation: m-cell-r1 12s linear forwards;
+}
+.m-cell-r2,
+.m-cell-val-r2 {
+  animation: m-cell-r2 12s linear forwards;
+}
+.m-cell-r3,
+.m-cell-val-r3 {
+  animation: m-cell-r3 12s linear forwards;
+}
+.m-cell-r4,
+.m-cell-val-r4 {
+  animation: m-cell-r4 12s linear forwards;
+}
+
+@keyframes m-cell-r1 {
+  0%,
+  35% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  40%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes m-cell-r2 {
+  0%,
+  45% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  50%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes m-cell-r3 {
+  0%,
+  55% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  60%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes m-cell-r4 {
+  0%,
+  65% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  70%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.m-cell-val {
+  font-size: 12px;
+  font-weight: 650;
+  fill: #4a6269;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.m-winner-val {
+  fill: #92400e;
+  font-weight: 800;
+}
+
+/* Winner: gold gradient + outline, locks and stays locked to the end. */
+.m-winner {
+  fill: url(#m-winner-grad);
+  stroke: #f59e0b;
+  stroke-width: 1.5;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.m-winner-1 {
+  animation: m-winner-1 12s linear forwards;
+}
+.m-winner-2 {
+  animation: m-winner-2 12s linear forwards;
+}
+.m-winner-3 {
+  animation: m-winner-3 12s linear forwards;
+}
+.m-winner-4 {
+  animation: m-winner-4 12s linear forwards;
+}
+
+@keyframes m-winner-1 {
+  0%,
+  41% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  44%,
+  46% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  48%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes m-winner-2 {
+  0%,
+  51% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  54%,
+  56% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  58%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes m-winner-3 {
+  0%,
+  61% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  64%,
+  66% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  68%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes m-winner-4 {
+  0%,
+  71% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  74%,
+  76% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  78%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Max chip + connector line: the winner value flows right after rows lock. */
+.m-max-line {
+  stroke: #f59e0b;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0;
+}
+
+.m-max-line-1,
+.m-max-line-2,
+.m-max-line-3,
+.m-max-line-4,
+.m-max-chip-1,
+.m-max-chip-2,
+.m-max-chip-3,
+.m-max-chip-4,
+.m-max-val-1,
+.m-max-val-2,
+.m-max-val-3,
+.m-max-val-4 {
+  animation: m-max-flow 12s linear forwards;
+}
+
+.m-max-chip {
+  fill: #fff7ea;
+  stroke: #f6c56e;
+  stroke-width: 1;
+  opacity: 0;
+}
+
+.m-max-val {
+  font-size: 12.5px;
+  font-weight: 800;
+  fill: #b45309;
+  opacity: 0;
+}
+
+@keyframes m-max-flow {
+  0%,
+  76% {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  82%,
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Result: equation appears first, rank badge follows, both hold. */
+.m-sum {
+  opacity: 0;
+  animation: m-sum-in 12s linear forwards;
+}
+
+.m-rank {
+  opacity: 0;
+  animation: m-rank-in 12s linear forwards;
+}
+
+.m-sum-eq {
+  font-size: 15px;
+  font-weight: 650;
+  fill: #33505a;
+}
+
+.m-sum-lhs {
+  fill: #0a6e83;
+  font-weight: 700;
+}
+
+.m-sum-equals {
+  fill: #0a8fa6;
+  font-weight: 700;
+}
+
+.m-sum-total {
+  fill: #b45309;
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.m-rank-badge {
+  fill: #fff7ea;
+  stroke: #f6c56e;
+  stroke-width: 1.2;
+}
+
+.m-rank-badge-text {
+  font-size: 12.5px;
+  font-weight: 750;
+  fill: #b45309;
+}
+
+@keyframes m-sum-in {
+  0%,
+  82% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  88%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes m-rank-in {
+  0%,
+  90% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  95%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 820px) {
+  .maxsim-popover {
+    right: auto;
+    left: 0;
+    width: min(640px, calc(100vw - 24px));
+  }
+}

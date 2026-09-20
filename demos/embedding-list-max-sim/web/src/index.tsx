@@ -490,6 +490,556 @@ function PageExplanation({
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* MAX_SIM explainer                                                  */
+/* ------------------------------------------------------------------ */
+
+// A self-playing SVG that walks a viewer through how MAX_SIM scores one page.
+// Everything is driven by ONE 8-second CSS timeline: every keyframe is a slice
+// of that single period, so no two loops can drift apart. The timeline only
+// runs while the popover is hovered or focused, which restarts it from phase 0
+// each time the reader asks to look.
+function MaxSimExplainer() {
+  // Four query tokens matched against four page patches. Each row's maximum is
+  // the number that survives into the sum. The SVG is driven by ONE 12-second
+  // CSS timeline in styles.css: every keyframe is a percentage slice of that
+  // single period, played once (`forwards`) and held at the finished state.
+  //
+  // Timeline:  0–31%  decomposition (query→tokens, page→patches as a diagram)
+  //           30–74%  row-by-row compare + lock maxima
+  //           74–82%  maxima flow out
+  //           82–92%  sum equation, then rank badge
+  //           92–100% finished state holds
+  const ROWS = [
+    { token: "space", vals: [0.31, 0.82, 0.4, 0.22], maxCol: 1 },
+    { token: "craft", vals: [0.76, 0.28, 0.19, 0.41], maxCol: 0 },
+    { token: "lunar", vals: [0.35, 0.18, 0.71, 0.26], maxCol: 2 },
+    { token: "landing", vals: [0.24, 0.69, 0.38, 0.2], maxCol: 1 },
+  ];
+  const MAXIMA = [0.82, 0.76, 0.71, 0.69];
+  const TOTAL = MAXIMA.reduce((a, b) => a + b, 0).toFixed(2);
+  const QUERY_TEXT = ROWS.map((r) => r.token).join(" ");
+  const PATCHES = ["patch1", "patch2", "patch3", "patch4"];
+
+  // Layout (viewBox 0 0 640 500). Decomposition band on top (query row + a
+  // page diagram that is cut into patches), matrix below.
+  const ROW_CY = [236, 292, 348, 404];
+  const COL_CX = [210, 282, 354, 426];
+  const MATRIX_X = 156;
+  const MATRIX_W = 320;
+  const MAX_CHIP_X = 494;
+
+  // Page diagram geometry.
+  const PAGE_X = 88;
+  const PAGE_Y = 54;
+  const PAGE_W = 140;
+  const PAGE_H = 84;
+  const PAGE_MID_X = PAGE_X + PAGE_W / 2; // 115
+  const PAGE_MID_Y = PAGE_Y + PAGE_H / 2; // 96
+
+  return (
+    <div className="maxsim-trigger">
+      <button
+        type="button"
+        className="maxsim-trigger-button"
+        aria-haspopup="dialog"
+        aria-label="Show how MAX_SIM works"
+      >
+        <svg
+          className="maxsim-trigger-icon"
+          viewBox="0 0 18 18"
+          fill="none"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <circle cx="4" cy="4" r="2.1" />
+          <circle cx="14" cy="4" r="2.1" />
+          <circle cx="4" cy="14" r="2.1" />
+          <circle cx="14" cy="14" r="2.1" />
+          <path d="M6 4h6M6 14h6M4 6v6M14 6v6" strokeWidth="1.3" />
+        </svg>
+        <span>How MAX_SIM works</span>
+      </button>
+
+      <div
+        className="maxsim-popover"
+        role="dialog"
+        aria-label="MAX_SIM scoring animation"
+      >
+        <div className="maxsim-popover-head">
+          <span className="maxsim-popover-kicker">
+            How MAX_SIM scores one page
+          </span>
+          <span className="maxsim-popover-sub">
+            For each query token, keep its best page-patch match — then add the
+            maxima.
+          </span>
+        </div>
+
+        <svg
+          className="maxsim-anim"
+          viewBox="0 0 640 500"
+          fill="none"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <defs>
+            <linearGradient id="m-panel" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#fcfefe" />
+              <stop offset="1" stopColor="#f1f8f9" />
+            </linearGradient>
+            <linearGradient id="m-tok-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#14b8d6" />
+              <stop offset="1" stopColor="#0789a4" />
+            </linearGradient>
+            <linearGradient id="m-winner-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#ffc65c" />
+              <stop offset="1" stopColor="#f59e0b" />
+            </linearGradient>
+            <marker
+              id="m-arrow"
+              viewBox="0 0 10 10"
+              refX="8"
+              refY="5"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto-start-reverse"
+            >
+              <path d="M0 0 L10 5 L0 10 z" fill="#f59e0b" />
+            </marker>
+          </defs>
+
+          {/* ── Decomposition band: query → tokens, page → patches ── */}
+          <g className="m-decomp">
+            {/* query source: label + query string pill */}
+            <text x="38" y="33" className="m-decomp-lhs-label">
+              query
+            </text>
+            <rect
+              x="88"
+              y="16"
+              width="140"
+              height="26"
+              rx="13"
+              className="m-decomp-src-query"
+            />
+            <text
+              x="158"
+              y="33"
+              textAnchor="middle"
+              className="m-decomp-src-text"
+            >
+              {QUERY_TEXT}
+            </text>
+            <path
+              d="M234 29 H 254 M 247 24 L 255 29 L 247 34"
+              className="m-decomp-arrow query-arrow"
+            />
+
+            {/* 4 token chips */}
+            {ROWS.map((row, i) => (
+              <g
+                key={`dtok-${row.token}`}
+                className={`m-decomp-chip m-decomp-tok-${i + 1}`}
+              >
+                <rect
+                  x={264 + i * 64}
+                  y="16"
+                  width="54"
+                  height="26"
+                  rx="7"
+                  className="m-decomp-tok-box"
+                />
+                <text
+                  x={291 + i * 64}
+                  y="33"
+                  textAnchor="middle"
+                  className="m-decomp-tok-text"
+                >
+                  {row.token}
+                </text>
+              </g>
+            ))}
+
+            {/* page source: label + page diagram */}
+            <text
+              x="38"
+              y={PAGE_MID_Y + 4}
+              className="m-decomp-lhs-label m-decomp-lhs-page"
+            >
+              page
+            </text>
+
+            {/* page diagram: a PDF page cut into 4 patches */}
+            <g className="m-page">
+              {/* page sheet with content lines */}
+              <rect
+                x={PAGE_X}
+                y={PAGE_Y}
+                width={PAGE_W}
+                height={PAGE_H}
+                rx="3"
+                className="m-page-sheet"
+              />
+              {/* content inside the page, one distinct motif per quadrant */}
+              <g className="m-page-lines">
+                {/* Q1 (top-left): image block */}
+                <rect
+                  x={PAGE_X + 12}
+                  y={PAGE_Y + 12}
+                  width={PAGE_MID_X - PAGE_X - 20}
+                  height={PAGE_MID_Y - PAGE_Y - 20}
+                  rx="2"
+                  className="m-page-img"
+                />
+                {/* Q2 (top-right): two short text lines */}
+                <line
+                  x1={PAGE_MID_X + 8}
+                  y1={PAGE_Y + 18}
+                  x2={PAGE_X + PAGE_W - 12}
+                  y2={PAGE_Y + 18}
+                />
+                <line
+                  x1={PAGE_MID_X + 8}
+                  y1={PAGE_Y + 30}
+                  x2={PAGE_X + PAGE_W - 24}
+                  y2={PAGE_Y + 30}
+                />
+                {/* Q3 (bottom-left): two text lines */}
+                <line
+                  x1={PAGE_X + 12}
+                  y1={PAGE_MID_Y + 12}
+                  x2={PAGE_MID_X - 8}
+                  y2={PAGE_MID_Y + 12}
+                />
+                <line
+                  x1={PAGE_X + 12}
+                  y1={PAGE_MID_Y + 24}
+                  x2={PAGE_MID_X - 20}
+                  y2={PAGE_MID_Y + 24}
+                />
+                {/* Q4 (bottom-right): list dots + short line */}
+                <circle
+                  cx={PAGE_MID_X + 12}
+                  cy={PAGE_MID_Y + 14}
+                  r="2"
+                  className="m-page-dot"
+                />
+                <circle
+                  cx={PAGE_MID_X + 12}
+                  cy={PAGE_MID_Y + 26}
+                  r="2"
+                  className="m-page-dot"
+                />
+                <line
+                  x1={PAGE_MID_X + 20}
+                  y1={PAGE_MID_Y + 14}
+                  x2={PAGE_X + PAGE_W - 12}
+                  y2={PAGE_MID_Y + 14}
+                />
+                <line
+                  x1={PAGE_MID_X + 20}
+                  y1={PAGE_MID_Y + 26}
+                  x2={PAGE_X + PAGE_W - 18}
+                  y2={PAGE_MID_Y + 26}
+                />
+              </g>
+              {/* 2×2 cut lines */}
+              <g className="m-page-cut">
+                <line
+                  x1={PAGE_MID_X}
+                  y1={PAGE_Y}
+                  x2={PAGE_MID_X}
+                  y2={PAGE_Y + PAGE_H}
+                />
+                <line
+                  x1={PAGE_X}
+                  y1={PAGE_MID_Y}
+                  x2={PAGE_X + PAGE_W}
+                  y2={PAGE_MID_Y}
+                />
+              </g>
+            </g>
+
+            {/* arrow from page to first patch */}
+            <path
+              d={`M ${PAGE_X + PAGE_W + 6} ${PAGE_MID_Y} H 254 M 247 ${PAGE_MID_Y - 5} L 255 ${PAGE_MID_Y} L 247 ${PAGE_MID_Y + 5}`}
+              className="m-decomp-arrow image-arrow"
+            />
+
+            {/* 4 patch fragments cut out of the page (each mirrors a quadrant) */}
+            {PATCHES.map((patch, i) => {
+              const stagger = [0, -8, 8, 0][i];
+              return (
+                <g
+                  key={`dpatch-${patch}`}
+                  className={`m-decomp-chip m-decomp-patch-${i + 1}`}
+                  transform={`translate(0 ${stagger})`}
+                >
+                  <rect
+                    x={264 + i * 64}
+                    y="68"
+                    width="54"
+                    height="56"
+                    rx="5"
+                    className="m-decomp-patch-box"
+                  />
+                  {/* fragment content mirroring quadrant i */}
+                  {i === 0 && (
+                    <rect
+                      x={270 + i * 64}
+                      y="78"
+                      width="42"
+                      height="26"
+                      rx="2"
+                      className="m-decomp-patch-img"
+                    />
+                  )}
+                  {i === 1 && (
+                    <>
+                      <line
+                        x1={272 + i * 64}
+                        y1="84"
+                        x2={312 + i * 64}
+                        y2="84"
+                        className="m-decomp-patch-line"
+                      />
+                      <line
+                        x1={272 + i * 64}
+                        y1="94"
+                        x2={304 + i * 64}
+                        y2="94"
+                        className="m-decomp-patch-line"
+                      />
+                      <line
+                        x1={272 + i * 64}
+                        y1="104"
+                        x2={310 + i * 64}
+                        y2="104"
+                        className="m-decomp-patch-line"
+                      />
+                    </>
+                  )}
+                  {i === 2 && (
+                    <>
+                      <line
+                        x1={272 + i * 64}
+                        y1="88"
+                        x2={312 + i * 64}
+                        y2="88"
+                        className="m-decomp-patch-line"
+                      />
+                      <line
+                        x1={272 + i * 64}
+                        y1="100"
+                        x2={300 + i * 64}
+                        y2="100"
+                        className="m-decomp-patch-line"
+                      />
+                      <line
+                        x1={272 + i * 64}
+                        y1="112"
+                        x2={310 + i * 64}
+                        y2="112"
+                        className="m-decomp-patch-line"
+                      />
+                    </>
+                  )}
+                  {i === 3 && (
+                    <>
+                      <circle
+                        cx={276 + i * 64}
+                        cy="88"
+                        r="2"
+                        className="m-decomp-patch-dot"
+                      />
+                      <line
+                        x1={284 + i * 64}
+                        y1="88"
+                        x2={312 + i * 64}
+                        y2="88"
+                        className="m-decomp-patch-line"
+                      />
+                      <circle
+                        cx={276 + i * 64}
+                        cy="102"
+                        r="2"
+                        className="m-decomp-patch-dot"
+                      />
+                      <line
+                        x1={284 + i * 64}
+                        y1="102"
+                        x2={304 + i * 64}
+                        y2="102"
+                        className="m-decomp-patch-line"
+                      />
+                    </>
+                  )}
+                  <text
+                    x={270 + i * 64}
+                    y="76"
+                    className="m-decomp-patch-label"
+                  >
+                    {patch}
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+
+          {/* matrix panel (hero) */}
+          <rect
+            x={MATRIX_X}
+            y="148"
+            width={MATRIX_W}
+            height="276"
+            rx="12"
+            className="m-panel"
+            fill="url(#m-panel)"
+          />
+
+          <text x={MATRIX_X + 18} y="174" className="m-matrix-title">
+            Cosine similarity
+          </text>
+          <text x={MATRIX_X + 18} y="190" className="m-matrix-axes">
+            query tokens × page patches
+          </text>
+
+          {/* patch column heads */}
+          {PATCHES.map((patch, col) => (
+            <text
+              key={patch}
+              x={COL_CX[col]}
+              y="212"
+              textAnchor="middle"
+              className="m-patch-head"
+            >
+              {patch}
+            </text>
+          ))}
+
+          {/* max column head */}
+          <text
+            x={MAX_CHIP_X + 30}
+            y="212"
+            textAnchor="middle"
+            className="m-max-head"
+          >
+            row max
+          </text>
+
+          {/* rows */}
+          {ROWS.map((row, r) => (
+            <g key={`row-${row.token}`}>
+              {/* token label (row head, right-aligned to matrix) */}
+              <g className={`m-token m-token-${r + 1}`}>
+                <circle cx="76" cy={ROW_CY[r]} r="8" fill="url(#m-tok-grad)" />
+                <text
+                  x={MATRIX_X - 14}
+                  y={ROW_CY[r] + 4}
+                  textAnchor="end"
+                  className="m-token-label"
+                >
+                  {row.token}
+                </text>
+              </g>
+
+              {/* row band (active comparison highlight) */}
+              <rect
+                x={MATRIX_X + 6}
+                y={ROW_CY[r] - 22}
+                width={MATRIX_W - 64}
+                height="44"
+                rx="7"
+                className={`m-rowband m-rowband-${r + 1}`}
+              />
+
+              {/* 4 cells */}
+              {row.vals.map((value, c) => (
+                <g key={`cell-${r}-${c}`}>
+                  <rect
+                    x={COL_CX[c] - 30}
+                    y={ROW_CY[r] - 17}
+                    width="60"
+                    height="34"
+                    rx="6"
+                    className={`m-cell m-cell-r${r + 1}${
+                      c === row.maxCol ? ` m-winner m-winner-${r + 1}` : ""
+                    }`}
+                  />
+                  <text
+                    x={COL_CX[c]}
+                    y={ROW_CY[r] + 4}
+                    textAnchor="middle"
+                    className={`m-cell-val m-cell-val-r${r + 1}${
+                      c === row.maxCol ? " m-winner-val" : ""
+                    }`}
+                  >
+                    {value.toFixed(2)}
+                  </text>
+                </g>
+              ))}
+
+              {/* arrow + surviving max chip */}
+              <path
+                d={`M ${COL_CX[3] + 30} ${ROW_CY[r]} H ${MAX_CHIP_X}`}
+                className={`m-max-line m-max-line-${r + 1}`}
+                markerEnd="url(#m-arrow)"
+              />
+              <rect
+                x={MAX_CHIP_X}
+                y={ROW_CY[r] - 16}
+                width="60"
+                height="32"
+                rx="7"
+                className={`m-max-chip m-max-chip-${r + 1}`}
+              />
+              <text
+                x={MAX_CHIP_X + 30}
+                y={ROW_CY[r] + 4}
+                textAnchor="middle"
+                className={`m-max-val m-max-val-${r + 1}`}
+              >
+                {MAXIMA[r].toFixed(2)}
+              </text>
+            </g>
+          ))}
+
+          {/* ── Result: score-of-page equation first, then rank badge ── */}
+          <g className="m-sum">
+            <text x="320" y="440" textAnchor="middle" className="m-sum-eq">
+              <tspan className="m-sum-lhs">score of page 7</tspan>
+              <tspan className="m-sum-equals"> = </tspan>
+              {MAXIMA.map((m) => m.toFixed(2)).join("  +  ")}
+              <tspan className="m-sum-equals"> = </tspan>
+              <tspan className="m-sum-total">{TOTAL}</tspan>
+            </text>
+          </g>
+
+          <g className="m-rank">
+            <rect
+              x="256"
+              y="458"
+              width="128"
+              height="26"
+              rx="13"
+              className="m-rank-badge"
+            />
+            <text
+              x="320"
+              y="475"
+              textAnchor="middle"
+              className="m-rank-badge-text"
+            >
+              Rank #1
+            </text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 function QueryComboBox({
   query,
   onChange,
@@ -801,6 +1351,7 @@ export function EmbeddingListDemoPage() {
             </svg>
             <span>Source</span>
           </a>
+          <MaxSimExplainer />
         </div>
       </header>
 
@@ -821,7 +1372,7 @@ export function EmbeddingListDemoPage() {
               onClick={() => runSearch()}
               disabled={!ready || loading || preparing}
             >
-              {loading ? "Embedding on CPU…" : "Search 40 pages"}
+              {loading ? "Searching…" : "Search 40 pages"}
             </button>
             {!backendUnavailable && backendStatus && !ready && (
               <button type="button" onClick={prepareDemo} disabled={preparing}>
