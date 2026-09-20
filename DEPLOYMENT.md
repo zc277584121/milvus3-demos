@@ -5,11 +5,11 @@ image that serves both its compiled front-end and its `/api/v1/` API from one po
 is built, published, and run on its own — there is no shared package, portal, or gateway between
 them.
 
-| Demo | Backend port | Image name (local) | Notable runtime dependency |
-| --- | --- | --- | --- |
-| `function-chain-rerank` | `48020` | `milvus3-demos/function-chain-rerank` | Milvus 3.0.0 + MinIO (XGBoost UBJ FileResource) |
-| `embedding-list-max-sim` | `48040` | `milvus3-demos/embedding-list-max-sim` | Milvus 3.0.0 + local ColSmol model cache |
-| `structarray-search` | `48030` | `milvus3-demos/structarray-search` | Milvus 3.0.0 + gated CoVLA data + BGE-M3 ONNX cache |
+| Demo                     | Backend port | Image name (local)                     | Notable runtime dependency                      |
+| ------------------------ | ------------ | -------------------------------------- | ----------------------------------------------- |
+| `function-chain-rerank`  | `48020`      | `milvus3-demos/function-chain-rerank`  | Milvus 3.0.0 + MinIO (XGBoost UBJ FileResource) |
+| `structarray-search`     | `48030`      | `milvus3-demos/structarray-search`     | Milvus 3.0.0 (BGE-M3 ONNX baked into image)     |
+| `embedding-list-max-sim` | `48040`      | `milvus3-demos/embedding-list-max-sim` | Milvus 3.0.0 (ColSmol baked into image)         |
 
 All three bind to loopback only. Demos 2 and 3 use `network_mode: host`; Demo 1 uses a bridge
 network plus the external `milvus3-demos-ga` network.
@@ -48,11 +48,11 @@ Build from the repository root. Each Dockerfile copies only its own demo's `web/
 # Demo 1 — Function Chain Rerank
 docker build -f demos/function-chain-rerank/Dockerfile -t milvus3-demos/function-chain-rerank:local .
 
-# Demo 2 — EmbeddingList MAX_SIM
-docker build -f demos/embedding-list-max-sim/Dockerfile -t milvus3-demos/embedding-list-max-sim:local .
-
-# Demo 3 — StructArray Search
+# Demo 2 — StructArray Search
 docker build -f demos/structarray-search/Dockerfile -t milvus3-demos/structarray-search:local .
+
+# Demo 3 — EmbeddingList MAX_SIM
+docker build -f demos/embedding-list-max-sim/Dockerfile -t milvus3-demos/embedding-list-max-sim:local .
 ```
 
 Each build runs a Node stage (`npm ci` + `vite build`) and a Python stage (`uv sync --frozen
@@ -63,53 +63,48 @@ app to mount the front-end at `/` while `/api/v1/*` and `/healthz/*` take priori
 
 ### Demo 1 — Function Chain Rerank
 
-Requires a local Hugging Face hub cache (for the BGE-M3 ONNX query encoder). On startup the app
-trains the XGBoost model in-container, uploads it to MinIO as a FileResource, and creates the
+The BGE-M3 ONNX query encoder is baked into the image at build time. On startup the app trains
+the XGBoost model in-container, uploads it to MinIO as a FileResource, and creates the
 collection — so Milvus and MinIO must both be up.
 
 ```bash
-export HF_HUB_CACHE_HOST=/path/to/local/huggingface/hub
 docker compose -f infra/function-chain-rerank/docker-compose.yml up -d --build
 curl -fsS http://127.0.0.1:48020/healthz/ready
 ```
 
 Open `http://127.0.0.1:48020/` for the UI.
 
-### Demo 2 — EmbeddingList MAX_SIM
+### Demo 2 — StructArray Search
 
-Requires a local ColSmol model cache and uses `network_mode: host`.
-
-```bash
-export HF_HUB_CACHE_HOST=/path/to/local/huggingface/hub
-docker compose -f infra/embedding-list-max-sim/docker-compose.yml up -d --build
-curl -fsS http://127.0.0.1:48040/healthz/live
-```
-
-Open `http://127.0.0.1:48040/` for the UI.
-
-### Demo 3 — StructArray Search
-
-Requires the gated CoVLA dataset and a local BGE-M3 ONNX cache; uses `network_mode: host`. The
-CoVLA source data is never committed — supply it out-of-tree.
+Uses `network_mode: host`. The BGE-M3 ONNX snapshot is baked into the image at build time, so no
+external model mount is needed.
 
 ```bash
-export COVLA_DATA_DIR=/path/to/covla-dataset
-export HF_HUB_CACHE_HOST=/path/to/local/huggingface/hub
 docker compose -f infra/structarray-search/docker-compose.yml up -d --build
 curl -fsS http://127.0.0.1:48030/healthz/live
 ```
 
 Open `http://127.0.0.1:48030/` for the UI.
 
+### Demo 3 — EmbeddingList MAX_SIM
+
+Uses `network_mode: host`. The ColSmol snapshot is baked into the image at build time, so no
+external model mount is needed.
+
+```bash
+docker compose -f infra/embedding-list-max-sim/docker-compose.yml up -d --build
+curl -fsS http://127.0.0.1:48040/healthz/live
+```
+
+Open `http://127.0.0.1:48040/` for the UI.
+
 ## Required environment variables
 
 Compose files fail fast on missing required paths (no private host defaults are baked in).
 
-| Variable | Used by | Meaning |
-| --- | --- | --- |
+| Variable             | Used by      | Meaning                                 |
+| -------------------- | ------------ | --------------------------------------- |
 | `MILVUS_RUNTIME_DIR` | Milvus stack | Writable dir for etcd/MinIO/Milvus data |
-| `HF_HUB_CACHE_HOST` | Demos 1, 2, 3 | Host Hugging Face hub cache (mounted read-only) |
-| `COVLA_DATA_DIR` | Demo 3 | Approved CoVLA dataset root (mounted read-only) |
 
 Optional overrides: `FUNCTION_CHAIN_PORT` (default `48020`), `STRUCTARRAY_PORT` (default `48030`),
 `EMBEDDING_LIST_PORT` (default `48040`). See `infra/*/docker-compose.yml` for the full set.
@@ -120,10 +115,14 @@ Each demo has a `make` target that builds the image, starts it, hits its health 
 cleans up:
 
 ```bash
-make function-chain-rerank-image-check    # needs HF_HUB_CACHE_HOST
-make embedding-list-max-sim-image-check   # needs HF_HUB_CACHE_HOST
-make structarray-search-image-check       # needs COVLA_DATA_DIR + HF_HUB_CACHE_HOST
+make function-chain-rerank-image-check
+make structarray-search-image-check
+make embedding-list-max-sim-image-check
 ```
+
+Model weights are baked into each image at build time, so these checks need no external model
+mount. Demo 1's check starts the MinIO-backed Milvus stack first (see the compose file), while
+Demos 2 and 3 use `network_mode: host` against the already-running Milvus stack.
 
 Fast validation without containers:
 

@@ -61,7 +61,6 @@ function-chain-rerank-data-check:
 
 function-chain-rerank-image-check:
 	@set -euo pipefail; \
-	test -n "$${HF_HUB_CACHE_HOST:-}" || { echo "HF_HUB_CACHE_HOST is required" >&2; exit 1; }; \
 	trap '$(FUNCTION_CHAIN_COMPOSE) down --remove-orphans' EXIT; \
 	$(FUNCTION_CHAIN_COMPOSE) build --no-cache; \
 	$(FUNCTION_CHAIN_COMPOSE) up --detach --wait; \
@@ -92,7 +91,6 @@ embedding-list-max-sim-data-check:
 
 embedding-list-max-sim-image-check:
 	@set -euo pipefail; \
-	test -n "$${HF_HUB_CACHE_HOST:-}" || { echo "HF_HUB_CACHE_HOST is required" >&2; exit 1; }; \
 	trap '$(EMBEDDING_LIST_COMPOSE) down --remove-orphans' EXIT; \
 	$(EMBEDDING_LIST_COMPOSE) build --no-cache; \
 	$(EMBEDDING_LIST_COMPOSE) up --detach --wait; \
