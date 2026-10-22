@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: movie-discovery
+  namespace: demo
+  labels:
+    app.kubernetes.io/name: movie-discovery
+    app.kubernetes.io/part-of: milvus-demo
+  annotations:
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/group.name: milvus-io
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    kubernetes.io/ingress.class: alb
+spec:
+  rules:
+  - host: demos.milvus.io
+    http:
+      paths:
+      - path: /movie-discovery
+        pathType: Prefix
+        backend:
+          service:
+            name: movie-discovery-svc
+            port:
+              number: 48060
+  tls:
+  - hosts:
+    - demos.milvus.io

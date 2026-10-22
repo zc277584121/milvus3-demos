@@ -4,11 +4,13 @@ FUNCTION_CHAIN_COMPOSE := docker compose -f infra/function-chain-rerank/docker-c
 STRUCTARRAY_COMPOSE := docker compose -f infra/structarray-search/docker-compose.yml
 EMBEDDING_LIST_COMPOSE := docker compose -f infra/embedding-list-max-sim/docker-compose.yml
 MINHASH_COMPOSE := docker compose -f infra/minhash-near-duplicate/docker-compose.yml
+MOVIE_COMPOSE := docker compose -f infra/movie-discovery/docker-compose.yml
 PYTHON_PROJECTS := \
 	demos/function-chain-rerank/backend \
 	demos/structarray-search/backend \
 	demos/embedding-list-max-sim/backend \
-	demos/minhash-near-duplicate/backend
+	demos/minhash-near-duplicate/backend \
+	demos/movie-discovery/backend
 
 .DEFAULT_GOAL := help
 
@@ -18,6 +20,7 @@ PYTHON_PROJECTS := \
 	structarray-search-data-check structarray-search-image-check \
 	embedding-list-max-sim-data-check embedding-list-max-sim-image-check \
 	minhash-near-duplicate-data-check minhash-near-duplicate-image-check \
+	movie-discovery-data-check movie-discovery-image-check \
 	validate
 
 help:
@@ -32,6 +35,8 @@ help:
 	@echo "  make embedding-list-max-sim-image-check Build and health-check the ColSmol image"
 	@echo "  make minhash-near-duplicate-data-check  Validate the original-short-stories dataset"
 	@echo "  make minhash-near-duplicate-image-check Build and health-check the MinHash image"
+	@echo "  make movie-discovery-data-check         Validate the synthetic movie catalog"
+	@echo "  make movie-discovery-image-check        Build and health-check the Movie Discovery image"
 
 bootstrap:
 	@set -euo pipefail; for project in $(PYTHON_PROJECTS); do uv sync --project "$$project" --group dev; done
@@ -60,6 +65,7 @@ compose-config:
 	$(STRUCTARRAY_COMPOSE) config --quiet
 	$(EMBEDDING_LIST_COMPOSE) config --quiet
 	$(MINHASH_COMPOSE) config --quiet
+	$(MOVIE_COMPOSE) config --quiet
 
 function-chain-rerank-data-check:
 	UV_OFFLINE=1 uv run --offline --project demos/function-chain-rerank/backend \
@@ -113,5 +119,17 @@ minhash-near-duplicate-image-check:
 	$(MINHASH_COMPOSE) build --no-cache; \
 	$(MINHASH_COMPOSE) up --detach --wait; \
 	curl --fail --silent --show-error "http://127.0.0.1:$${MINHASH_PORT:-48050}/healthz/ready"
+
+movie-discovery-data-check:
+	UV_OFFLINE=1 uv run --offline \
+		--project demos/movie-discovery/backend \
+		python -m movie_discovery_demo.cli data-check
+
+movie-discovery-image-check:
+	@set -euo pipefail; \
+	trap '$(MOVIE_COMPOSE) down --remove-orphans' EXIT; \
+	$(MOVIE_COMPOSE) build --no-cache; \
+	$(MOVIE_COMPOSE) up --detach --wait; \
+	curl --fail --silent --show-error "http://127.0.0.1:$${MOVIE_PORT:-48060}/healthz/ready"
 
 validate: embedding-list-max-sim-data-check format-check lint typecheck test compose-config

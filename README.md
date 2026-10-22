@@ -13,13 +13,14 @@ single vector. More demos will be added over time.
 | [2 · StructArray Parent + Child](#demo-2--structarray-parent--child-semantic-hybrid) | `ARRAY<STRUCT>` multi-route hybrid search           | [structarray-search](https://demos.milvus.io/structarray-search)       |
 | [3 · EmbeddingList MAX_SIM](#demo-3--embeddinglist-max_sim-nasa-handbook-retrieval)  | `EmbeddingList` multi-vector `MAX_SIM_COSINE`       | [embedding-list](https://demos.milvus.io/embedding-list)               |
 | [4 · MinHash Near-Duplicate](#demo-4--minhash-lsh-near-duplicate-detection)          | MinHash Function + `MINHASH_LSH`                    | [minhash-near-duplicate](https://demos.milvus.io/minhash-near-duplicate) |
+| [5 · Movie Discovery](#demo-5--movie-discovery-with-search-aggregation)               | Search Aggregation faceted semantic search          | [movie-discovery](https://demos.milvus.io/movie-discovery)               |
 
 > Live demos are served from a shared Milvus 3.0 stack behind `demos.milvus.io`. If a link is
 > temporarily unavailable, the same demo runs locally — see [Quick start](#quick-start).
 
 ## How the demos relate
 
-One shared Milvus 3.0 standalone stack backs all four demos; each demo owns a distinct
+One shared Milvus 3.0 standalone stack backs all five demos; each demo owns a distinct
 collection and connects to the stack with its own `MILVUS_URI`. The demos themselves are fully
 independent — each is a single image that serves its compiled front end and its `/api/v1/` API
 from one port. There is no shared package, portal, or gateway between them.
@@ -30,11 +31,11 @@ from one port. There is no shared package, portal, or gateway between them.
                  │   etcd · MinIO · milvusdb/milvus:v3.0.0   │
                  └────────────────────┬─────────────────────┘
                                       │  MILVUS_URI (one per demo)
-        ┌─────────────────┬───────────┴───────────┬─────────────────┬─────────────────┐
-        ▼                 ▼                       ▼                 ▼                 ▼
-   Demo 1 image       Demo 2 image            Demo 3 image       Demo 4 image
-   Function Chain     StructArray             EmbeddingList      MinHash
-   :48020             :48030                  :48040             :48050
+        ┌─────────────────┬───────────┴───────────┬─────────────────┬─────────────────┬─────────────────┐
+        ▼                 ▼                       ▼                 ▼                 ▼                 ▼
+   Demo 1 image       Demo 2 image            Demo 3 image       Demo 4 image       Demo 5 image
+   Function Chain     StructArray             EmbeddingList      MinHash            Movie Discovery
+   :48020             :48030                  :48040             :48050             :48060
 ```
 
 ## Demo 1 — Function Chain Rerank
@@ -146,6 +147,28 @@ preset queries, released under CC0 1.0. No model weights or third-party articles
 See [`demos/minhash-near-duplicate/README.md`](demos/minhash-near-duplicate/README.md) for the
 schema/function/index contract, score semantics, and API reference.
 
+## Demo 5 — Movie Discovery with Search Aggregation
+
+Describe a movie and browse the results by facet. The query is embedded at request time by a
+CPU-only quantized BGE-M3 ONNX model, Milvus retrieves related movies by cosine similarity, and
+Milvus 3.0 **Search Aggregation** groups those hits by `Genre`, `Decade`, or `Region` — with a
+plain ranked list alongside for comparison. Group counts and representative candidates cover only
+the candidates retained during retrieval, which the page states honestly.
+
+```text
+FastAPI → BGE-M3 ONNX (CPU) query embedding (1024 dims)
+        → grouped: search(..., search_aggregation=SearchAggregation(...))
+        → list:    plain ANN search over the same synopsis vector field
+```
+
+**Data.** `movie-catalog-r1` contains 90 original, fictional movies authored by the project — 15
+across six genres, five decades, and ten regions — plus five preset queries, released under CC0
+1.0. Posters are generated gradient placeholders, not real artwork, and the page labels them as
+such.
+
+See [`demos/movie-discovery/README.md`](demos/movie-discovery/README.md) for the
+schema, Search Aggregation semantics, synthetic-data contract, and API reference.
+
 ## Repository layout
 
 ```text
@@ -153,12 +176,14 @@ demos/function-chain-rerank/        Demo 1: backend, web UI, and synthetic catal
 demos/structarray-search/           Demo 2: backend, web UI, and synthetic driving dataset
 demos/embedding-list-max-sim/       Demo 3: backend, web UI, and NASA handbook dataset
 demos/minhash-near-duplicate/       Demo 4: backend, web UI, and short-stories dataset
+demos/movie-discovery/              Demo 5: backend, web UI, and synthetic movie catalog
 infra/milvus/                       Shared Milvus 3.0 stack (etcd + MinIO + standalone)
 infra/function-chain-rerank/        Docker Compose for the isolated rerank image
 infra/structarray-search/           Docker Compose for the isolated hybrid image
 infra/embedding-list-max-sim/       Docker Compose for the isolated ColSmol image
 infra/minhash-near-duplicate/       Docker Compose for the isolated MinHash image
-deploy/                             Kubernetes manifests for the shared stack and four apps
+infra/movie-discovery/              Docker Compose for the isolated Movie Discovery image
+deploy/                             Kubernetes manifests for the shared stack and five apps
 ```
 
 Each demo is fully self-contained: its backend declares its own Python dependencies, its web
@@ -185,10 +210,11 @@ docker compose -f infra/embedding-list-max-sim/docker-compose.yml up -d --build
 #    Demo 2 → http://127.0.0.1:48030/
 #    Demo 3 → http://127.0.0.1:48040/
 #    Demo 4 → http://127.0.0.1:48050/
+#    Demo 5 → http://127.0.0.1:48060/
 ```
 
 `MILVUS_RUNTIME_DIR` must point to a writable directory where etcd, MinIO, and Milvus persist
-their data. The four demos bind to loopback only.
+their data. The five demos bind to loopback only.
 
 For step-by-step instructions — starting Milvus, building each independent image, running the
 demos, and the production Kubernetes deployment — see [DEPLOYMENT.md](DEPLOYMENT.md).
@@ -209,6 +235,7 @@ make function-chain-rerank-data-check
 make structarray-search-data-check
 make embedding-list-max-sim-data-check
 make minhash-near-duplicate-data-check
+make movie-discovery-data-check
 ```
 
 Real container + Milvus integration is opt-in per demo via `<demo-id>-image-check` (see
@@ -226,9 +253,11 @@ and
 [`demos/structarray-search/data/synthetic-driving-scenes-r1/NOTICE.md`](demos/structarray-search/data/synthetic-driving-scenes-r1/NOTICE.md)
 and
 [`demos/minhash-near-duplicate/data/original-short-stories-r1/NOTICE.md`](demos/minhash-near-duplicate/data/original-short-stories-r1/NOTICE.md)
+and
+[`demos/movie-discovery/data/movie-catalog-r1/NOTICE.md`](demos/movie-discovery/data/movie-catalog-r1/NOTICE.md)
 for the dataset-specific notice and license record.
 
 The Demo 3 NASA Systems Engineering Handbook is a U.S. Government work with NTRS rights
 determination `PUBLIC_USE_PERMITTED`; it is redistributed as the official, unmodified PDF and
-page renders with full source metadata. Demo 2 publishes no third-party data, model weights, or
-vectors — only project-authored source code.
+page renders with full source metadata. Demos 2 and 5 publish no third-party data, model weights,
+or vectors — only project-authored source code.

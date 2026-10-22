@@ -1,0 +1,69 @@
+{
+  "as_of_date": "2026-10-22",
+  "dataset_id": "movie-catalog-r1",
+  "version": 1,
+  "counts": {
+    "movies": 90,
+    "genres": 6,
+    "decades": 5,
+    "regions": 10,
+    "queries": 5,
+    "poster_placeholders": 90,
+    "genre_counts": {
+      "Adventure": 15,
+      "Animation": 15,
+      "Comedy": 15,
+      "Drama": 15,
+      "Sci-Fi": 15,
+      "Thriller": 15
+    },
+    "decade_counts": {
+      "1980s": 2,
+      "1990s": 11,
+      "2000s": 18,
+      "2010s": 33,
+      "2020s": 26
+    },
+    "region_counts": {
+      "Australia": 6,
+      "Brazil": 6,
+      "Canada": 9,
+      "France": 11,
+      "Germany": 8,
+      "India": 5,
+      "Japan": 11,
+      "South Korea": 5,
+      "United Kingdom": 12,
+      "United States": 17
+    }
+  },
+  "embedding": {
+    "dimension": 1024,
+    "field": "synopsis",
+    "model_repo": "gpahal/bge-m3-onnx-int8",
+    "model_revision": "2b34e84df040034d4b9eabb62383a87c18955822",
+    "onnx_file": "model_quantized.onnx",
+    "tokenizer_file": "tokenizer.json",
+    "normalization": "l2",
+    "version": "bge-m3-onnx-int8-dense-l2-v3"
+  },
+  "provenance": {
+    "movies": "synthetic_authored_metadata",
+    "synopsis": "synthetic_authored_metadata",
+    "title": "synthetic_authored_metadata",
+    "poster_path": "synthetic_generated_poster_placeholder",
+    "poster_palette": "synthetic_generated_poster_placeholder",
+    "release_year": "synthetic_authored_metadata",
+    "decade": "derived_from_synthetic_authored_metadata",
+    "region": "synthetic_authored_metadata",
+    "runtime_minutes": "synthetic_authored_metadata"
+  },
+  "files": [
+    {"path": "movies.json", "media_type": "application/json"},
+    {"path": "presets.json", "media_type": "application/json"},
+    {"path": "manifest.json", "media_type": "application/json"},
+    {"path": "NOTICE.md", "media_type": "text/markdown"},
+    {"path": "LICENSE-CONFLICT.md", "media_type": "text/markdown"},
+    {"path": "licenses/LICENSE.txt", "media_type": "text/plain"}
+  ]
+}

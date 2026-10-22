@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This repository ships four independent, self-contained Milvus 3.0 demos. Each demo is a single
+This repository ships five independent, self-contained Milvus 3.0 demos. Each demo is a single
 image that serves both its compiled front-end and its `/api/v1/` API from one port, so every demo
 is built, published, and run on its own — there is no shared package, portal, or gateway between
 them.
@@ -11,8 +11,9 @@ them.
 | `structarray-search`       | `48030`      | `milvus3-demos/structarray-search`       | Milvus 3.0.0 (BGE-M3 ONNX baked into image)     |
 | `embedding-list-max-sim`   | `48040`      | `milvus3-demos/embedding-list-max-sim`   | Milvus 3.0.0 (ColSmol baked into image)         |
 | `minhash-near-duplicate`   | `48050`      | `milvus3-demos/minhash-near-duplicate`   | Milvus 3.0.0 (MinHash Function + MINHASH_LSH)   |
+| `movie-discovery`          | `48060`      | `milvus3-demos/movie-discovery`          | Milvus 3.0.0 (BGE-M3 ONNX baked into image)     |
 
-All four bind to loopback only. Demos 2, 3, and 4 use `network_mode: host`; Demo 1 uses a bridge
+All five bind to loopback only. Demos 2–5 use `network_mode: host`; Demo 1 uses a bridge
 network plus the external `milvus3-demos-ga` network.
 
 ## Prerequisites
@@ -57,6 +58,9 @@ docker build -f demos/embedding-list-max-sim/Dockerfile -t milvus3-demos/embeddi
 
 # Demo 4 — MinHash Near-Duplicate Detection
 docker build -f demos/minhash-near-duplicate/Dockerfile -t milvus3-demos/minhash-near-duplicate:local .
+
+# Demo 5 — Movie Discovery with Search Aggregation
+docker build -f demos/movie-discovery/Dockerfile -t milvus3-demos/movie-discovery:local .
 ```
 
 Each build runs a Node stage (`npm ci` + `vite build`) and a Python stage (`uv sync --frozen
@@ -114,6 +118,18 @@ curl -fsS http://127.0.0.1:48050/healthz/ready
 
 Open `http://127.0.0.1:48050/` for the UI.
 
+### Demo 5 — Movie Discovery with Search Aggregation
+
+Uses `network_mode: host`. The BGE-M3 ONNX snapshot is baked into the image at build time, so no
+external model mount is needed.
+
+```bash
+docker compose -f infra/movie-discovery/docker-compose.yml up -d --build
+curl -fsS http://127.0.0.1:48060/healthz/ready
+```
+
+Open `http://127.0.0.1:48060/` for the UI.
+
 ## Required environment variables
 
 Compose files fail fast on missing required paths (no private host defaults are baked in).
@@ -123,7 +139,8 @@ Compose files fail fast on missing required paths (no private host defaults are 
 | `MILVUS_RUNTIME_DIR` | Milvus stack | Writable dir for etcd/MinIO/Milvus data |
 
 Optional overrides: `FUNCTION_CHAIN_PORT` (default `48020`), `STRUCTARRAY_PORT` (default `48030`),
-`EMBEDDING_LIST_PORT` (default `48040`). See `infra/*/docker-compose.yml` for the full set.
+`EMBEDDING_LIST_PORT` (default `48040`), `MINHASH_PORT` (default `48050`), `MOVIE_PORT` (default
+`48060`). See `infra/*/docker-compose.yml` for the full set.
 
 ## Verification targets
 
@@ -134,6 +151,8 @@ cleans up:
 make function-chain-rerank-image-check
 make structarray-search-image-check
 make embedding-list-max-sim-image-check
+make minhash-near-duplicate-image-check
+make movie-discovery-image-check
 ```
 
 Model weights are baked into each image at build time, so these checks need no external model

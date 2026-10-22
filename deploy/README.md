@@ -1,6 +1,6 @@
 # Kubernetes deployment manifests
 
-This directory holds the GitOps-style Kubernetes manifests for the four
+This directory holds the GitOps-style Kubernetes manifests for the five
 Milvus 3.0 demos plus the shared Milvus 3.0 stack. They mirror the layout of
 `zilliztech/vdc-deploy` (`milvus-demo/apps/*` and `milvus-demo/shared-services/*`)
 so the packages can be moved there and reviewed by SRE.
@@ -15,12 +15,13 @@ deploy/
     ├── function-chain-rerank/
     ├── structarray-search/
     ├── embedding-list/
-    └── minhash-near-duplicate/
+    ├── minhash-near-duplicate/
+    └── movie-discovery/
 ```
 
 ## Shared Milvus 3.0 stack
 
-One `milvusdb/milvus:v3.0.0` standalone instance backs all four demos. Each
+One `milvusdb/milvus:v3.0.0` standalone instance backs all five demos. Each
 demo connects with `MILVUS_URI=http://milvus3:19530` and uses a distinct
 collection, so they share the stack without interfering.
 

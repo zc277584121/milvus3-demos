@@ -1,0 +1,34 @@
+{
+  "presets": [
+    {
+      "id": "lighthearted-adventure",
+      "label": "Lighthearted adventure",
+      "text": "A lighthearted adventure with ordinary people",
+      "description": "Warm, low-stakes journeys across the Adventure, Comedy and Animation buckets."
+    },
+    {
+      "id": "cozy-animated-story",
+      "label": "Cozy animated story",
+      "text": "A cozy animated story about a small courier delivering something important",
+      "description": "Gentle animated tales centered on deliveries, letters and small journeys."
+    },
+    {
+      "id": "quiet-town-drama",
+      "label": "Quiet town drama",
+      "text": "A quiet drama in a small town where someone returns home after many years",
+      "description": "Introspective dramas about homecoming and the slow repair of old ties."
+    },
+    {
+      "id": "overnight-train-mystery",
+      "label": "Overnight train mystery",
+      "text": "A tense mystery set on an overnight train with a strange passenger",
+      "description": "Suspenseful thrillers on trains, ferries and other night journeys."
+    },
+    {
+      "id": "optimistic-space-story",
+      "label": "Optimistic space story",
+      "text": "An optimistic science fiction story about a small outpost far from home",
+      "description": "Hopeful sci-fi about stations, archives and the people who tend them."
+    }
+  ]
+}
