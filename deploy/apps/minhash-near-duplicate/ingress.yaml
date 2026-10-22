@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minhash-near-duplicate
+  namespace: demo
+  labels:
+    app.kubernetes.io/name: minhash-near-duplicate
+    app.kubernetes.io/part-of: milvus-demo
+  annotations:
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/group.name: milvus-io
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    kubernetes.io/ingress.class: alb
+spec:
+  rules:
+  - host: demos.milvus.io
+    http:
+      paths:
+      - path: /minhash-near-duplicate
+        pathType: Prefix
+        backend:
+          service:
+            name: minhash-near-duplicate-svc
+            port:
+              number: 48050
+  tls:
+  - hosts:
+    - demos.milvus.io

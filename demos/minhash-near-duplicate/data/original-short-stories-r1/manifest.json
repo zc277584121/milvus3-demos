@@ -1,0 +1,38 @@
+{
+  "as_of_date": "2026-10-21",
+  "dataset_id": "original-short-stories-r1",
+  "version": 1,
+  "counts": {
+    "documents": 36,
+    "clusters": 8,
+    "variants": {
+      "original": 7,
+      "exact-copy": 7,
+      "light-edits": 7,
+      "paragraph-removed": 3,
+      "paragraph-added": 3,
+      "same-theme": 6,
+      "unrelated": 3
+    }
+  },
+  "clusters": {
+    "weekend-by-the-river": ["original", "exact-copy", "light-edits", "paragraph-removed", "same-theme"],
+    "the-night-market": ["original", "exact-copy", "light-edits", "paragraph-added", "same-theme"],
+    "hidden-staircase": ["original", "exact-copy", "light-edits", "paragraph-removed", "same-theme"],
+    "midnight-baker": ["original", "exact-copy", "light-edits", "paragraph-added", "same-theme"],
+    "train-hills": ["original", "exact-copy", "light-edits", "paragraph-removed", "same-theme"],
+    "lighthouse-log": ["original", "exact-copy", "light-edits", "paragraph-added"],
+    "winter-garden": ["original", "exact-copy", "light-edits", "same-theme"],
+    "unrelated": ["unrelated", "unrelated", "unrelated"]
+  },
+  "variant_meaning": {
+    "original": "The base fictional text for a cluster.",
+    "exact-copy": "An exact copy of the cluster original.",
+    "light-edits": "A few words changed against the original (near-duplicate).",
+    "paragraph-removed": "A paragraph removed from the original (partial overlap).",
+    "paragraph-added": "A new paragraph inserted into the original (partial overlap).",
+    "same-theme": "Different wording on the same theme, no copied sentences.",
+    "unrelated": "Unrelated content used as a below-threshold contrast."
+  },
+  "provenance": "All documents are authored by the milvus3-demos project as fictional demonstration data. None is derived from real articles, books, or user content. The text is dedicated to the public domain under CC0 1.0; see licenses/LICENSE.txt."
+}

@@ -13,3 +13,5 @@ test-results/
 .vite/
 .cc-use/
 .memsearch/
+.docker-config/
+/package-lock.json

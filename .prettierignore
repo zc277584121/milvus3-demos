@@ -1,3 +1,4 @@
 demos/function-chain-rerank/data/synthetic-commerce-catalog-r1/
 demos/embedding-list-max-sim/data/
 demos/structarray-search/data/
+demos/minhash-near-duplicate/data/

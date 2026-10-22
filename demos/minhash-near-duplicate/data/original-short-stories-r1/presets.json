@@ -1,0 +1,25 @@
+{
+  "presets": [
+    {
+      "id": "river-weekend",
+      "label": "A weekend by the river",
+      "title": "A Weekend by the River",
+      "text": "On Sunday, we followed the river path to the old bridge. The morning market was already busy, so we bought bread and coffee before continuing. Beyond the bridge, a narrow trail led to a quiet garden. We spent the afternoon there and returned to town before sunset.",
+      "description": "A lightly edited copy: two words differ from the original."
+    },
+    {
+      "id": "night-market",
+      "label": "The night market",
+      "title": "The Night Market",
+      "text": "The night market opened under strings of yellow lanterns. Stalls sold grilled skewers, sweet rice, and folded paper lanterns. A crowd gathered around a drummer while children ran between the tables. A fortune teller sat at the far corner with a cage of singing birds. By midnight the alleys smelled of smoke, sugar, and warm rain.",
+      "description": "A copy with an added paragraph inserted."
+    },
+    {
+      "id": "train-hills",
+      "label": "A train through the hills",
+      "title": "A Train Through the Hills",
+      "text": "The morning train climbed through green hills toward the pass. Sheep scattered from the tracks as the whistle sounded. Passengers pressed their faces to the windows to watch the valley open below. At the summit the train stopped for water beside a tiny station with no sign.",
+      "description": "An exact copy of the original document."
+    }
+  ]
+}

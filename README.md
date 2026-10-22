@@ -12,13 +12,14 @@ single vector. More demos will be added over time.
 | [1 · Function Chain Rerank](#demo-1--function-chain-rerank)                          | L0 Function Chain + XGBoost UBJ FileResource rerank | [function-chain-rerank](https://demos.milvus.io/function-chain-rerank) |
 | [2 · StructArray Parent + Child](#demo-2--structarray-parent--child-semantic-hybrid) | `ARRAY<STRUCT>` multi-route hybrid search           | [structarray-search](https://demos.milvus.io/structarray-search)       |
 | [3 · EmbeddingList MAX_SIM](#demo-3--embeddinglist-max_sim-nasa-handbook-retrieval)  | `EmbeddingList` multi-vector `MAX_SIM_COSINE`       | [embedding-list](https://demos.milvus.io/embedding-list)               |
+| [4 · MinHash Near-Duplicate](#demo-4--minhash-lsh-near-duplicate-detection)          | MinHash Function + `MINHASH_LSH`                    | [minhash-near-duplicate](https://demos.milvus.io/minhash-near-duplicate) |
 
 > Live demos are served from a shared Milvus 3.0 stack behind `demos.milvus.io`. If a link is
 > temporarily unavailable, the same demo runs locally — see [Quick start](#quick-start).
 
 ## How the demos relate
 
-One shared Milvus 3.0 standalone stack backs all three demos; each demo owns a distinct
+One shared Milvus 3.0 standalone stack backs all four demos; each demo owns a distinct
 collection and connects to the stack with its own `MILVUS_URI`. The demos themselves are fully
 independent — each is a single image that serves its compiled front end and its `/api/v1/` API
 from one port. There is no shared package, portal, or gateway between them.
@@ -29,11 +30,11 @@ from one port. There is no shared package, portal, or gateway between them.
                  │   etcd · MinIO · milvusdb/milvus:v3.0.0   │
                  └────────────────────┬─────────────────────┘
                                       │  MILVUS_URI (one per demo)
-        ┌─────────────────┬───────────┴───────────┬─────────────────┐
-        ▼                 ▼                       ▼                 ▼
-   Demo 1 image       Demo 2 image            Demo 3 image
-   Function Chain     StructArray             EmbeddingList
-   :48020             :48030                  :48040
+        ┌─────────────────┬───────────┴───────────┬─────────────────┬─────────────────┐
+        ▼                 ▼                       ▼                 ▼                 ▼
+   Demo 1 image       Demo 2 image            Demo 3 image       Demo 4 image
+   Function Chain     StructArray             EmbeddingList      MinHash
+   :48020             :48030                  :48040             :48050
 ```
 
 ## Demo 1 — Function Chain Rerank
@@ -124,17 +125,40 @@ complete SHA-256 manifest. NASA does not endorse Milvus or this demo.
 See [`demos/embedding-list-max-sim/README.md`](demos/embedding-list-max-sim/README.md) for the
 fixed NTRS source contract, model contract, and API reference.
 
+## Demo 4 — MinHash + LSH Near-Duplicate Detection
+
+Find copied and lightly edited documents without any embedding model. Milvus 3.0's built-in
+**MinHash Function** turns each document's word tokens into a `BINARY_VECTOR` signature at insert
+and query time, and the **MINHASH_LSH** index with the **MHJACCARD** metric retrieves candidates by
+**estimated Jaccard similarity**. The app renders a word-level diff so a human can judge what
+actually changed.
+
+```text
+FastAPI → Milvus FunctionType.MINHASH (num_hashes=256, shingle_size=1)
+        → MINHASH_LSH index + MHJACCARD + Jaccard refinement
+        → estimated Jaccard similarity + application-side diff view
+```
+
+**Data.** The tracked production dataset is 36 original, fictional short texts plus controlled
+variants (exact copy, light edits, paragraph added/removed, same theme, unrelated), with three
+preset queries, released under CC0 1.0. No model weights or third-party articles are used.
+
+See [`demos/minhash-near-duplicate/README.md`](demos/minhash-near-duplicate/README.md) for the
+schema/function/index contract, score semantics, and API reference.
+
 ## Repository layout
 
 ```text
 demos/function-chain-rerank/        Demo 1: backend, web UI, and synthetic catalog
 demos/structarray-search/           Demo 2: backend, web UI, and synthetic driving dataset
 demos/embedding-list-max-sim/       Demo 3: backend, web UI, and NASA handbook dataset
+demos/minhash-near-duplicate/       Demo 4: backend, web UI, and short-stories dataset
 infra/milvus/                       Shared Milvus 3.0 stack (etcd + MinIO + standalone)
 infra/function-chain-rerank/        Docker Compose for the isolated rerank image
 infra/structarray-search/           Docker Compose for the isolated hybrid image
 infra/embedding-list-max-sim/       Docker Compose for the isolated ColSmol image
-deploy/                             Kubernetes manifests for the shared stack and three apps
+infra/minhash-near-duplicate/       Docker Compose for the isolated MinHash image
+deploy/                             Kubernetes manifests for the shared stack and four apps
 ```
 
 Each demo is fully self-contained: its backend declares its own Python dependencies, its web
@@ -160,10 +184,11 @@ docker compose -f infra/embedding-list-max-sim/docker-compose.yml up -d --build
 #    Demo 1 → http://127.0.0.1:48020/
 #    Demo 2 → http://127.0.0.1:48030/
 #    Demo 3 → http://127.0.0.1:48040/
+#    Demo 4 → http://127.0.0.1:48050/
 ```
 
 `MILVUS_RUNTIME_DIR` must point to a writable directory where etcd, MinIO, and Milvus persist
-their data. The three demos bind to loopback only.
+their data. The four demos bind to loopback only.
 
 For step-by-step instructions — starting Milvus, building each independent image, running the
 demos, and the production Kubernetes deployment — see [DEPLOYMENT.md](DEPLOYMENT.md).
@@ -183,11 +208,12 @@ Per-demo data checks verify each dataset's bytes and metadata without containers
 make function-chain-rerank-data-check
 make structarray-search-data-check
 make embedding-list-max-sim-data-check
+make minhash-near-duplicate-data-check
 ```
 
 Real container + Milvus integration is opt-in per demo via `<demo-id>-image-check` (see
 [`DEPLOYMENT.md`](DEPLOYMENT.md)). Each demo owns its own backend `uv.lock`, web
-`package-lock.json`, and Dockerfile, so a change to one demo cannot change the other two images.
+`package-lock.json`, and Dockerfile, so a change to one demo cannot change the other demo images.
 
 ## License
 
@@ -198,6 +224,8 @@ and
 [`demos/function-chain-rerank/data/synthetic-commerce-catalog-r1/NOTICE.md`](demos/function-chain-rerank/data/synthetic-commerce-catalog-r1/NOTICE.md)
 and
 [`demos/structarray-search/data/synthetic-driving-scenes-r1/NOTICE.md`](demos/structarray-search/data/synthetic-driving-scenes-r1/NOTICE.md)
+and
+[`demos/minhash-near-duplicate/data/original-short-stories-r1/NOTICE.md`](demos/minhash-near-duplicate/data/original-short-stories-r1/NOTICE.md)
 for the dataset-specific notice and license record.
 
 The Demo 3 NASA Systems Engineering Handbook is a U.S. Government work with NTRS rights

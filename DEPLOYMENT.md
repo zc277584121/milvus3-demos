@@ -1,17 +1,18 @@
 # Deployment Guide
 
-This repository ships three independent, self-contained Milvus 3.0 demos. Each demo is a single
+This repository ships four independent, self-contained Milvus 3.0 demos. Each demo is a single
 image that serves both its compiled front-end and its `/api/v1/` API from one port, so every demo
 is built, published, and run on its own — there is no shared package, portal, or gateway between
 them.
 
-| Demo                     | Backend port | Image name (local)                     | Notable runtime dependency                      |
-| ------------------------ | ------------ | -------------------------------------- | ----------------------------------------------- |
-| `function-chain-rerank`  | `48020`      | `milvus3-demos/function-chain-rerank`  | Milvus 3.0.0 + MinIO (XGBoost UBJ FileResource) |
-| `structarray-search`     | `48030`      | `milvus3-demos/structarray-search`     | Milvus 3.0.0 (BGE-M3 ONNX baked into image)     |
-| `embedding-list-max-sim` | `48040`      | `milvus3-demos/embedding-list-max-sim` | Milvus 3.0.0 (ColSmol baked into image)         |
+| Demo                       | Backend port | Image name (local)                       | Notable runtime dependency                      |
+| -------------------------- | ------------ | ---------------------------------------- | ----------------------------------------------- |
+| `function-chain-rerank`    | `48020`      | `milvus3-demos/function-chain-rerank`    | Milvus 3.0.0 + MinIO (XGBoost UBJ FileResource) |
+| `structarray-search`       | `48030`      | `milvus3-demos/structarray-search`       | Milvus 3.0.0 (BGE-M3 ONNX baked into image)     |
+| `embedding-list-max-sim`   | `48040`      | `milvus3-demos/embedding-list-max-sim`   | Milvus 3.0.0 (ColSmol baked into image)         |
+| `minhash-near-duplicate`   | `48050`      | `milvus3-demos/minhash-near-duplicate`   | Milvus 3.0.0 (MinHash Function + MINHASH_LSH)   |
 
-All three bind to loopback only. Demos 2 and 3 use `network_mode: host`; Demo 1 uses a bridge
+All four bind to loopback only. Demos 2, 3, and 4 use `network_mode: host`; Demo 1 uses a bridge
 network plus the external `milvus3-demos-ga` network.
 
 ## Prerequisites
@@ -53,6 +54,9 @@ docker build -f demos/structarray-search/Dockerfile -t milvus3-demos/structarray
 
 # Demo 3 — EmbeddingList MAX_SIM
 docker build -f demos/embedding-list-max-sim/Dockerfile -t milvus3-demos/embedding-list-max-sim:local .
+
+# Demo 4 — MinHash Near-Duplicate Detection
+docker build -f demos/minhash-near-duplicate/Dockerfile -t milvus3-demos/minhash-near-duplicate:local .
 ```
 
 Each build runs a Node stage (`npm ci` + `vite build`) and a Python stage (`uv sync --frozen
@@ -97,6 +101,18 @@ curl -fsS http://127.0.0.1:48040/healthz/live
 ```
 
 Open `http://127.0.0.1:48040/` for the UI.
+
+### Demo 4 — MinHash Near-Duplicate Detection
+
+Uses `network_mode: host`. Milvus generates MinHash signatures with the built-in
+`FunctionType.MINHASH` function, so no external model or embedding service is needed.
+
+```bash
+docker compose -f infra/minhash-near-duplicate/docker-compose.yml up -d --build
+curl -fsS http://127.0.0.1:48050/healthz/ready
+```
+
+Open `http://127.0.0.1:48050/` for the UI.
 
 ## Required environment variables
 

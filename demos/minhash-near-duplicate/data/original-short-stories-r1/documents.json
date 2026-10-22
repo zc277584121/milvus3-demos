@@ -1,0 +1,258 @@
+{
+  "dataset_id": "original-short-stories-r1",
+  "description": "Original fictional short texts and controlled variants for the MinHash near-duplicate detection demo. Every document is authored by the milvus3-demos project; none is derived from real articles, books, or user content.",
+  "documents": [
+    {
+      "id": "river-weekend-001.txt",
+      "title": "A Weekend by the River",
+      "cluster": "weekend-by-the-river",
+      "variant": "original",
+      "content": "On Saturday, we followed the river path to the red bridge. The morning market was already busy, so we bought bread and tea before continuing. Beyond the bridge, a narrow trail led to a quiet garden. We spent the afternoon there and returned to town before sunset."
+    },
+    {
+      "id": "river-weekend-002.txt",
+      "title": "A Weekend by the River",
+      "cluster": "weekend-by-the-river",
+      "variant": "exact-copy",
+      "content": "On Saturday, we followed the river path to the red bridge. The morning market was already busy, so we bought bread and tea before continuing. Beyond the bridge, a narrow trail led to a quiet garden. We spent the afternoon there and returned to town before sunset."
+    },
+    {
+      "id": "river-weekend-003.txt",
+      "title": "A Weekend by the River",
+      "cluster": "weekend-by-the-river",
+      "variant": "light-edits",
+      "content": "On Sunday, we followed the river path to the old bridge. The morning market was already busy, so we bought bread and coffee before continuing. Beyond the bridge, a narrow trail led to a quiet garden. We spent the afternoon there and returned to town before sunset."
+    },
+    {
+      "id": "river-weekend-004.txt",
+      "title": "A Weekend by the River",
+      "cluster": "weekend-by-the-river",
+      "variant": "paragraph-removed",
+      "content": "On Saturday, we followed the river path to the red bridge. The morning market was already busy, so we bought bread and tea before continuing. We spent the afternoon by the water and returned to town before sunset."
+    },
+    {
+      "id": "river-weekend-005.txt",
+      "title": "Riverside Mornings",
+      "cluster": "weekend-by-the-river",
+      "variant": "same-theme",
+      "content": "Most weekends we wake early and walk along the water until the cafes open. There is a small ferry landing where people feed the ducks, and a row of boathouses painted in fading colors. We always stop for a pastry and watch the rowers before the rain arrives."
+    },
+    {
+      "id": "night-market-001.txt",
+      "title": "The Night Market",
+      "cluster": "the-night-market",
+      "variant": "original",
+      "content": "The night market opened under strings of yellow lanterns. Stalls sold grilled skewers, sweet rice, and folded paper lanterns. A crowd gathered around a drummer while children ran between the tables. By midnight the alleys smelled of smoke, sugar, and warm rain."
+    },
+    {
+      "id": "night-market-002.txt",
+      "title": "The Night Market",
+      "cluster": "the-night-market",
+      "variant": "exact-copy",
+      "content": "The night market opened under strings of yellow lanterns. Stalls sold grilled skewers, sweet rice, and folded paper lanterns. A crowd gathered around a drummer while children ran between the tables. By midnight the alleys smelled of smoke, sugar, and warm rain."
+    },
+    {
+      "id": "night-market-003.txt",
+      "title": "The Night Market",
+      "cluster": "the-night-market",
+      "variant": "light-edits",
+      "content": "The night market opened under rows of red lanterns. Stalls sold grilled skewers, sweet rice, and folded paper lanterns. A crowd gathered around a drummer while children ran between the tables. By midnight the alleys smelled of smoke, honey, and warm rain."
+    },
+    {
+      "id": "night-market-004.txt",
+      "title": "The Night Market",
+      "cluster": "the-night-market",
+      "variant": "paragraph-added",
+      "content": "The night market opened under strings of yellow lanterns. Stalls sold grilled skewers, sweet rice, and folded paper lanterns. A crowd gathered around a drummer while children ran between the tables. A fortune teller sat at the far corner with a cage of singing birds and a deck of worn cards. By midnight the alleys smelled of smoke, sugar, and warm rain."
+    },
+    {
+      "id": "night-market-005.txt",
+      "title": "A Market After Dark",
+      "cluster": "the-night-market",
+      "variant": "same-theme",
+      "content": "After the shops closed, the square turned into a market of lamps and steam. Vendors called out prices while couples wandered from stall to stall with bowls of noodles. Music from a single speaker drifted over the roofs, and the last train home left just after two."
+    },
+    {
+      "id": "library-stairs-001.txt",
+      "title": "The Library's Hidden Staircase",
+      "cluster": "hidden-staircase",
+      "variant": "original",
+      "content": "Behind the reference desk of the old library was a narrow door that most visitors never noticed. It opened onto a spiral staircase leading to a locked reading room. The librarian kept the key on a green ribbon and let no one in after dusk. I finally climbed it one winter afternoon and found a room full of maps."
+    },
+    {
+      "id": "library-stairs-002.txt",
+      "title": "The Library's Hidden Staircase",
+      "cluster": "hidden-staircase",
+      "variant": "exact-copy",
+      "content": "Behind the reference desk of the old library was a narrow door that most visitors never noticed. It opened onto a spiral staircase leading to a locked reading room. The librarian kept the key on a green ribbon and let no one in after dusk. I finally climbed it one winter afternoon and found a room full of maps."
+    },
+    {
+      "id": "library-stairs-003.txt",
+      "title": "The Library's Hidden Staircase",
+      "cluster": "hidden-staircase",
+      "variant": "light-edits",
+      "content": "Behind the reference desk of the old library was a narrow door that most visitors never noticed. It opened onto a spiral staircase leading to a locked reading room. The librarian kept the key on a blue ribbon and let no one in after dusk. I finally climbed it one winter morning and found a room full of maps."
+    },
+    {
+      "id": "library-stairs-004.txt",
+      "title": "The Library's Hidden Staircase",
+      "cluster": "hidden-staircase",
+      "variant": "paragraph-removed",
+      "content": "Behind the reference desk of the old library was a narrow door that most visitors never noticed. It opened onto a spiral staircase leading to a locked reading room. I finally climbed it one winter afternoon and found a room full of maps."
+    },
+    {
+      "id": "library-stairs-005.txt",
+      "title": "The Archive Room",
+      "cluster": "hidden-staircase",
+      "variant": "same-theme",
+      "content": "The municipal archive keeps its oldest records in a basement that floods every spring. A caretaker showed me the racks of leather volumes and the iron ladders that slide along them. He said the best maps were stored upstairs behind a door nobody remembers to lock."
+    },
+    {
+      "id": "midnight-baker-001.txt",
+      "title": "The Midnight Baker",
+      "cluster": "midnight-baker",
+      "variant": "original",
+      "content": "Every night the baker lit the ovens at half past eleven. By two in the morning the first loaves were cooling on the racks. The whole street woke to the smell of butter and anise. Regulars knew to knock on the back door for a warm roll before the bakery officially opened."
+    },
+    {
+      "id": "midnight-baker-002.txt",
+      "title": "The Midnight Baker",
+      "cluster": "midnight-baker",
+      "variant": "exact-copy",
+      "content": "Every night the baker lit the ovens at half past eleven. By two in the morning the first loaves were cooling on the racks. The whole street woke to the smell of butter and anise. Regulars knew to knock on the back door for a warm roll before the bakery officially opened."
+    },
+    {
+      "id": "midnight-baker-003.txt",
+      "title": "The Midnight Baker",
+      "cluster": "midnight-baker",
+      "variant": "light-edits",
+      "content": "Every night the baker lit the ovens at half past eleven. By two in the morning the first loaves were cooling on the racks. The whole street woke to the smell of butter and honey. Regulars knew to knock on the side door for a warm roll before the bakery officially opened."
+    },
+    {
+      "id": "midnight-baker-004.txt",
+      "title": "The Midnight Baker",
+      "cluster": "midnight-baker",
+      "variant": "paragraph-added",
+      "content": "Every night the baker lit the ovens at half past eleven. By two in the morning the first loaves were cooling on the racks. The whole street woke to the smell of butter and anise. He kept a ledger of every regular and their usual order, written in a careful hand. Regulars knew to knock on the back door for a warm roll before the bakery officially opened."
+    },
+    {
+      "id": "midnight-baker-005.txt",
+      "title": "The Early Shift at the Flour Mill",
+      "cluster": "midnight-baker",
+      "variant": "same-theme",
+      "content": "The flour mill runs its loudest machines between midnight and dawn, when the city is quiet. Workers in white coats feed grain into the hoppers and check the sieves. A small bakery across the road buys sacks directly from the mill and opens as the shift ends."
+    },
+    {
+      "id": "train-hills-001.txt",
+      "title": "A Train Through the Hills",
+      "cluster": "train-hills",
+      "variant": "original",
+      "content": "The morning train climbed through green hills toward the pass. Sheep scattered from the tracks as the whistle sounded. Passengers pressed their faces to the windows to watch the valley open below. At the summit the train stopped for water beside a tiny station with no sign."
+    },
+    {
+      "id": "train-hills-002.txt",
+      "title": "A Train Through the Hills",
+      "cluster": "train-hills",
+      "variant": "exact-copy",
+      "content": "The morning train climbed through green hills toward the pass. Sheep scattered from the tracks as the whistle sounded. Passengers pressed their faces to the windows to watch the valley open below. At the summit the train stopped for water beside a tiny station with no sign."
+    },
+    {
+      "id": "train-hills-003.txt",
+      "title": "A Train Through the Hills",
+      "cluster": "train-hills",
+      "variant": "light-edits",
+      "content": "The morning train climbed through green hills toward the pass. Sheep scattered from the tracks as the horn sounded. Passengers pressed their faces to the windows to watch the valley open below. At the summit the train stopped for water beside a tiny station with no sign."
+    },
+    {
+      "id": "train-hills-004.txt",
+      "title": "A Train Through the Hills",
+      "cluster": "train-hills",
+      "variant": "paragraph-removed",
+      "content": "The morning train climbed through green hills toward the pass. Sheep scattered from the tracks as the whistle sounded. At the summit the train stopped for water beside a tiny station with no sign."
+    },
+    {
+      "id": "train-hills-005.txt",
+      "title": "Mountain Crossing",
+      "cluster": "train-hills",
+      "variant": "same-theme",
+      "content": "The old mountain railway winds through tunnels and over wooden bridges that creak under the weight of the cars. In winter the line closes above the tree line and only the freight trains run. Photographers wait all day at the hairpin bend for a glimpse of the red locomotive."
+    },
+    {
+      "id": "lighthouse-log-001.txt",
+      "title": "The Lighthouse Keeper's Log",
+      "cluster": "lighthouse-log",
+      "variant": "original",
+      "content": "The keeper wrote in the log at sunrise and sunset, noting the wind, the tide, and any vessel that passed. Fog closed the coast for three days in October and the horn sounded without rest. On the fourth morning the sea was flat and a white boat lay at anchor."
+    },
+    {
+      "id": "lighthouse-log-002.txt",
+      "title": "The Lighthouse Keeper's Log",
+      "cluster": "lighthouse-log",
+      "variant": "exact-copy",
+      "content": "The keeper wrote in the log at sunrise and sunset, noting the wind, the tide, and any vessel that passed. Fog closed the coast for three days in October and the horn sounded without rest. On the fourth morning the sea was flat and a white boat lay at anchor."
+    },
+    {
+      "id": "lighthouse-log-003.txt",
+      "title": "The Lighthouse Keeper's Log",
+      "cluster": "lighthouse-log",
+      "variant": "light-edits",
+      "content": "The keeper wrote in the log at sunrise and sunset, noting the wind, the tide, and any vessel that passed. Fog closed the coast for three days in November and the horn sounded without rest. On the fourth morning the sea was flat and a white boat lay at anchor."
+    },
+    {
+      "id": "lighthouse-log-004.txt",
+      "title": "The Lighthouse Keeper's Log",
+      "cluster": "lighthouse-log",
+      "variant": "paragraph-added",
+      "content": "The keeper wrote in the log at sunrise and sunset, noting the wind, the tide, and any vessel that passed. A young gull nested in the lantern room and had to be carried down to the rocks twice. Fog closed the coast for three days in October and the horn sounded without rest. On the fourth morning the sea was flat and a white boat lay at anchor."
+    },
+    {
+      "id": "winter-garden-001.txt",
+      "title": "The Winter Garden",
+      "cluster": "winter-garden",
+      "variant": "original",
+      "content": "Under the glass roof the winter garden stayed warm even in January. Ferns and orange trees grew in heavy pots along the stone path. Visitors left their coats at the door and wandered among the benches. A fountain in the center kept a thin plume of steam above the water."
+    },
+    {
+      "id": "winter-garden-002.txt",
+      "title": "The Winter Garden",
+      "cluster": "winter-garden",
+      "variant": "exact-copy",
+      "content": "Under the glass roof the winter garden stayed warm even in January. Ferns and orange trees grew in heavy pots along the stone path. Visitors left their coats at the door and wandered among the benches. A fountain in the center kept a thin plume of steam above the water."
+    },
+    {
+      "id": "winter-garden-003.txt",
+      "title": "The Winter Garden",
+      "cluster": "winter-garden",
+      "variant": "light-edits",
+      "content": "Under the glass roof the winter garden stayed warm even in February. Ferns and lemon trees grew in heavy pots along the stone path. Visitors left their coats at the door and wandered among the benches. A fountain in the center kept a thin plume of steam above the water."
+    },
+    {
+      "id": "winter-garden-004.txt",
+      "title": "The Winter Garden",
+      "cluster": "winter-garden",
+      "variant": "same-theme",
+      "content": "The botanical conservatory opens early so that office workers can eat lunch among the palms. Tropical birds live in the upper branches and are fed at noon. On cold days the glass fogs over and the gardeners wipe paths through the mist so the orchids stay visible."
+    },
+    {
+      "id": "city-walk-073.txt",
+      "title": "An Evening Walk Through the City Center",
+      "cluster": "unrelated",
+      "variant": "unrelated",
+      "content": "An evening walk through the city center passed the shuttered bank, the tram stop, and a kiosk selling magazines. Neon signs reflected in puddles left by an earlier shower. I turned north at the square and walked home past the closed theater."
+    },
+    {
+      "id": "paper-planes-041.txt",
+      "title": "A Short History of Paper Airplanes",
+      "cluster": "unrelated",
+      "variant": "unrelated",
+      "content": "Folded paper gliders have been made for as long as paper has been cheap enough to fold. Different folds trade stability for distance, and a small weight at the nose helps a dart fly straight. Competitions measure how long a plane stays in the air."
+    },
+    {
+      "id": "herb-garden-018.txt",
+      "title": "Notes on Keeping a Small Balcony Herb Garden",
+      "cluster": "unrelated",
+      "variant": "unrelated",
+      "content": "A balcony herb garden needs sun, drainage, and a little shade in the afternoon. Basil and mint grow quickly in pots, while rosemary prefers dry soil. Water in the morning, pinch the flowers to keep the leaves tender, and bring the pots inside before the first frost."
+    }
+  ]
+}
