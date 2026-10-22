@@ -1,11 +1,21 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   MinHashDemoPage,
   runMinHashSearch,
   type SearchResponse,
 } from "./index";
+
+afterEach(() => {
+  cleanup();
+});
 
 describe("runMinHashSearch", () => {
   it("posts the query, threshold, and limit and parses the response", async () => {
@@ -161,6 +171,68 @@ describe("MinHashDemoPage", () => {
     expect(
       screen.getByText("Find copied and lightly edited documents."),
     ).toBeTruthy();
+
+    fetchMock.mockRestore();
+  });
+
+  it("reveals the MinHash code panel on hover", async () => {
+    const statusPayload = {
+      status: "not_prepared",
+      implementation_status: "implemented",
+      execution_path: "milvus_minhash_lsh_near_duplicate",
+      capability: "MinHash Function + MINHASH_LSH",
+      collection_name: "milvus3_demos_minhash_near_duplicate",
+      index_name: "milvus3_demos_minhash_signature",
+      text_field: "content",
+      signature_field: "minhash_signature",
+      metric_type: "MHJACCARD",
+      dataset: {
+        dataset_id: "original-short-stories-r1",
+        dataset_version: 1,
+        document_count: 36,
+        documents_sha256: "d",
+        presets_sha256: "p",
+      },
+      query_presets: [
+        {
+          id: "river-weekend",
+          label: "A weekend by the river",
+          title: "A Weekend by the River",
+          text: "On Sunday, we followed the river path to the old bridge.",
+          description: "A lightly edited copy.",
+        },
+      ],
+      milvus: {
+        milvus_uri: "http://127.0.0.1:49530",
+        server_version: "3.0.0",
+        expected_server_version: "3.0.0",
+        target_collection: "milvus3_demos_minhash_near_duplicate",
+        target_exists: false,
+      },
+      last_prepare: null,
+    };
+
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(statusPayload), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    render(<MinHashDemoPage />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("How MinHash finds near-duplicates"),
+      ).toBeTruthy();
+    });
+
+    const minhashStage = screen.getByText("MinHash");
+    fireEvent.mouseEnter(minhashStage.closest(".pipeline-stage")!);
+
+    await waitFor(() => {
+      expect(screen.getByText(/BINARY_VECTOR/)).toBeTruthy();
+    });
 
     fetchMock.mockRestore();
   });
