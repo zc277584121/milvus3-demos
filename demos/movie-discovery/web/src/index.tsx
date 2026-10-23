@@ -43,6 +43,7 @@ interface Status {
   facets: FacetInfo[];
   query_presets: QueryPreset[];
   poster_placeholders: boolean;
+  poster_count: number;
 }
 
 interface MovieResult {
@@ -166,15 +167,25 @@ function MilvusWordmark() {
 
 function Poster({ movie }: { movie: MovieResult }) {
   const [c1, c2, c3] = movie.poster_palette;
+  const [failed, setFailed] = useState(false);
   return (
     <div
       className="poster"
       style={{ background: `linear-gradient(160deg, ${c1}, ${c2}, ${c3})` }}
       role="img"
-      aria-label={`${movie.title} poster placeholder`}
+      aria-label={`${movie.title} poster`}
     >
-      <span className="poster-initial">{movie.title.charAt(0)}</span>
-      <span className="poster-note">Poster coming soon</span>
+      {!failed ? (
+        <img
+          className="poster-image"
+          src={`${API_BASE}/poster/${movie.movie_id}`}
+          alt={`${movie.title} poster`}
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
+      ) : null}
+      {failed ? <span className="poster-initial">{movie.title.charAt(0)}</span> : null}
+      {failed ? <span className="poster-note">Poster coming soon</span> : null}
     </div>
   );
 }
@@ -508,7 +519,10 @@ export function MovieDiscoveryPage() {
               }. Statistics cover retained candidates only.`
             : "Statistics cover retained candidates only."}
         </span>
-        <span className="footer-faint">Fictional films · Original artwork · Concept data</span>
+        <span className="footer-faint">
+          Fictional films · AI-generated synthetic posters · Concept data
+          {status ? ` · ${status.poster_count}/${status.movie_count} posters` : ""}
+        </span>
       </footer>
     </main>
   );

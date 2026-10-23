@@ -67,6 +67,7 @@ const statusPayload = {
     },
   ],
   poster_placeholders: true,
+  poster_count: 6,
 };
 
 const groupedPayload = {

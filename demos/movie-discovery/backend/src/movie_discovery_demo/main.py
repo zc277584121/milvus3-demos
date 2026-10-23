@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Response, status
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from movie_discovery_demo.api_models import (
@@ -137,6 +139,15 @@ def create_app(*, service: MovieDiscoveryService | None = None) -> FastAPI:
             return CleanupResponse.model_validate(resolved.cleanup())
         except CONTRACT_ERRORS as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    @application.get("/api/v1/poster/{movie_id}", response_class=FileResponse)
+    def poster(movie_id: str) -> FileResponse:
+        if not re.fullmatch(r"m\d{4}", movie_id):
+            raise HTTPException(status_code=404, detail="Poster not found")
+        path = resolved.config.data_root / "posters" / f"{movie_id}.jpg"
+        if not path.is_file():
+            raise HTTPException(status_code=404, detail="Poster not found")
+        return FileResponse(path, media_type="image/jpeg", filename=path.name)
 
     static_dir = os.environ.get("STATIC_DIR")
     if static_dir and Path(static_dir).is_dir():

@@ -1,5 +1,5 @@
 {
-  "as_of_date": "2026-10-22",
+  "as_of_date": "2026-10-23",
   "dataset_id": "movie-catalog-r1",
   "version": 1,
   "counts": {
@@ -8,7 +8,8 @@
     "decades": 5,
     "regions": 10,
     "queries": 5,
-    "poster_placeholders": 90,
+    "posters": 6,
+    "poster_placeholders": 84,
     "genre_counts": {
       "Adventure": 15,
       "Animation": 15,
@@ -51,8 +52,8 @@
     "movies": "synthetic_authored_metadata",
     "synopsis": "synthetic_authored_metadata",
     "title": "synthetic_authored_metadata",
-    "poster_path": "synthetic_generated_poster_placeholder",
-    "poster_palette": "synthetic_generated_poster_placeholder",
+    "poster_path": "synthetic_ai_generated_poster",
+    "poster_palette": "synthetic_authored_metadata",
     "release_year": "synthetic_authored_metadata",
     "decade": "derived_from_synthetic_authored_metadata",
     "region": "synthetic_authored_metadata",
@@ -64,6 +65,12 @@
     {"path": "manifest.json", "media_type": "application/json"},
     {"path": "NOTICE.md", "media_type": "text/markdown"},
     {"path": "LICENSE-CONFLICT.md", "media_type": "text/markdown"},
-    {"path": "licenses/LICENSE.txt", "media_type": "text/plain"}
+    {"path": "licenses/LICENSE.txt", "media_type": "text/plain"},
+    {"path": "posters/m0001.jpg", "media_type": "image/jpeg"},
+    {"path": "posters/m0016.jpg", "media_type": "image/jpeg"},
+    {"path": "posters/m0031.jpg", "media_type": "image/jpeg"},
+    {"path": "posters/m0046.jpg", "media_type": "image/jpeg"},
+    {"path": "posters/m0061.jpg", "media_type": "image/jpeg"},
+    {"path": "posters/m0076.jpg", "media_type": "image/jpeg"}
   ]
 }

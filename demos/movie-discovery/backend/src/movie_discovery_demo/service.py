@@ -134,6 +134,10 @@ class MovieDiscoveryService:
     def status(self) -> dict[str, object]:
         repository_status = self.repository.status()
         dataset = self._dataset()
+        posters_dir = self.config.data_root / "posters"
+        poster_count = (
+            len(list(posters_dir.glob("m*.jpg"))) if posters_dir.is_dir() else 0
+        )
         return {
             "status": "ready" if repository_status.get("collection_exists") else "not_prepared",
             "movie_count": dataset.movie_count,
@@ -155,7 +159,8 @@ class MovieDiscoveryService:
                 for facet, field in FACET_FIELDS.items()
             ],
             "query_presets": [preset.public_dict() for preset in dataset.presets],
-            "poster_placeholders": True,
+            "poster_placeholders": poster_count < dataset.movie_count,
+            "poster_count": poster_count,
         }
 
     def prepare(self) -> dict[str, object]:

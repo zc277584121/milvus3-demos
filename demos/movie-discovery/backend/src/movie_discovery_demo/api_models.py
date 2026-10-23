@@ -81,6 +81,7 @@ class StatusResponse(StrictModel):
     facets: list[FacetModel]
     query_presets: list[QueryPresetModel]
     poster_placeholders: bool
+    poster_count: int
 
 
 class EmbeddingModel(StrictModel):

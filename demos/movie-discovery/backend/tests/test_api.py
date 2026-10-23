@@ -91,6 +91,7 @@ class FakeService(MovieDiscoveryService):
                 }
             ],
             "poster_placeholders": True,
+            "poster_count": 6,
         }
 
 
