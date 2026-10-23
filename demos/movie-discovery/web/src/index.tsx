@@ -178,9 +178,10 @@ function Poster({ movie }: { movie: MovieResult }) {
       {!failed ? (
         <img
           className="poster-image"
-          src={`${API_BASE}/poster/${movie.movie_id}`}
+          src={`${API_BASE}/poster/${movie.movie_id}/thumb`}
           alt={`${movie.title} poster`}
           loading="lazy"
+          decoding="async"
           onError={() => setFailed(true)}
         />
       ) : null}

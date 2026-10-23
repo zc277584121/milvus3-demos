@@ -140,14 +140,29 @@ def create_app(*, service: MovieDiscoveryService | None = None) -> FastAPI:
         except CONTRACT_ERRORS as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
 
+    def _poster_response(path: Path, filename: str) -> FileResponse:
+        if not path.is_file():
+            raise HTTPException(status_code=404, detail="Poster not found")
+        return FileResponse(
+            path,
+            media_type="image/jpeg",
+            filename=filename,
+            headers={"Cache-Control": "public, max-age=86400, immutable"},
+        )
+
     @application.get("/api/v1/poster/{movie_id}", response_class=FileResponse)
     def poster(movie_id: str) -> FileResponse:
         if not re.fullmatch(r"m\d{4}", movie_id):
             raise HTTPException(status_code=404, detail="Poster not found")
         path = resolved.config.data_root / "posters" / f"{movie_id}.jpg"
-        if not path.is_file():
+        return _poster_response(path, path.name)
+
+    @application.get("/api/v1/poster/{movie_id}/thumb", response_class=FileResponse)
+    def poster_thumb(movie_id: str) -> FileResponse:
+        if not re.fullmatch(r"m\d{4}", movie_id):
             raise HTTPException(status_code=404, detail="Poster not found")
-        return FileResponse(path, media_type="image/jpeg", filename=path.name)
+        path = resolved.config.data_root / "posters" / "thumbs" / f"{movie_id}.jpg"
+        return _poster_response(path, path.name)
 
     static_dir = os.environ.get("STATIC_DIR")
     if static_dir and Path(static_dir).is_dir():
