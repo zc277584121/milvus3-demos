@@ -8,8 +8,8 @@
     "decades": 5,
     "regions": 10,
     "queries": 5,
-    "posters": 6,
-    "poster_placeholders": 84,
+    "posters": 90,
+    "poster_placeholders": 0,
     "genre_counts": {
       "Adventure": 15,
       "Animation": 15,
@@ -60,17 +60,389 @@
     "runtime_minutes": "synthetic_authored_metadata"
   },
   "files": [
-    {"path": "movies.json", "media_type": "application/json"},
-    {"path": "presets.json", "media_type": "application/json"},
-    {"path": "manifest.json", "media_type": "application/json"},
-    {"path": "NOTICE.md", "media_type": "text/markdown"},
-    {"path": "LICENSE-CONFLICT.md", "media_type": "text/markdown"},
-    {"path": "licenses/LICENSE.txt", "media_type": "text/plain"},
-    {"path": "posters/m0001.jpg", "media_type": "image/jpeg"},
-    {"path": "posters/m0016.jpg", "media_type": "image/jpeg"},
-    {"path": "posters/m0031.jpg", "media_type": "image/jpeg"},
-    {"path": "posters/m0046.jpg", "media_type": "image/jpeg"},
-    {"path": "posters/m0061.jpg", "media_type": "image/jpeg"},
-    {"path": "posters/m0076.jpg", "media_type": "image/jpeg"}
+    {
+      "path": "movies.json",
+      "media_type": "application/json"
+    },
+    {
+      "path": "presets.json",
+      "media_type": "application/json"
+    },
+    {
+      "path": "manifest.json",
+      "media_type": "application/json"
+    },
+    {
+      "path": "NOTICE.md",
+      "media_type": "text/markdown"
+    },
+    {
+      "path": "LICENSE-CONFLICT.md",
+      "media_type": "text/markdown"
+    },
+    {
+      "path": "licenses/LICENSE.txt",
+      "media_type": "text/plain"
+    },
+    {
+      "path": "posters/m0001.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0002.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0003.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0004.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0005.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0006.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0007.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0008.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0009.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0010.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0011.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0012.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0013.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0014.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0015.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0016.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0017.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0018.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0019.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0020.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0021.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0022.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0023.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0024.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0025.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0026.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0027.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0028.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0029.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0030.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0031.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0032.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0033.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0034.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0035.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0036.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0037.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0038.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0039.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0040.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0041.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0042.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0043.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0044.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0045.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0046.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0047.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0048.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0049.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0050.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0051.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0052.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0053.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0054.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0055.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0056.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0057.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0058.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0059.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0060.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0061.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0062.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0063.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0064.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0065.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0066.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0067.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0068.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0069.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0070.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0071.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0072.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0073.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0074.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0075.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0076.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0077.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0078.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0079.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0080.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0081.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0082.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0083.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0084.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0085.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0086.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0087.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0088.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0089.jpg",
+      "media_type": "image/jpeg"
+    },
+    {
+      "path": "posters/m0090.jpg",
+      "media_type": "image/jpeg"
+    }
   ]
 }
