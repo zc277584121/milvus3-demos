@@ -35,19 +35,19 @@ COPY demos/movie-discovery/backend/pyproject.toml \
 
 WORKDIR /workspace/demos/movie-discovery/backend
 COPY demos/movie-discovery/backend/src src
-COPY demos/movie-discovery/data ../data
 RUN uv sync --frozen --no-dev
 
 # Bake the pinned BGE-M3 ONNX snapshot into the image so no external model
-# mount is required at runtime. Kept BEFORE the frontend dist COPY so
-# frontend-only changes reuse this cached layer instead of re-downloading the
-# model.
+# mount is required at runtime. Kept BEFORE the data and frontend dist COPYs so
+# catalog/poster-only or frontend-only changes reuse this cached layer instead
+# of re-downloading the model.
 ENV HF_HOME=/models
 RUN .venv/bin/hf download gpahal/bge-m3-onnx-int8 \
         --revision 2b34e84df040034d4b9eabb62383a87c18955822 \
     && rm -rf /models/hub/.cache \
     && chmod -R a+rX /models
 
+COPY demos/movie-discovery/data ../data
 COPY --from=web /workspace/web/dist ../web/dist
 
 ENV PATH="/workspace/demos/movie-discovery/backend/.venv/bin:$PATH" \
