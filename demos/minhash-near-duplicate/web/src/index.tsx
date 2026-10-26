@@ -146,263 +146,103 @@ function scoreLabel(similarity: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// Under-the-hood pipeline
+// How MinHash estimates Jaccard similarity
 //
-// A single SVG strip that walks the MinHash + LSH data path from the incoming
-// text to the ranked candidates. The "real" anchors are: the word-level
-// shingle size (shingle_size=1), the schema/index parameters (dim 8192,
-// MHJACCARD, MINHASH_LSH), and — most importantly — the estimated Jaccard
-// value Milvus actually returned (MHJACCARD's distance field). The signature
-// slots and band hits are illustrative: Milvus computes them server-side and
-// the demo never fabricates a signature that purports to match it.
+// MinHash turns "do these two documents overlap?" into a coin-flip: apply the
+// SAME random ordering to both documents' words and take the first word that
+// appears in each. The two "first words" are equal exactly when the first word
+// of the ordering belongs to BOTH sets, so the collision probability equals
+// the true Jaccard similarity. Run many orderings and the collision rate
+// converges to Jaccard.
+//
+// This explainer uses the REAL words of the incoming text and the selected
+// candidate, a real random ordering (Fisher–Yates with a seeded PRNG), and a
+// real count of collisions. The only "not Milvus" part is the hash/ordering:
+// Milvus uses xxhash over the same idea, so its estimated Jaccard lands on the
+// same value. That Milvus value is shown verbatim as the anchor.
 // ---------------------------------------------------------------------------
 
-type PipelineStep = "shingle" | "minhash" | "band" | "score";
+const TRIAL_TARGET = 256;
+const TRIAL_INTERVAL_MS = 24;
 
-interface PipelineNode {
-  id: PipelineStep;
-  index: number;
-  title: string;
-  caption: string;
-  real: boolean;
-}
-
-const PIPELINE_NODES: PipelineNode[] = [
-  {
-    id: "shingle",
-    index: 0,
-    title: "Shingle",
-    caption: "word-level · size 1",
-    real: true,
-  },
-  {
-    id: "minhash",
-    index: 1,
-    title: "MinHash",
-    caption: "256 hashes · 32-bit",
-    real: true,
-  },
-  {
-    id: "band",
-    index: 2,
-    title: "LSH bands",
-    caption: "64 bands × 4 hashes",
-    real: true,
-  },
-  {
-    id: "score",
-    index: 3,
-    title: "Jaccard",
-    caption: "MHJACCARD · refined",
-    real: true,
-  },
-];
-
-// A deterministic, tiny hash (FNV-1a over UTF-16 code units) used ONLY to
-// drive the illustrative slot pattern. It shares the spirit of Milvus's
-// hashing — one hash function seeded differently per slot — but is not
-// Milvus's xxhash and never claims to reproduce the real signature.
-function fnv1a(seed: number, text: string): number {
-  let hash = 0x811c9dc5 ^ seed;
-  for (let i = 0; i < text.length; i += 1) {
-    hash ^= text.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
+function shingles(text: string): string[] {
+  // Word-level, punctuation-stripped, lowercased — mirrors the standard
+  // analyzer's tokenization closely enough to make the overlap count honest.
+  const normalized = text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  if (!normalized) {
+    return [];
   }
-  return hash >>> 0;
-}
-
-// Which illustrative signature slots are "set" for a given text. Returns the
-// set of slot indices (0..SLOT_COUNT-1) whose seeded hash lands in the lowest
-// band, so two near-identical texts share most — but not all — slots.
-function illustrativeSlots(
-  text: string,
-  slotCount: number,
-  seedBase = 0,
-): Set<number> {
-  const slots = new Set<number>();
-  const words = text.toLowerCase().split(/\s+/).filter(Boolean);
-  for (let slot = 0; slot < slotCount; slot += 1) {
-    // MinHash keeps the smallest hash over all shingles; we approximate the
-    // "smallest" by comparing a seeded hash per word and keeping the min.
-    let min = 0xffffffff;
-    for (const word of words) {
-      const value = fnv1a(seedBase + slot * 31 + 7, word);
-      if (value < min) {
-        min = value;
-      }
-    }
-    if (min % 3 !== 0) {
-      slots.add(slot);
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const word of normalized.split(/\s+/)) {
+    if (!seen.has(word)) {
+      seen.add(word);
+      result.push(word);
     }
   }
-  return slots;
+  return result;
 }
 
-const SLOT_COUNT = 32;
-const BAND_COUNT = 8;
-
-function wordsOf(text: string): string[] {
-  return text.split(/\s+/).filter(Boolean);
+// Mulberry32: a tiny seeded PRNG so the ordering is reproducible within a
+// session but still a real random permutation of the vocabulary.
+function mulberry32(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
-const PIPELINE_CODE: Record<PipelineStep, string> = {
-  shingle: `# Word-level shingles: each token is its own shingle.
-# Milvus tokenizes with the default 'standard' analyzer, so a
-# light two-word edit keeps most shingles intact.
-from pymilvus import Function, FunctionType
-
-function = Function(
-    name="minhash_signature",
-    function_type=FunctionType.MINHASH,
-    input_field_names=["content"],
-    output_field_names=["minhash_signature"],
-    params={
-        "num_hashes": 256,       # signature dim = 32 * 256
-        "shingle_size": 1,       # one word per shingle
-        "token_level": "word",
-        "hash_function": "xxhash",
-    },
-)`,
-  minhash: `# Each shingle is hashed by 256 seeded functions; the smallest
-# value per function becomes one 32-bit slot of the signature.
-# 256 slots × 32 bits = 8192 bits = the BINARY_VECTOR dimension.
-signature_field: minhash_signature
-    dtype: BINARY_VECTOR
-    dim: 8192                   # 32 * num_hashes
-`,
-  band: `# The signature is split into 64 bands of 4 hashes each.
-# Two documents are a candidate pair when any band matches
-# exactly; identical text matches every band.
-index = client.prepare_index_params()
-index.add_index(
-    field_name="minhash_signature",
-    index_type="MINHASH_LSH",
-    metric_type="MHJACCARD",
-    params={
-        "mh_element_bit_width": 32,
-        "with_raw_data": True,   # keep raw signatures for refinement
-    },
-)`,
-  score: `# Milvus ranks candidates by estimated Jaccard similarity.
-# MHJACCARD returns the estimate DIRECTLY in the distance field
-# (larger = more similar), so the app reports it verbatim.
-hits = client.search(
-    collection_name="milvus3_demos_minhash_near_duplicate",
-    data=[query_text],
-    anns_field="minhash_signature",
-    search_params={
-        "metric_type": "MHJACCARD",
-        "params": {
-            "mh_search_with_jaccard": True,
-            "refine_k": 10,       # Jaccard refinement over raw signatures
-        },
-    },
-    limit=10,
-)
-# hits[0][i]["distance"] -> estimated Jaccard similarity`,
-};
-
-function PipelineStage({
-  node,
-  active,
-  onHover,
-  hasResult,
-}: {
-  node: PipelineNode;
-  active: boolean;
-  onHover: (step: PipelineStep | null) => void;
-  hasResult: boolean;
-}) {
-  return (
-    <div
-      className={`pipeline-stage${active ? " is-active" : ""}`}
-      onMouseEnter={() => onHover(node.id)}
-      onMouseLeave={() => onHover(null)}
-      data-step={node.id}
-    >
-      <span className="pipeline-index">{node.index + 1}</span>
-      <div className="pipeline-stage-body">
-        <span className="pipeline-title">{node.title}</span>
-        <span className="pipeline-caption">{node.caption}</span>
-      </div>
-      {node.real && <span className="pipeline-real">real</span>}
-      {node.id === "score" && hasResult && (
-        <span className="pipeline-live-dot" aria-hidden="true" />
-      )}
-    </div>
-  );
+function shuffle<T>(items: readonly T[], rand: () => number): T[] {
+  const copy = items.slice();
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
 }
 
-function SignatureStrip({
-  slots,
-  active,
-  label,
-}: {
-  slots: Set<number>;
-  active: boolean;
-  label: string;
-}) {
-  return (
-    <div className={`signature-strip${active ? " is-active" : ""}`}>
-      <span className="signature-label">{label}</span>
-      <div className="signature-slots" aria-hidden="true">
-        {Array.from({ length: SLOT_COUNT }, (_, index) => (
-          <span
-            key={index}
-            className={`signature-slot${slots.has(index) ? " set" : ""}`}
-          />
-        ))}
-      </div>
-    </div>
-  );
+interface MinHashTrial {
+  // The shuffled vocabulary shown in the current trial (a short prefix).
+  ordering: string[];
+  // First word of the ordering that belongs to the query / candidate set.
+  queryPick: string | null;
+  candidatePick: string | null;
+  collision: boolean;
 }
 
-function BandStrip({
-  querySlots,
-  candidateSlots,
-  active,
-}: {
-  querySlots: Set<number>;
-  candidateSlots: Set<number>;
-  active: boolean;
-}) {
-  return (
-    <div className={`band-strip${active ? " is-active" : ""}`}>
-      {Array.from({ length: BAND_COUNT }, (_, band) => {
-        const start = band * 4;
-        let match = true;
-        for (let offset = 0; offset < 4; offset += 1) {
-          const slot = start + offset;
-          if (querySlots.has(slot) !== candidateSlots.has(slot)) {
-            match = false;
-            break;
-          }
-        }
-        return (
-          <div
-            key={band}
-            className={`band${match ? " hit" : ""}`}
-            aria-hidden="true"
-          >
-            <span className="band-label">b{band + 1}</span>
-            <div className="band-rows">
-              {Array.from({ length: 4 }, (_, offset) => {
-                const slot = start + offset;
-                const q = querySlots.has(slot);
-                const c = candidateSlots.has(slot);
-                return (
-                  <span
-                    key={offset}
-                    className={`band-cell${q && c ? " both" : q || c ? " one" : ""}`}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
+function runTrial(
+  querySet: Set<string>,
+  candidateSet: Set<string>,
+  vocabulary: readonly string[],
+  rand: () => number,
+): MinHashTrial {
+  const ordering = shuffle(vocabulary, rand);
+  let queryPick: string | null = null;
+  let candidatePick: string | null = null;
+  for (const word of ordering) {
+    if (queryPick === null && querySet.has(word)) {
+      queryPick = word;
+    }
+    if (candidatePick === null && candidateSet.has(word)) {
+      candidatePick = word;
+    }
+    if (queryPick !== null && candidatePick !== null) {
+      break;
+    }
+  }
+  return {
+    ordering,
+    queryPick,
+    candidatePick,
+    collision: queryPick !== null && queryPick === candidatePick,
+  };
 }
 
 function HowMinHashWorks({
@@ -412,105 +252,263 @@ function HowMinHashWorks({
   query: string;
   selectedResult: SearchResult | null;
 }) {
-  const [hovered, setHovered] = useState<PipelineStep | null>(null);
-
-  const querySlots = useMemo(
-    () => illustrativeSlots(query, SLOT_COUNT, 1),
-    [query],
-  );
-  const candidateSlots = useMemo(
-    () =>
-      selectedResult
-        ? illustrativeSlots(selectedResult.content, SLOT_COUNT, 1)
-        : null,
+  const queryShingles = useMemo(() => shingles(query), [query]);
+  const candidateShingles = useMemo(
+    () => (selectedResult ? shingles(selectedResult.content) : []),
     [selectedResult],
   );
 
-  const hoveredNode =
-    PIPELINE_NODES.find((node) => node.id === hovered) ?? null;
+  const querySet = useMemo(() => new Set(queryShingles), [queryShingles]);
+  const candidateSet = useMemo(
+    () => new Set(candidateShingles),
+    [candidateShingles],
+  );
+
+  const intersection = useMemo(
+    () => queryShingles.filter((word) => candidateSet.has(word)),
+    [queryShingles, candidateSet],
+  );
+  const union = useMemo(
+    () => new Set([...queryShingles, ...candidateShingles]),
+    [queryShingles, candidateShingles],
+  );
+  const trueJaccard = useMemo(() => {
+    if (union.size === 0) {
+      return 0;
+    }
+    return intersection.length / union.size;
+  }, [intersection.length, union.size]);
+
+  const vocabulary = useMemo(() => [...union], [union]);
+
+  const [trials, setTrials] = useState(0);
+  const [collisions, setCollisions] = useState(0);
+  const [current, setCurrent] = useState<MinHashTrial | null>(null);
+  const [running, setRunning] = useState(false);
+
+  // Reset the simulation whenever the compared pair changes.
+  useEffect(() => {
+    setTrials(0);
+    setCollisions(0);
+    setCurrent(null);
+    setRunning(false);
+  }, [query, selectedResult?.doc_id]);
+
+  // Continuous run: one trial per tick until the target count is reached.
+  useEffect(() => {
+    if (!running) {
+      return;
+    }
+    const id = window.setInterval(() => {
+      setTrials((prev) => {
+        const next = prev + 1;
+        const rand = mulberry32(next * 0x9e3779b9 + 1);
+        const trial = runTrial(querySet, candidateSet, vocabulary, rand);
+        setCurrent(trial);
+        if (trial.collision) {
+          setCollisions((c) => c + 1);
+        }
+        if (next >= TRIAL_TARGET) {
+          setRunning(false);
+        }
+        return next;
+      });
+    }, TRIAL_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, [running, querySet, candidateSet, vocabulary]);
+
+  const stepOnce = useCallback(() => {
+    setTrials((prev) => {
+      const next = prev + 1;
+      const rand = mulberry32(next * 0x9e3779b9 + 1);
+      const trial = runTrial(querySet, candidateSet, vocabulary, rand);
+      setCurrent(trial);
+      if (trial.collision) {
+        setCollisions((c) => c + 1);
+      }
+      return next;
+    });
+  }, [querySet, candidateSet, vocabulary]);
+
+  const reset = useCallback(() => {
+    setTrials(0);
+    setCollisions(0);
+    setCurrent(null);
+    setRunning(false);
+  }, []);
+
+  const collisionRate = trials > 0 ? collisions / trials : 0;
+  const milvusValue = selectedResult?.estimated_jaccard ?? null;
 
   return (
-    <section
-      className="under-hood"
-      data-testid="under-the-hood"
-      onMouseLeave={() => setHovered(null)}
-    >
+    <section className="under-hood" data-testid="under-the-hood">
       <header className="under-hood-head">
-        <h2>How MinHash finds near-duplicates</h2>
+        <h2>How MinHash estimates Jaccard similarity</h2>
         <span className="under-hood-subtitle">
-          Hover a step to see what it computes
+          {selectedResult
+            ? "One random ordering, one collision check — repeat to converge"
+            : "Run detection to compare two real word sets"}
         </span>
       </header>
 
-      <div className="pipeline">
-        {PIPELINE_NODES.map((node) => (
-          <PipelineStage
-            key={node.id}
-            node={node}
-            active={hovered === node.id}
-            onHover={setHovered}
-            hasResult={selectedResult !== null}
-          />
-        ))}
-      </div>
+      {selectedResult ? (
+        <div className="minhash-explainer">
+          <div className="explainer-sets">
+            <div className="word-set">
+              <span className="word-set-label">
+                Incoming text · {queryShingles.length} words
+              </span>
+              <div className="word-chips">
+                {queryShingles.map((word) => (
+                  <span
+                    key={word}
+                    className={`word-chip${
+                      intersection.includes(word) ? " shared" : ""
+                    }`}
+                  >
+                    {word}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="word-set">
+              <span className="word-set-label">
+                {selectedResult.doc_id} · {candidateShingles.length} words
+              </span>
+              <div className="word-chips">
+                {candidateShingles.map((word) => (
+                  <span
+                    key={word}
+                    className={`word-chip${
+                      intersection.includes(word) ? " shared" : ""
+                    }`}
+                  >
+                    {word}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
 
-      <div className="under-hood-detail" aria-live="polite">
-        {hoveredNode ? (
-          <>
-            <div className="under-hood-copy">
-              <SignatureStrip
-                slots={querySlots}
-                active={hovered === "minhash"}
-                label="query signature"
-              />
-              {candidateSlots && (
-                <SignatureStrip
-                  slots={candidateSlots}
-                  active={false}
-                  label="candidate signature"
-                />
-              )}
-              {hovered === "band" && candidateSlots && (
-                <BandStrip
-                  querySlots={querySlots}
-                  candidateSlots={candidateSlots}
-                  active
-                />
-              )}
-              {hovered === "score" && selectedResult && (
-                <div className="score-anchor">
-                  <span className="score-anchor-label">
-                    Milvus estimated Jaccard
-                  </span>
-                  <span className="score-anchor-value">
-                    {scoreLabel(selectedResult.estimated_jaccard)}
-                  </span>
-                  <span className="score-anchor-note">
-                    MHJACCARD distance, reported verbatim
-                  </span>
-                </div>
-              )}
-              {(hovered === "minhash" || hovered === "band") && (
-                <p className="illustrative-note">
-                  Signature slots and band hits are illustrative — Milvus
-                  computes them server-side with xxhash.
-                </p>
+          <p className="explainer-jaccard">
+            {intersection.length} shared words / {union.size} distinct words ={" "}
+            <strong className="jaccard-value">
+              true Jaccard {trueJaccard.toFixed(2)}
+            </strong>
+          </p>
+
+          <div className="explainer-trial">
+            <div className="trial-head">
+              <span className="trial-title">
+                {current ? `Trial ${trials}` : "Random ordering"}
+              </span>
+              <span
+                className={`trial-outcome${
+                  current ? (current.collision ? " hit" : " miss") : ""
+                }`}
+              >
+                {current
+                  ? current.collision
+                    ? "✦ collision"
+                    : "no collision"
+                  : "—"}
+              </span>
+            </div>
+            <div className="trial-ordering" aria-hidden="true">
+              {(current?.ordering ?? vocabulary).slice(0, 10).map((word) => (
+                <span
+                  key={word}
+                  className={`ordering-chip${
+                    current?.queryPick === word
+                      ? " query-pick"
+                      : current?.candidatePick === word
+                        ? " candidate-pick"
+                        : ""
+                  }`}
+                >
+                  {word}
+                </span>
+              ))}
+              {(current?.ordering ?? vocabulary).length > 10 && (
+                <span className="ordering-more">…</span>
               )}
             </div>
-            <pre className="under-hood-code">
-              <code>{PIPELINE_CODE[hoveredNode.id]}</code>
-            </pre>
-          </>
-        ) : (
-          <div className="under-hood-idle" role="status">
-            <p>
-              {selectedResult
-                ? "Hover any step above to inspect the path from text to similarity."
-                : "Run detection first, then hover a step to inspect the path."}
+            <p className="trial-explanation">
+              {current ? (
+                <>
+                  first query word{" "}
+                  <code className="pick-label query">
+                    {current.queryPick ?? "—"}
+                  </code>
+                  {" · "}first candidate word{" "}
+                  <code className="pick-label candidate">
+                    {current.candidatePick ?? "—"}
+                  </code>
+                  {" · "}
+                  {current.collision
+                    ? "same word → this trial collides"
+                    : "different words → this trial misses"}
+                </>
+              ) : (
+                "Apply one random ordering to both word sets and take the first word each contains."
+              )}
             </p>
           </div>
-        )}
-      </div>
+
+          <div className="explainer-controls">
+            <button
+              className="secondary-button"
+              onClick={stepOnce}
+              disabled={running}
+              type="button"
+            >
+              One trial
+            </button>
+            <button
+              className="primary-button"
+              onClick={() => {
+                if (trials < TRIAL_TARGET) {
+                  setRunning(true);
+                }
+              }}
+              disabled={running || trials >= TRIAL_TARGET}
+              type="button"
+            >
+              {running ? "Running…" : `Run ${TRIAL_TARGET} trials`}
+            </button>
+            <button className="secondary-button" onClick={reset} type="button">
+              Reset
+            </button>
+            <span className="trial-counter">
+              {collisions} / {trials} collisions
+            </span>
+          </div>
+
+          <div className="explainer-anchor">
+            <div className="anchor-card">
+              <span className="anchor-label">Simulated collision rate</span>
+              <span className="anchor-value">
+                {trials > 0 ? collisionRate.toFixed(2) : "—"}
+              </span>
+            </div>
+            <div className="anchor-card">
+              <span className="anchor-label">Milvus estimated Jaccard</span>
+              <span className="anchor-value milvus">
+                {milvusValue !== null ? scoreLabel(milvusValue) : "—"}
+              </span>
+            </div>
+            <p className="anchor-note">
+              Both converge to the true Jaccard; the simulation uses a seeded
+              PRNG while Milvus uses xxhash.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <p className="under-hood-idle">
+          Run detection and select a candidate to see its words compared against
+          the incoming text.
+        </p>
+      )}
     </section>
   );
 }
@@ -665,17 +663,43 @@ export function MinHashDemoPage() {
 
   const presets = useMemo(() => status?.query_presets ?? [], [status]);
 
+  // Load status, then immediately run the first preset so the demo opens with
+  // real results instead of an empty workspace the visitor must click through.
   useEffect(() => {
     let cancelled = false;
     fetchMinHashStatus()
-      .then((next) => {
-        if (!cancelled) {
-          setStatus(next);
-          if (next.query_presets.length > 0) {
-            const first = next.query_presets[0];
-            setPresetId(first.id);
-            setTitle(first.title);
-            setContent(first.text);
+      .then(async (next) => {
+        if (cancelled) {
+          return;
+        }
+        setStatus(next);
+        const first = next.query_presets[0];
+        if (!first) {
+          return;
+        }
+        setPresetId(first.id);
+        setTitle(first.title);
+        setContent(first.text);
+
+        setLoading(true);
+        try {
+          const initial = await runMinHashSearch({
+            query: first.text,
+            threshold: clamp(0.85, 0, 1),
+            limit: 10,
+          });
+          if (!cancelled) {
+            setResponse(initial);
+            const firstHit = initial.results?.[0];
+            setSelectedId(firstHit ? firstHit.doc_id : null);
+          }
+        } catch (err: unknown) {
+          if (!cancelled) {
+            setError(err instanceof Error ? err.message : String(err));
+          }
+        } finally {
+          if (!cancelled) {
+            setLoading(false);
           }
         }
       })
@@ -808,60 +832,60 @@ export function MinHashDemoPage() {
 
       {error && <p className="error-banner">{error}</p>}
 
-      <div className="workspace">
-        <IncomingPanel
-          title={title}
-          content={content}
-          onTitleChange={setTitle}
-          onContentChange={setContent}
-        />
-        <CandidatePanel
-          results={response?.results ?? []}
-          selectedId={selectedId}
-          threshold={threshold}
-          onSelect={setSelectedId}
-        />
-        {selectedResult && selectedDiff ? (
-          <DiffView diff={selectedDiff} result={selectedResult} />
-        ) : (
-          <section className="panel compare-panel">
-            <header className="panel-header">
-              <h2>Compare with selected</h2>
-              <span className="panel-subtitle">No document selected</span>
-            </header>
-            <p className="empty-note">
-              Run detection and select a candidate to inspect the text
-              differences.
-            </p>
-          </section>
-        )}
-      </div>
-
-      <HowMinHashWorks query={content} selectedResult={selectedResult} />
-
       <div className="threshold-control">
         <label htmlFor="threshold-slider">
-          Detection threshold{" "}
+          <span className="threshold-label">Detection threshold</span>
+          <input
+            id="threshold-slider"
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={threshold}
+            onChange={(event) => setThreshold(Number(event.target.value))}
+          />
           <span className="threshold-value">{threshold.toFixed(2)}</span>
         </label>
-        <input
-          id="threshold-slider"
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          value={threshold}
-          onChange={(event) => setThreshold(Number(event.target.value))}
-        />
-        <p className="threshold-help">
-          Threshold applies to estimated Jaccard similarity.
-        </p>
+        <p className="threshold-help">Estimated Jaccard similarity cut-off.</p>
       </div>
 
-      <footer className="footer">
-        <p>Review candidates before merging or removing content.</p>
-        <p className="footer-meta">Illustrative scores · Concept data</p>
-      </footer>
+      <div className="scroll-main">
+        <div className="workspace">
+          <IncomingPanel
+            title={title}
+            content={content}
+            onTitleChange={setTitle}
+            onContentChange={setContent}
+          />
+          <CandidatePanel
+            results={response?.results ?? []}
+            selectedId={selectedId}
+            threshold={threshold}
+            onSelect={setSelectedId}
+          />
+          {selectedResult && selectedDiff ? (
+            <DiffView diff={selectedDiff} result={selectedResult} />
+          ) : (
+            <section className="panel compare-panel">
+              <header className="panel-header">
+                <h2>Compare with selected</h2>
+                <span className="panel-subtitle">No document selected</span>
+              </header>
+              <p className="empty-note">
+                Run detection and select a candidate to inspect the text
+                differences.
+              </p>
+            </section>
+          )}
+        </div>
+
+        <HowMinHashWorks query={content} selectedResult={selectedResult} />
+
+        <footer className="footer">
+          <p>Review candidates before merging or removing content.</p>
+          <p className="footer-meta">Illustrative scores · Concept data</p>
+        </footer>
+      </div>
     </div>
   );
 }

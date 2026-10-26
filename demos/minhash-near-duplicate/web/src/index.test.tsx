@@ -1,10 +1,4 @@
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -153,12 +147,38 @@ describe("MinHashDemoPage", () => {
       last_prepare: null,
     };
 
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(statusPayload), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
+    const emptySearchPayload = {
+      status: "passed",
+      execution_path: "milvus_minhash_lsh_near_duplicate",
+      query: "On Sunday, we followed the river path to the old bridge.",
+      collection_name: "milvus3_demos_minhash_near_duplicate",
+      index_name: "milvus3_demos_minhash_signature",
+      text_field: "content",
+      signature_field: "minhash_signature",
+      metric_type: "MHJACCARD",
+      threshold: 0.85,
+      limit: 10,
+      above_threshold_count: 0,
+      results: [],
+      diffs: [],
+      semantics: "Estimated Jaccard similarity between MinHash signatures.",
+      latency_ms: 8.4,
+    };
+
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(statusPayload), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(emptySearchPayload), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
 
     render(<MinHashDemoPage />);
 
@@ -175,9 +195,9 @@ describe("MinHashDemoPage", () => {
     fetchMock.mockRestore();
   });
 
-  it("reveals the MinHash code panel on hover", async () => {
+  it("runs the first preset automatically on load", async () => {
     const statusPayload = {
-      status: "not_prepared",
+      status: "ready",
       implementation_status: "implemented",
       execution_path: "milvus_minhash_lsh_near_duplicate",
       capability: "MinHash Function + MINHASH_LSH",
@@ -207,32 +227,73 @@ describe("MinHashDemoPage", () => {
         server_version: "3.0.0",
         expected_server_version: "3.0.0",
         target_collection: "milvus3_demos_minhash_near_duplicate",
-        target_exists: false,
+        target_exists: true,
       },
       last_prepare: null,
     };
 
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(statusPayload), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
+    const searchPayload = {
+      status: "passed",
+      execution_path: "milvus_minhash_lsh_near_duplicate",
+      query: "On Sunday, we followed the river path to the old bridge.",
+      collection_name: "milvus3_demos_minhash_near_duplicate",
+      index_name: "milvus3_demos_minhash_signature",
+      text_field: "content",
+      signature_field: "minhash_signature",
+      metric_type: "MHJACCARD",
+      threshold: 0.85,
+      limit: 10,
+      above_threshold_count: 1,
+      results: [
+        {
+          doc_id: "river-weekend-003.txt",
+          title: "A Weekend by the River",
+          content: "On Sunday, we followed the river path to the old bridge.",
+          estimated_jaccard: 0.94,
+          raw_distance: 0.94,
+          above_threshold: true,
+        },
+      ],
+      diffs: [
+        {
+          document_id: "river-weekend-003.txt",
+          removed_count: 0,
+          added_count: 0,
+          segments: [{ kind: "equal", text: "On Sunday" }],
+        },
+      ],
+      semantics: "Estimated Jaccard similarity between MinHash signatures.",
+      latency_ms: 9.1,
+    };
+
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(statusPayload), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(searchPayload), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
 
     render(<MinHashDemoPage />);
 
+    // No button click: the first preset runs on mount.
     await waitFor(() => {
       expect(
-        screen.getByText("How MinHash finds near-duplicates"),
-      ).toBeTruthy();
+        screen.getAllByText("river-weekend-003.txt").length,
+      ).toBeGreaterThan(0);
     });
-
-    const minhashStage = screen.getByText("MinHash");
-    fireEvent.mouseEnter(minhashStage.closest(".pipeline-stage")!);
-
-    await waitFor(() => {
-      expect(screen.getByText(/BINARY_VECTOR/)).toBeTruthy();
-    });
+    expect(screen.getByText("1 candidate above threshold")).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const [searchUrl, searchInit] = fetchMock.mock.calls[1];
+    expect(String(searchUrl)).toContain("/api/v1/search");
+    expect(searchInit?.method).toBe("POST");
 
     fetchMock.mockRestore();
   });
