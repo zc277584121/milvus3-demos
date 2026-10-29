@@ -14,6 +14,10 @@ from fastapi.staticfiles import StaticFiles
 
 from movie_discovery_demo.api_models import (
     CleanupResponse,
+    ExploreApproxRequest,
+    ExploreBrowseRequest,
+    ExploreExactRequest,
+    ExploreRankedRequest,
     LiveHealthResponse,
     PrepareResponse,
     ReadyHealthResponse,
@@ -128,6 +132,67 @@ def create_app(*, service: MovieDiscoveryService | None = None) -> FastAPI:
                     max_runtime=request.max_runtime,
                 ).public_dict()
             )
+        except SearchContractError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except CONTRACT_ERRORS as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @application.post("/api/v1/explore/query/sort")
+    def explore_query_sort(request: ExploreBrowseRequest) -> dict[str, object]:
+        """query() + ORDER BY: strict sort with paging over the whole catalog."""
+        try:
+            return resolved.explore_query_sort(
+                sort=request.sort,
+                direction=request.direction,
+                page=request.page,
+                page_size=request.page_size,
+                max_runtime=request.max_runtime,
+            ).public_dict()
+        except SearchContractError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except CONTRACT_ERRORS as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @application.post("/api/v1/explore/query/group")
+    def explore_query_group(request: ExploreExactRequest) -> dict[str, object]:
+        """query() + GROUP BY: exact count/sum/avg/min/max per group."""
+        try:
+            return resolved.explore_query_group(
+                facet=request.facet,
+                metrics=tuple(request.metrics),
+                max_runtime=request.max_runtime,
+            ).public_dict()
+        except SearchContractError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except CONTRACT_ERRORS as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @application.post("/api/v1/explore/search/sort")
+    def explore_search_sort(request: ExploreRankedRequest) -> dict[str, object]:
+        """search() + order_by_fields: re-orders the retained top-K only."""
+        try:
+            return resolved.explore_search_sort(
+                query=request.query,
+                sort=request.sort,
+                direction=request.direction,
+                limit=request.limit,
+                max_runtime=request.max_runtime,
+            ).public_dict()
+        except SearchContractError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except CONTRACT_ERRORS as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @application.post("/api/v1/explore/search/group")
+    def explore_search_group(request: ExploreApproxRequest) -> dict[str, object]:
+        """search() + SearchAggregation: approximate facet buckets with hits."""
+        try:
+            return resolved.explore_search_group(
+                query=request.query,
+                facet=request.facet,
+                limit=request.limit,
+                max_runtime=request.max_runtime,
+            ).public_dict()
         except SearchContractError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except CONTRACT_ERRORS as exc:

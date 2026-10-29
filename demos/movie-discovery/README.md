@@ -69,6 +69,35 @@ Validate the tracked bytes and dataset contract offline:
 make movie-discovery-data-check
 ```
 
+## The 2x2 capability matrix
+
+The page exercises the four combinations of `query`/`search` and `sort`/`group` in one call each.
+They are separate code paths on purpose: the statistical contract differs per cell, and blurring
+them is what makes aggregation demos dishonest.
+
+| | `sort` | `group` |
+| --- | --- | --- |
+| **`query()`** | `Browse · sorted` — `order_by` over the whole catalog. Exact, paged, no vector. | `Facets · exact` — `group_by_fields` + `count`/`sum`/`avg`/`min`/`max`. Exact per group. |
+| **`search()`** | `Ranked · resorted` — `order_by_fields` re-orders the retained top-K. Candidate set unchanged. | `Facets · approx` — `SearchAggregation` buckets with per-bucket metrics and best hits. |
+
+Behaviour verified against Milvus 3.0.0 with this catalog:
+
+- **`query` + `ORDER BY`** is a strict sort with an exact total and offset paging. A `movie_id`
+  tiebreaker is always appended so duplicate sort values cannot make a page repeat or skip a row.
+- **`search` + `order_by_fields`** re-orders only the retained hits. The response carries
+  `score_monotonic` so the page can show the score sequence jumping once a scalar sort is applied —
+  that is the visible proof the candidate set did not change.
+- **`query` + `GROUP BY`** needs `group_by_fields` (plural). The singular `group_by_field` accepts
+  the request but silently drops the aggregate expressions, so aggregates always use the plural
+  form here.
+- **`search` + `SearchAggregation`** reports `count` per bucket, but that count is bounded by
+  `TopHits.size`; it is *not* a catalog-wide statistic. The page labels it `N retained` and points
+  at the exact cell for real figures.
+- `count(*)` cannot be combined with `limit`/`offset`, and a `GROUP BY` query cannot mix group
+  fields with aggregate expressions across the singular/plural forms — both are enforced upstream.
+
+Not supported by this Milvus build, and therefore not shown: range buckets and `distinct` counts.
+
 ## API
 
 | Endpoint | Method | Purpose |
@@ -78,6 +107,10 @@ make movie-discovery-data-check
 | `/api/v1/status` | GET | Dataset, presets, model, and Milvus audit. |
 | `/api/v1/prepare` | POST | Embed the catalog, create and load the collection from scratch. |
 | `/api/v1/search` | POST | Faceted search. Body: `query`, `view` (`grouped` \| `list`), `facet` (`genre` \| `decade` \| `region`), `limit`, `max_runtime`. |
+| `/api/v1/explore/query/sort` | POST | `query()` + ORDER BY. Body: `sort` (`year` \| `runtime` \| `title`), `direction`, `page`, `page_size`, `max_runtime`. |
+| `/api/v1/explore/query/group` | POST | `query()` + GROUP BY. Body: `facet`, `metrics` (`count` \| `avg_runtime` \| `sum_runtime` \| `min_year` \| `max_year`), `max_runtime`. |
+| `/api/v1/explore/search/sort` | POST | `search()` + `order_by_fields`. Body: `query`, `sort` (`score` \| `year` \| `runtime`), `direction`, `limit`, `max_runtime`. |
+| `/api/v1/explore/search/group` | POST | `search()` + `SearchAggregation`. Body: `query`, `facet`, `limit`, `max_runtime`. |
 | `/api/v1/cleanup` | POST | Drop only the exact demo collection. |
 
 `/api/v1/search` returns `grouped.buckets` (with `key`, `count`, and `candidates`) on the grouped
@@ -89,8 +122,8 @@ path, or `list.results` on the list path. Scores are **COSINE similarity, not a 
   model confidence.
 - Group `count` and candidate lists cover only retained retrieval candidates — not the full
   catalog. The response `semantics` field states this explicitly.
-- `poster_placeholders` is always `true`: posters are generated gradient placeholders, not real
-  artwork, and the page labels them as such.
+- `poster_placeholders` is `false`: every film has a synthetic AI-generated poster, labelled as
+  such in the page footer.
 
 ## Safe local validation
 

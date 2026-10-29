@@ -10,6 +10,14 @@ DEMO_ID_LITERAL = Literal["movie-discovery"]
 FACET_LITERAL = Literal["genre", "decade", "region"]
 VIEW_LITERAL = Literal["grouped", "list"]
 
+# The 2x2 capability matrix.
+API_LITERAL = Literal["query", "search"]
+MODE_LITERAL = Literal["sort", "group"]
+BROWSE_SORT_LITERAL = Literal["year", "runtime", "title"]
+RANKED_SORT_LITERAL = Literal["score", "year", "runtime"]
+DIRECTION_LITERAL = Literal["asc", "desc"]
+EXACT_METRIC_LITERAL = Literal["count", "avg_runtime", "max_year", "min_year", "sum_runtime"]
+
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
@@ -158,6 +166,45 @@ class SearchResponse(StrictModel):
     grouped: GroupedModel
     retained_candidate_count: int
     semantics: str
+
+
+class ExploreBrowseRequest(StrictModel):
+    """query + ORDER BY: a strict, paged listing of the whole catalog."""
+
+    sort: BROWSE_SORT_LITERAL = "year"
+    direction: DIRECTION_LITERAL = "desc"
+    page: int = Field(default=1, ge=1)
+    page_size: int = Field(default=12, ge=1, le=50)
+    max_runtime: int | None = Field(default=None, ge=1, le=120)
+
+
+class ExploreExactRequest(StrictModel):
+    """query + GROUP BY: exact aggregates over the whole match set."""
+
+    facet: FACET_LITERAL = "genre"
+    metrics: list[EXACT_METRIC_LITERAL] = Field(
+        default_factory=lambda: ["count", "avg_runtime", "min_year", "max_year"]
+    )
+    max_runtime: int | None = Field(default=None, ge=1, le=120)
+
+
+class ExploreRankedRequest(StrictModel):
+    """search + ORDER BY: re-orders the retained top-K only."""
+
+    query: str = Field(min_length=1, max_length=2000)
+    sort: RANKED_SORT_LITERAL = "score"
+    direction: DIRECTION_LITERAL = "desc"
+    limit: int = Field(default=12, ge=1, le=20)
+    max_runtime: int | None = Field(default=None, ge=1, le=120)
+
+
+class ExploreApproxRequest(StrictModel):
+    """search + aggregation: facet buckets with metrics and best hits."""
+
+    query: str = Field(min_length=1, max_length=2000)
+    facet: FACET_LITERAL = "genre"
+    limit: int = Field(default=12, ge=1, le=20)
+    max_runtime: int | None = Field(default=None, ge=1, le=120)
 
 
 class CleanupMilvusModel(StrictModel):

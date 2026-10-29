@@ -13,6 +13,8 @@ from movie_discovery_demo.config import (
     AGG_ROOT_SIZE,
     AGG_TOP_HITS_SIZE,
     ANNS_FIELD,
+    APPROX_METRICS,
+    BROWSE_TIEBREAK_FIELD,
     COLLECTION_NAME,
     FACET_FIELDS,
     INDEX_BUILD_POLL_SECONDS,
@@ -351,6 +353,255 @@ class MovieRepository:
         if not isinstance(value, str) or not value:
             raise RepositoryContractError("Aggregation bucket key value is not a string")
         return value
+
+    # ------------------------------------------------------------------
+    # query + sort : server-side ORDER BY over the whole catalog
+    # ------------------------------------------------------------------
+    def browse_sorted(
+        self,
+        *,
+        movies_by_id: Mapping[str, MovieRecord],
+        sort_field: str,
+        direction: str,
+        limit: int,
+        offset: int,
+        filter: str | None = None,
+    ) -> tuple[tuple[MovieRecord, ...], int]:
+        """Return one deterministic page plus the exact total match count."""
+        if direction not in ("asc", "desc"):
+            raise SearchContractError(f"Unsupported sort direction: {direction}")
+        if offset < 0:
+            raise SearchContractError("offset must not be negative")
+
+        # A duplicate sort value would otherwise make offset paging ambiguous,
+        # so a unique secondary key pins the total order.
+        order_by = [
+            {"field": sort_field, "order": direction},
+            {"field": BROWSE_TIEBREAK_FIELD, "order": "asc"},
+        ]
+        output_fields = [
+            "movie_id",
+            "title",
+            "primary_genre",
+            "release_year",
+            "decade",
+            "region",
+            "runtime_minutes",
+        ]
+        client = self._client()
+        try:
+            self._checked_version(client)
+            if not client.has_collection(COLLECTION_NAME):
+                raise RepositoryContractError("Collection is not prepared")
+            kwargs: dict[str, Any] = {
+                "collection_name": COLLECTION_NAME,
+                "output_fields": output_fields,
+                "order_by": order_by,
+                "limit": limit,
+                "offset": offset,
+            }
+            if filter is not None:
+                kwargs["filter"] = filter
+            rows = client.query(**kwargs)
+            # count(*) must not be combined with limit/offset.
+            count_kwargs: dict[str, Any] = {
+                "collection_name": COLLECTION_NAME,
+                "output_fields": ["count(*)"],
+            }
+            if filter is not None:
+                count_kwargs["filter"] = filter
+            counted = client.query(**count_kwargs)
+        finally:
+            client.close()
+
+        movies: list[MovieRecord] = []
+        for row in rows:
+            movie_id = row.get("movie_id")
+            movies.append(self._hydrate(movie_id, movies_by_id))
+
+        total = 0
+        if counted:
+            first = counted[0]
+            raw_total = first.get("count(*)") if isinstance(first, Mapping) else None
+            if isinstance(raw_total, int):
+                total = raw_total
+        return tuple(movies), total
+
+    # ------------------------------------------------------------------
+    # query + group : GROUP BY with exact aggregate functions
+    # ------------------------------------------------------------------
+    def query_aggregate(
+        self,
+        *,
+        facet_field: str,
+        metric_fields: Sequence[str],
+        filter: str | None = None,
+    ) -> tuple[dict[str, object], ...]:
+        """Return one row per group with exact aggregates over the full catalog.
+
+        `group_by_fields` (plural) is required: the singular `group_by_field`
+        argument accepts the request but drops the aggregate expressions.
+        """
+        if not metric_fields:
+            raise SearchContractError("At least one aggregate metric is required")
+        output_fields = [facet_field, *metric_fields]
+        client = self._client()
+        try:
+            self._checked_version(client)
+            if not client.has_collection(COLLECTION_NAME):
+                raise RepositoryContractError("Collection is not prepared")
+            kwargs: dict[str, Any] = {
+                "collection_name": COLLECTION_NAME,
+                "output_fields": output_fields,
+                "group_by_fields": [facet_field],
+            }
+            if filter is not None:
+                kwargs["filter"] = filter
+            rows = client.query(**kwargs)
+        finally:
+            client.close()
+
+        groups: list[dict[str, object]] = []
+        for row in rows:
+            key = row.get(facet_field)
+            if not isinstance(key, str) or not key:
+                raise RepositoryContractError("Aggregated row is missing its group key")
+            values: dict[str, object] = {}
+            for metric in metric_fields:
+                values[metric] = row.get(metric)
+            groups.append({"key": key, "values": values})
+        return tuple(groups)
+
+    # ------------------------------------------------------------------
+    # search + sort : re-order the retained top-K only
+    # ------------------------------------------------------------------
+    def ranked_search(
+        self,
+        *,
+        query_vector: Sequence[float],
+        movies_by_id: Mapping[str, MovieRecord],
+        limit: int,
+        sort_field: str | None = None,
+        direction: str = "desc",
+        filter: str | None = None,
+    ) -> tuple[MovieHit, ...]:
+        """Plain ANN search, optionally re-ordered by one scalar field.
+
+        Sort/distance is intentionally returned untouched so the page can show
+        that the score sequence stops being monotonic once a scalar sort is
+        applied -- the candidate set itself never changes.
+        """
+        if sort_field is not None and direction not in ("asc", "desc"):
+            raise SearchContractError(f"Unsupported sort direction: {direction}")
+        client = self._client()
+        try:
+            self._checked_version(client)
+            if not client.has_collection(COLLECTION_NAME):
+                raise RepositoryContractError("Collection is not prepared")
+            kwargs: dict[str, Any] = {
+                "collection_name": COLLECTION_NAME,
+                "data": [list(query_vector)],
+                "anns_field": ANNS_FIELD,
+                "search_params": {"metric_type": "COSINE", "params": {"ef": SEARCH_EF}},
+                "limit": limit,
+                "output_fields": ["movie_id"],
+            }
+            if sort_field is not None:
+                # The search path only reads `order_by_fields`; passing
+                # `order_by` here is silently ignored by pymilvus.
+                kwargs["order_by_fields"] = [{"field": sort_field, "order": direction}]
+            if filter is not None:
+                kwargs["filter"] = filter
+            raw = client.search(**kwargs)
+        finally:
+            client.close()
+        if len(raw) != 1:
+            raise RepositoryContractError("Milvus search returned an unexpected batch shape")
+        hits: list[MovieHit] = []
+        for rank, hit in enumerate(raw[0], start=1):
+            movie_id = hit.get("movie_id") or hit.get("id")
+            movie = self._hydrate(movie_id, movies_by_id)
+            hits.append(MovieHit(rank=rank, score=float(hit["distance"]), movie=movie))
+        return tuple(hits)
+
+    def aggregated_search_with_metrics(
+        self,
+        *,
+        query_vector: Sequence[float],
+        movies_by_id: Mapping[str, MovieRecord],
+        facet: str,
+        filter: str | None = None,
+        root_size: int = AGG_ROOT_SIZE,
+        top_hits_size: int = AGG_TOP_HITS_SIZE,
+    ) -> tuple[dict[str, object], ...]:
+        """Facet buckets that also carry per-bucket metrics and best hits.
+
+        The bucket `count` is the number of hits retained for that bucket, which
+        is bounded by `top_hits_size`; it is NOT a count over the whole catalog.
+        """
+        facet_field = self._facet_field(facet)
+        # Already in pymilvus' {alias: {aggregate_op: field_name}} shape.
+        metric_spec: dict[str, dict[str, str]] = {
+            alias: dict(spec) for alias, spec in APPROX_METRICS.items()
+        }
+
+        aggregation = SearchAggregation(
+            fields=[facet_field],
+            size=root_size,
+            metrics=metric_spec,
+            top_hits=TopHits(size=top_hits_size, sort=[{"_score": "desc"}]),
+        )
+        client = self._client()
+        try:
+            self._checked_version(client)
+            if not client.has_collection(COLLECTION_NAME):
+                raise RepositoryContractError("Collection is not prepared")
+            kwargs: dict[str, Any] = {
+                "collection_name": COLLECTION_NAME,
+                "data": [list(query_vector)],
+                "anns_field": ANNS_FIELD,
+                "search_params": {"metric_type": "COSINE", "params": {"ef": SEARCH_EF}},
+                "limit": 1,  # ignored; bucket count comes from SearchAggregation.size
+                "output_fields": ["movie_id"],
+                "search_aggregation": aggregation,
+            }
+            if filter is not None:
+                kwargs["filter"] = filter
+            raw = client.search(**kwargs)
+        finally:
+            client.close()
+        if len(raw) != 1:
+            raise RepositoryContractError("Milvus search returned an unexpected batch shape")
+        buckets = getattr(raw, "agg_buckets", None)
+        if buckets is None:
+            raise RepositoryContractError("Milvus search did not return agg_buckets")
+        if not isinstance(buckets, list) or len(buckets) != 1:
+            raise RepositoryContractError("Unexpected agg_buckets shape")
+
+        out: list[dict[str, object]] = []
+        for bucket in buckets[0]:
+            key_value = self._bucket_key_value(bucket, facet_field)
+            hits: list[MovieHit] = []
+            for rank, hit in enumerate(bucket.hits, start=1):
+                movie = self._hydrate(hit.pk, movies_by_id)
+                hits.append(MovieHit(rank=rank, score=float(hit.score), movie=movie))
+            raw_metrics = getattr(bucket, "metrics", None) or {}
+            clean_metrics: dict[str, object] = {}
+            for alias in APPROX_METRICS:
+                value = raw_metrics.get(alias)
+                if isinstance(value, float):
+                    clean_metrics[alias] = round(value, 2)
+                elif value is not None:
+                    clean_metrics[alias] = value
+            out.append(
+                {
+                    "key": key_value,
+                    "count": int(bucket.count),
+                    "metrics": clean_metrics,
+                    "candidates": [hit.public_dict() for hit in hits],
+                }
+            )
+        return tuple(out)
 
     def cleanup(self) -> dict[str, object]:
         client = self._client()

@@ -1,11 +1,20 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import "./styles.css";
 
 const API_BASE = `${import.meta.env.BASE_URL}api/v1`;
 
+/* ------------------------------------------------------------------ types */
+
 type Facet = "genre" | "decade" | "region";
-type View = "grouped" | "list";
+type PanelApi = "query" | "search";
+type PanelMode = "sort" | "group";
+type PanelId = `${PanelApi}-${PanelMode}`;
+
+type BrowseSort = "year" | "runtime" | "title";
+type RankedSort = "score" | "year" | "runtime";
+type Direction = "asc" | "desc";
+type ExactMetric = "count" | "avg_runtime" | "sum_runtime" | "min_year" | "max_year";
 
 interface QueryPreset {
   id: string;
@@ -23,32 +32,15 @@ interface FacetInfo {
 interface Status {
   status: "ready" | "not_prepared";
   movie_count: number;
-  model: {
-    model_id: string;
-    vector_dimension: number;
-    device: "cpu";
-    loaded: boolean;
-    cache_available: boolean;
-  };
-  dataset: {
-    dataset_id: string;
-    movie_count: number;
-  };
-  milvus: {
-    collection_name: string;
-    collection_exists: boolean;
-    server_version: string;
-    row_count: number | null;
-  };
+  model: { model_id: string; vector_dimension: number; device: "cpu" };
+  milvus: { collection_name: string; server_version: string; row_count: number | null };
   facets: FacetInfo[];
   query_presets: QueryPreset[];
   poster_placeholders: boolean;
   poster_count: number;
 }
 
-interface MovieResult {
-  rank: number;
-  score: number;
+interface MovieCardData {
   movie_id: string;
   title: string;
   synopsis: string;
@@ -61,32 +53,103 @@ interface MovieResult {
   poster_palette: string[];
 }
 
-interface Bucket {
-  key: string;
-  count: number;
-  candidates: MovieResult[];
+interface ScoredMovie extends MovieCardData {
+  rank: number;
+  score: number;
 }
 
-interface SearchResponse {
+interface ExploreBase {
   status: "passed";
-  query: string;
-  view: View;
-  facet: Facet;
-  facet_field: string;
+  api: PanelApi;
+  mode: PanelMode;
   filter: string | null;
-  limit: number;
   latency_ms: number;
   score_semantics: string;
-  list: { results: MovieResult[] };
-  grouped: { buckets: Bucket[] };
-  retained_candidate_count: number;
   semantics: string;
 }
+
+interface BrowseResponse extends ExploreBase {
+  api: "query";
+  mode: "sort";
+  sort: BrowseSort;
+  sort_field: string;
+  sort_label: string;
+  direction: Direction;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  total: number;
+  results: MovieCardData[];
+}
+
+interface ExactGroup {
+  key: string;
+  metrics: Record<string, number | null>;
+}
+
+interface ExactMetricInfo {
+  id: ExactMetric;
+  field: string;
+  label: string;
+}
+
+interface ExactResponse extends ExploreBase {
+  api: "query";
+  mode: "group";
+  facet: Facet;
+  facet_field: string;
+  metrics: ExactMetricInfo[];
+  groups: ExactGroup[];
+  group_count: number;
+}
+
+interface RankedResponse extends ExploreBase {
+  api: "search";
+  mode: "sort";
+  query: string;
+  sort: RankedSort;
+  sort_field: string;
+  sort_label: string;
+  direction: Direction;
+  limit: number;
+  retained_candidate_count: number;
+  score_monotonic: boolean;
+  results: ScoredMovie[];
+}
+
+interface ApproxBucket {
+  key: string;
+  count: number;
+  metrics: Record<string, number | null>;
+  candidates: ScoredMovie[];
+}
+
+interface ApproxResponse extends ExploreBase {
+  api: "search";
+  mode: "group";
+  query: string;
+  facet: Facet;
+  facet_field: string;
+  limit: number;
+  retained_candidate_count: number;
+  buckets: ApproxBucket[];
+}
+
+type ExploreResponse = BrowseResponse | ExactResponse | RankedResponse | ApproxResponse;
+
+/* -------------------------------------------------------------- transport */
 
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const body = await response.text().catch(() => "");
-    throw new Error(body || `Request failed with status ${response.status}`);
+    let detail = body;
+    try {
+      const parsed = JSON.parse(body) as { detail?: unknown };
+      if (typeof parsed.detail === "string") detail = parsed.detail;
+    } catch {
+      // keep raw body
+    }
+    throw new Error(detail || `Request failed with status ${response.status}`);
   }
   return (await response.json()) as T;
 }
@@ -97,15 +160,12 @@ async function fetchStatus(): Promise<Status> {
   );
 }
 
-async function runSearch(payload: {
-  query: string;
-  view: View;
-  facet: Facet;
-  limit: number;
-  max_runtime: number | null;
-}): Promise<SearchResponse> {
-  return readJson<SearchResponse>(
-    await fetch(`${API_BASE}/search`, {
+async function postExplore<T extends ExploreResponse>(
+  path: string,
+  payload: Record<string, unknown>,
+): Promise<T> {
+  return readJson<T>(
+    await fetch(`${API_BASE}/explore/${path}`, {
       method: "POST",
       headers: { Accept: "application/json", "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -113,7 +173,7 @@ async function runSearch(payload: {
   );
 }
 
-/* --------------------------- small presentational pieces ------------------ */
+/* --------------------------------------------------------- shared pieces */
 
 function MilvusWordmark() {
   return (
@@ -141,7 +201,7 @@ function MilvusWordmark() {
   );
 }
 
-function Poster({ movie }: { movie: MovieResult }) {
+function Poster({ movie }: { movie: MovieCardData }) {
   const [c1, c2, c3] = movie.poster_palette;
   const [failed, setFailed] = useState(false);
   return (
@@ -162,75 +222,370 @@ function Poster({ movie }: { movie: MovieResult }) {
         />
       ) : null}
       {failed ? <span className="poster-initial">{movie.title.charAt(0)}</span> : null}
-      {failed ? <span className="poster-note">Poster coming soon</span> : null}
     </div>
   );
 }
 
-function MovieCard({ movie, facet }: { movie: MovieResult; facet: Facet }) {
+
+interface PanelMeta {
+  id: PanelId;
+  api: PanelApi;
+  mode: PanelMode;
+  title: string;
+  subtitle: string;
+  hint: string;
+}
+
+const PANELS: PanelMeta[] = [
+  {
+    id: "query-sort",
+    api: "query",
+    mode: "sort",
+    title: "Browse · sorted",
+    subtitle: "query() + ORDER BY",
+    hint: "Exact, paged sort of the whole catalog. No vector is involved.",
+  },
+  {
+    id: "query-group",
+    api: "query",
+    mode: "group",
+    title: "Facets · exact",
+    subtitle: "query() + GROUP BY",
+    hint: "count / sum / avg / min / max over every match, per group.",
+  },
+  {
+    id: "search-sort",
+    api: "search",
+    mode: "sort",
+    title: "Ranked · resorted",
+    subtitle: "search() + order_by_fields",
+    hint: "Re-orders the retained top-K only; the candidate set never changes.",
+  },
+  {
+    id: "search-group",
+    api: "search",
+    mode: "group",
+    title: "Facets · approx",
+    subtitle: "search() + SearchAggregation",
+    hint: "Bucket counts cover retained candidates only, with each bucket's best hits.",
+  },
+];
+
+function PanelMatrix({
+  active,
+  onSelect,
+}: {
+  active: PanelId;
+  onSelect: (id: PanelId) => void;
+}) {
+  const cell = (api: PanelApi, mode: PanelMode) => {
+    const meta = PANELS.find((panel) => panel.api === api && panel.mode === mode)!;
+    const selected = active === meta.id;
+    return (
+      <button
+        type="button"
+        className={`matrix-cell${selected ? " is-active" : ""}`}
+        aria-pressed={selected}
+        onClick={() => onSelect(meta.id)}
+      >
+        <span className="matrix-cell-api">{api}</span>
+        <span className="matrix-cell-mode">{mode === "sort" ? "sort" : "group"}</span>
+      </button>
+    );
+  };
+
+  return (
+    <section className="matrix" aria-label="Capability matrix">
+      <div className="matrix-corner" aria-hidden="true" />
+      <div className="matrix-head">sort</div>
+      <div className="matrix-head">group</div>
+      <div className="matrix-row-label">query</div>
+      {cell("query", "sort")}
+      {cell("query", "group")}
+      <div className="matrix-row-label">search</div>
+      {cell("search", "sort")}
+      {cell("search", "group")}
+    </section>
+  );
+}
+
+function ContractBar({ panel, result }: { panel: PanelMeta; result: ExploreResponse | null }) {
+  return (
+    <div className={`contract contract-${panel.mode}`} role="note">
+      <span className="contract-tag">{panel.subtitle}</span>
+      <span className="contract-text">{panel.hint}</span>
+      {result ? (
+        <span className="contract-meta">{result.latency_ms.toFixed(0)} ms</span>
+      ) : null}
+    </div>
+  );
+}
+
+function ResultsTable({ movies }: { movies: MovieCardData[] }) {
+  return (
+    <div className="browse-table" role="table" aria-label="Sorted catalog">
+      <div className="browse-row browse-row-head" role="row">
+        <span role="columnheader">#</span>
+        <span role="columnheader">Title</span>
+        <span role="columnheader">Year</span>
+        <span role="columnheader">Runtime</span>
+        <span role="columnheader">Genre</span>
+        <span role="columnheader">Region</span>
+      </div>
+      {movies.map((movie, index) => (
+        <div className="browse-row" role="row" key={movie.movie_id}>
+          <span role="cell" className="browse-index">{index + 1}</span>
+          <span role="cell" className="browse-title">
+            <Poster movie={movie} />
+            <span>{movie.title}</span>
+          </span>
+          <span role="cell">{movie.release_year}</span>
+          <span role="cell">{movie.runtime_minutes} min</span>
+          <span role="cell">{movie.primary_genre}</span>
+          <span role="cell">{movie.region}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ScoredCard({ movie, rank }: { movie: ScoredMovie; rank?: number }) {
   return (
     <article className="movie-card">
       <Poster movie={movie} />
       <div className="movie-card-meta">
-        <h3 className="movie-title">{movie.title}</h3>
+        <h3 className="movie-title">
+          {rank !== undefined ? <span className="rank-badge">{rank}</span> : null}
+          <span className="rank-title">{movie.title}</span>
+        </h3>
         <div className="movie-subline">
           {movie.release_year} · {movie.runtime_minutes} min · {movie.region}
         </div>
-        <p className="movie-synopsis">{movie.synopsis}</p>
-        <div className="movie-score" title="COSINE similarity, not a probability">
-          score {movie.score.toFixed(4)}
-        </div>
+      </div>
+      <div className="movie-score" title="COSINE similarity, not a probability">
+        {movie.score.toFixed(4)}
       </div>
     </article>
   );
 }
 
-/* ------------------------------- page ------------------------------------ */
+/* ---------------------------------------------------------------- panels */
+
+function BrowsePanel({ result, onPage }: { result: BrowseResponse; onPage: (page: number) => void }) {
+  return (
+    <>
+      <div className="panel-meta">
+        <span>
+          Sorted by <strong>{result.sort_label}</strong> ({result.direction}) · page{" "}
+          {result.page} of {result.total_pages} · exact total <strong>{result.total}</strong>
+        </span>
+      </div>
+      <ResultsTable movies={result.results} />
+      <div className="pager">
+        <button
+          type="button"
+          className="pager-button"
+          disabled={result.page <= 1}
+          onClick={() => onPage(result.page - 1)}
+        >
+          ← Previous
+        </button>
+        <span className="pager-status">
+          {result.page} / {result.total_pages}
+        </span>
+        <button
+          type="button"
+          className="pager-button"
+          disabled={result.page >= result.total_pages}
+          onClick={() => onPage(result.page + 1)}
+        >
+          Next →
+        </button>
+      </div>
+    </>
+  );
+}
+
+function ExactPanel({ result }: { result: ExactResponse }) {
+  return (
+    <>
+      <div className="panel-meta">
+        <span>
+          Grouped by <strong>{result.facet_field}</strong> · {result.group_count} groups · figures
+          are <strong>exact</strong> over the full match set
+        </span>
+      </div>
+      <div className="exact-table" role="table" aria-label="Exact aggregates">
+        <div className="exact-row exact-row-head" role="row">
+          <span role="columnheader">{result.facet_field}</span>
+          {result.metrics.map((metric) => (
+            <span role="columnheader" key={metric.id}>
+              {metric.label}
+            </span>
+          ))}
+        </div>
+        {result.groups.map((group) => (
+          <div className="exact-row" role="row" key={group.key}>
+            <span role="cell" className="exact-key">{group.key}</span>
+            {result.metrics.map((metric) => (
+              <span role="cell" key={metric.id} className="exact-value">
+                {group.metrics[metric.id] ?? "—"}
+              </span>
+            ))}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function RankedPanel({ result }: { result: RankedResponse }) {
+  return (
+    <>
+      <div className="panel-meta">
+        <span>
+          {result.sort === "score" ? (
+            <>Baseline relevance order · scores decrease monotonically</>
+          ) : (
+            <>
+              Re-ordered by <strong>{result.sort_label}</strong> · scores now{" "}
+              <strong>{result.score_monotonic ? "still decrease" : "jump around"}</strong> — proof
+              the retained hits were re-sorted
+            </>
+          )}
+        </span>
+        <span className="panel-count">{result.retained_candidate_count} retained</span>
+      </div>
+      <div className="ranked-list">
+        {result.results.map((movie, index) => (
+          <ScoredCard movie={movie} rank={index + 1} key={movie.movie_id} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function ApproxPanel({ result }: { result: ApproxResponse }) {
+  return (
+    <>
+      <div className="panel-meta">
+        <span>
+          {result.buckets.length} buckets · <strong>{result.retained_candidate_count}</strong>{" "}
+          retained hits · counts are <strong>approximate</strong> (use Facets · exact for exact
+          figures)
+        </span>
+      </div>
+      <div className="grouped-grid">
+        {result.buckets.map((bucket) => (
+          <section className="bucket-panel" key={bucket.key}>
+            <header className="bucket-head">
+              <span className="bucket-title">{bucket.key}</span>
+              <span className="bucket-count">{bucket.count} retained</span>
+            </header>
+            {Object.keys(bucket.metrics).length > 0 ? (
+              <div className="bucket-metrics">
+                {bucket.metrics.avg_runtime !== null && bucket.metrics.avg_runtime !== undefined ? (
+                  <span>avg {bucket.metrics.avg_runtime} min</span>
+                ) : null}
+                {bucket.metrics.max_year !== null && bucket.metrics.max_year !== undefined ? (
+                  <span>latest {bucket.metrics.max_year}</span>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="bucket-cards">
+              {bucket.candidates.map((movie) => (
+                <ScoredCard movie={movie} key={movie.movie_id} />
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ page */
 
 export function MovieDiscoveryPage() {
   const [status, setStatus] = useState<Status | null>(null);
   const [query, setQuery] = useState("");
-  const [view, setView] = useState<View>("grouped");
+  const [panel, setPanel] = useState<PanelId>("search-group");
   const [facet, setFacet] = useState<Facet>("genre");
   const [maxRuntime, setMaxRuntime] = useState<number | null>(null);
-  const [result, setResult] = useState<SearchResponse | null>(null);
+  const [browseSort, setBrowseSort] = useState<BrowseSort>("year");
+  const [browseDirection, setBrowseDirection] = useState<Direction>("desc");
+  const [browsePage, setBrowsePage] = useState(1);
+  const [rankedSort, setRankedSort] = useState<RankedSort>("score");
+  const [result, setResult] = useState<ExploreResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [presetOpen, setPresetOpen] = useState(false);
   const presetRef = useRef<HTMLDivElement | null>(null);
-  const requestEpoch = useRef(0);
+  const epoch = useRef(0);
 
+  const meta = useMemo(() => PANELS.find((item) => item.id === panel)!, [panel]);
   const ready = status?.status === "ready";
+  const presets = status?.query_presets ?? [];
+  const facets = status?.facets ?? [];
+  const needsQuery = meta.api === "search";
 
-  async function submit(override?: { query?: string; view?: View; facet?: Facet }) {
-    const submittedQuery = (override?.query ?? query).trim();
-    if (!submittedQuery) {
-      setError("Enter a query before searching.");
-      return;
-    }
-    const submittedView = override?.view ?? view;
-    const submittedFacet = override?.facet ?? facet;
-    const epoch = ++requestEpoch.current;
-    setResult(null);
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await runSearch({
-        query: submittedQuery,
-        view: submittedView,
-        facet: submittedFacet,
-        limit: 12,
-        max_runtime: maxRuntime,
-      });
-      if (requestEpoch.current === epoch) setResult(response);
-    } catch (cause) {
-      if (requestEpoch.current === epoch) {
-        setError(cause instanceof Error ? cause.message : "Search failed.");
+  const run = useCallback(
+    async (next?: { panel?: PanelId; page?: number }) => {
+      const targetPanel = next?.panel ?? panel;
+      const targetMeta = PANELS.find((item) => item.id === targetPanel)!;
+      const page = next?.page ?? browsePage;
+      const trimmed = query.trim();
+      if (targetMeta.api === "search" && !trimmed) {
+        setError("Enter a description before running a vector search.");
+        return;
       }
-    } finally {
-      if (requestEpoch.current === epoch) setLoading(false);
-    }
-  }
+      const token = ++epoch.current;
+      setLoading(true);
+      setError(null);
+      try {
+        let response: ExploreResponse;
+        if (targetPanel === "query-sort") {
+          response = await postExplore<BrowseResponse>("query/sort", {
+            sort: browseSort,
+            direction: browseDirection,
+            page,
+            page_size: 12,
+            max_runtime: maxRuntime,
+          });
+        } else if (targetPanel === "query-group") {
+          response = await postExplore<ExactResponse>("query/group", {
+            facet,
+            metrics: ["count", "avg_runtime", "min_year", "max_year"],
+            max_runtime: maxRuntime,
+          });
+        } else if (targetPanel === "search-sort") {
+          response = await postExplore<RankedResponse>("search/sort", {
+            query: trimmed,
+            sort: rankedSort,
+            direction: "desc",
+            limit: 12,
+            max_runtime: maxRuntime,
+          });
+        } else {
+          response = await postExplore<ApproxResponse>("search/group", {
+            query: trimmed,
+            facet,
+            limit: 12,
+            max_runtime: maxRuntime,
+          });
+        }
+        if (epoch.current === token) setResult(response);
+      } catch (cause) {
+        if (epoch.current === token) {
+          setResult(null);
+          setError(cause instanceof Error ? cause.message : "Request failed.");
+        }
+      } finally {
+        if (epoch.current === token) setLoading(false);
+      }
+    },
+    [panel, browsePage, browseSort, browseDirection, facet, rankedSort, maxRuntime, query],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -241,15 +596,6 @@ export function MovieDiscoveryPage() {
         setStatus(value);
         if (value.status === "ready" && value.query_presets.length > 0) {
           setQuery(value.query_presets[0].text);
-          await runSearch({
-            query: value.query_presets[0].text,
-            view: "grouped",
-            facet: "genre",
-            limit: 12,
-            max_runtime: null,
-          }).then((response) => {
-            if (!cancelled) setResult(response);
-          });
         }
       } catch {
         if (!cancelled) setError("Backend unavailable.");
@@ -259,6 +605,14 @@ export function MovieDiscoveryPage() {
       cancelled = true;
     };
   }, []);
+
+  // First paint: run the default cell once the backend is ready.
+  const bootstrapped = useRef(false);
+  useEffect(() => {
+    if (bootstrapped.current || !ready || !query) return;
+    bootstrapped.current = true;
+    void run();
+  }, [ready, query, run]);
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
@@ -270,8 +624,17 @@ export function MovieDiscoveryPage() {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, []);
 
-  const presets = status?.query_presets ?? [];
-  const facets = status?.facets ?? [];
+  function selectPanel(id: PanelId) {
+    setPanel(id);
+    setResult(null);
+    void run({ panel: id, page: 1 });
+  }
+
+  function patchPanel(next: Partial<{ facet: Facet }>) {
+    if (next.facet !== undefined) setFacet(next.facet);
+    setResult(null);
+    void run();
+  }
 
   return (
     <main className="movie-page">
@@ -280,7 +643,7 @@ export function MovieDiscoveryPage() {
           <MilvusWordmark />
         </div>
         <div className="movie-title">
-          <h1>Movie Discovery with Search Aggregation</h1>
+          <h1>Movie Discovery · sort × group, search × query</h1>
           <a
             className="source-link"
             href="https://github.com/zc277584121/milvus3-demos/tree/main/demos/movie-discovery"
@@ -309,7 +672,7 @@ export function MovieDiscoveryPage() {
 
       <section className="movie-query-card" aria-label="Query controls">
         <label className="query-label" htmlFor="movie-query">
-          What would you like to watch?
+          {needsQuery ? "Describe the film you want to watch" : "Optional text query (this cell has no vector)"}
         </label>
         <div className="query-row">
           <div className="query-combobox" ref={presetRef}>
@@ -318,16 +681,17 @@ export function MovieDiscoveryPage() {
               type="text"
               value={query}
               onChange={(event) => {
-                requestEpoch.current += 1;
+                epoch.current += 1;
                 setQuery(event.target.value);
                 setResult(null);
                 setError(null);
               }}
               onKeyDown={(event) => {
-                if (event.key === "Enter") submit();
+                if (event.key === "Enter") void run();
               }}
               placeholder="Describe the story you are looking for…"
               aria-label="Query"
+              disabled={!needsQuery}
             />
             <button
               type="button"
@@ -335,23 +699,15 @@ export function MovieDiscoveryPage() {
               aria-label="Choose a preset query"
               aria-haspopup="listbox"
               aria-expanded={presetOpen}
+              disabled={!needsQuery}
               onClick={() => setPresetOpen((value) => !value)}
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-                <path
-                  d="M4 6l4 4 4-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              ▾
             </button>
-            {presetOpen && (
-              <ul className="combobox-menu" role="listbox" aria-label="Query presets">
+            {presetOpen && needsQuery ? (
+              <ul className="preset-list" role="listbox">
                 {presets.map((preset) => (
-                  <li key={preset.id} role="presentation">
+                  <li key={preset.id}>
                     <button
                       type="button"
                       role="option"
@@ -360,50 +716,97 @@ export function MovieDiscoveryPage() {
                         setQuery(preset.text);
                         setPresetOpen(false);
                         setResult(null);
-                        setError(null);
-                        submit({ query: preset.text });
+                        void run();
                       }}
                     >
-                      <span className="combobox-option-label">{preset.label}</span>
-                      <span className="combobox-option-text">{preset.text}</span>
+                      <strong>{preset.label}</strong>
+                      <span>{preset.description}</span>
                     </button>
                   </li>
                 ))}
               </ul>
-            )}
+            ) : null}
           </div>
           <button
-            className="search-button"
             type="button"
-            onClick={() => submit()}
-            disabled={!ready || loading}
+            className="run-button"
+            disabled={loading || !ready}
+            onClick={() => void run()}
           >
-            {loading ? "Searching…" : "Search"}
+            {loading ? "Running…" : "Run"}
           </button>
         </div>
 
         <div className="toolbar">
-          <div className="toolbar-group">
-            <span className="toolbar-label">Group by</span>
-            <div className="segmented" role="tablist" aria-label="Group by">
-              {facets.map((f) => (
+          <div className="toolbar-left">
+            {meta.mode === "group" ? (
+              <div className="chip-group" role="group" aria-label="Facet">
+                {facets.map((item) => (
+                  <button
+                    type="button"
+                    key={item.id}
+                    className={`filter-chip${facet === item.id ? " is-active" : ""}`}
+                    aria-pressed={facet === item.id}
+                    onClick={() => patchPanel({ facet: item.id })}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            {panel === "query-sort" ? (
+              <div className="chip-group" role="group" aria-label="Sort field">
+                {(["year", "runtime", "title"] as BrowseSort[]).map((value) => (
+                  <button
+                    type="button"
+                    key={value}
+                    className={`filter-chip${browseSort === value ? " is-active" : ""}`}
+                    aria-pressed={browseSort === value}
+                    onClick={() => {
+                      setBrowseSort(value);
+                      setBrowsePage(1);
+                      setResult(null);
+                      void run({ page: 1 });
+                    }}
+                  >
+                    {value}
+                  </button>
+                ))}
                 <button
-                  key={f.id}
                   type="button"
-                  role="tab"
-                  aria-selected={facet === f.id}
-                  className={facet === f.id ? "segmented-option is-active" : "segmented-option"}
+                  className="filter-chip"
                   onClick={() => {
-                    setFacet(f.id);
-                    setView("grouped");
+                    setBrowseDirection(browseDirection === "desc" ? "asc" : "desc");
                     setResult(null);
-                    submit({ facet: f.id, view: "grouped" });
+                    void run();
                   }}
+                  aria-label="Toggle sort direction"
                 >
-                  {f.label}
+                  {browseDirection === "desc" ? "↓ desc" : "↑ asc"}
                 </button>
-              ))}
-            </div>
+              </div>
+            ) : null}
+
+            {panel === "search-sort" ? (
+              <div className="chip-group" role="group" aria-label="Sort field">
+                {(["score", "year", "runtime"] as RankedSort[]).map((value) => (
+                  <button
+                    type="button"
+                    key={value}
+                    className={`filter-chip${rankedSort === value ? " is-active" : ""}`}
+                    aria-pressed={rankedSort === value}
+                    onClick={() => {
+                      setRankedSort(value);
+                      setResult(null);
+                      void run();
+                    }}
+                  >
+                    {value === "score" ? "relevance" : value}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <div className="toolbar-right">
@@ -411,136 +814,68 @@ export function MovieDiscoveryPage() {
               type="button"
               className={`filter-chip${maxRuntime !== null ? " is-active" : ""}`}
               aria-pressed={maxRuntime !== null}
-              disabled={!ready || loading}
+              disabled={!ready}
               onClick={() => {
-                const next = maxRuntime === null ? 120 : null;
-                setMaxRuntime(next);
+                setMaxRuntime(maxRuntime === null ? 120 : null);
                 setResult(null);
-                setError(null);
-                runSearch({
-                  query: query.trim(),
-                  view,
-                  facet,
-                  limit: 12,
-                  max_runtime: next,
-                })
-                  .then(setResult)
-                  .catch(() => undefined);
+                void run();
               }}
             >
               Under 120 min
             </button>
-            <div className="segmented" role="tablist" aria-label="View">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={view === "grouped"}
-                className={view === "grouped" ? "segmented-option is-active" : "segmented-option"}
-                onClick={() => {
-                  setView("grouped");
-                  setResult(null);
-                  submit({ view: "grouped" });
-                }}
-              >
-                Grouped
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={view === "list"}
-                className={view === "list" ? "segmented-option is-active" : "segmented-option"}
-                onClick={() => {
-                  setView("list");
-                  setResult(null);
-                  submit({ view: "list" });
-                }}
-              >
-                List
-              </button>
-            </div>
           </div>
         </div>
-
-        {error ? (
-          <p className="movie-error" role="alert">
-            {error}
-          </p>
-        ) : null}
       </section>
 
+      <PanelMatrix active={panel} onSelect={selectPanel} />
+
+      <ContractBar panel={meta} result={result} />
+
+      {error ? (
+        <p className="movie-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+
       <section className="movie-results" aria-live="polite">
-        {!result && !loading ? (
-          <div className="movie-empty-state">
-            <h2>Describe a movie, explore by facet.</h2>
-          </div>
-        ) : null}
         {loading ? (
           <div className="movie-empty-state" role="status">
-            <h2>Searching…</h2>
+            <h2>Running {meta.subtitle}…</h2>
+          </div>
+        ) : null}
+        {!loading && !result && !error ? (
+          <div className="movie-empty-state">
+            <h2>{meta.hint}</h2>
           </div>
         ) : null}
 
-        {result && result.view === "grouped" ? (
-          <GroupedView result={result} facet={facet} />
+        {result && result.api === "query" && result.mode === "sort" ? (
+          <BrowsePanel
+            result={result}
+            onPage={(page) => {
+              setBrowsePage(page);
+              void run({ page });
+            }}
+          />
         ) : null}
-        {result && result.view === "list" ? <ListView result={result} /> : null}
+        {result && result.api === "query" && result.mode === "group" ? (
+          <ExactPanel result={result} />
+        ) : null}
+        {result && result.api === "search" && result.mode === "sort" ? (
+          <RankedPanel result={result} />
+        ) : null}
+        {result && result.api === "search" && result.mode === "group" ? (
+          <ApproxPanel result={result} />
+        ) : null}
       </section>
 
       <footer className="movie-footer">
-        <span>
-          {result
-            ? `Showing ${result.retained_candidate_count} retained candidates${
-                result.view === "grouped"
-                  ? ` across ${result.grouped.buckets.length} groups`
-                  : ""
-              }. Statistics cover retained candidates only.`
-            : "Statistics cover retained candidates only."}
-        </span>
+        <span>{result ? result.semantics : meta.hint}</span>
         <span className="footer-faint">
-          Fictional films · AI-generated synthetic posters · Concept data
+          Fictional films · AI-generated synthetic posters
           {status ? ` · ${status.poster_count}/${status.movie_count} posters` : ""}
         </span>
       </footer>
     </main>
-  );
-}
-
-function GroupedView({ result, facet }: { result: SearchResponse; facet: Facet }) {
-  return (
-    <div className="grouped-grid">
-      {result.grouped.buckets.map((bucket) => (
-        <section className="bucket-panel" key={bucket.key}>
-          <header className="bucket-head">
-            <span className="bucket-title">{bucket.key}</span>
-            <span className="bucket-count">{bucket.count} candidates</span>
-          </header>
-          <div className="bucket-cards">
-            {bucket.candidates.map((movie) => (
-              <MovieCard key={movie.movie_id} movie={movie} facet={facet} />
-            ))}
-            {bucket.candidates.length === 0 ? (
-              <p className="bucket-empty">No candidates retained.</p>
-            ) : null}
-          </div>
-        </section>
-      ))}
-      {result.grouped.buckets.length === 0 ? (
-        <div className="movie-empty-state">
-          <h2>No groups matched this query.</h2>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function ListView({ result }: { result: SearchResponse }) {
-  return (
-    <ol className="list-view">
-      {result.list.results.map((movie) => (
-        <li key={movie.movie_id}>
-          <MovieCard movie={movie} facet="genre" />
-        </li>
-      ))}
-    </ol>
   );
 }

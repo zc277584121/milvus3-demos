@@ -3,16 +3,27 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
 from movie_discovery_demo.config import (
     AGG_TOP_HITS_SIZE,
+    BROWSE_MAX_PAGE_SIZE,
+    BROWSE_PAGE_SIZE,
+    BROWSE_SORT_DIRECTIONS,
+    BROWSE_SORT_FIELDS,
+    DEFAULT_BROWSE_DIRECTION,
+    DEFAULT_BROWSE_SORT,
+    DEFAULT_EXACT_METRICS,
     DEFAULT_FACET,
+    DEFAULT_RANKED_SORT,
     DEFAULT_TOP_K,
+    EXACT_METRICS,
     FACET_FIELDS,
     MAX_RUNTIME_FILTER,
     MAX_TOP_K,
+    RANKED_SORT_FIELDS,
     RuntimeConfig,
 )
 from movie_discovery_demo.data import DatasetBundle, build_dataset
@@ -63,7 +74,66 @@ class RepositoryLike(Protocol):
         root_size=6,
     ) -> tuple[GroupedBucket, ...]: ...
 
+    def browse_sorted(
+        self,
+        *,
+        movies_by_id,
+        sort_field,
+        direction,
+        limit,
+        offset,
+        filter=None,
+    ) -> tuple[tuple[object, ...], int]: ...
+
+    def query_aggregate(
+        self,
+        *,
+        facet_field,
+        metric_fields,
+        filter=None,
+    ) -> tuple[dict[str, object], ...]: ...
+
+    def ranked_search(
+        self,
+        *,
+        query_vector,
+        movies_by_id,
+        limit,
+        sort_field=None,
+        direction="desc",
+        filter=None,
+    ) -> tuple[MovieHit, ...]: ...
+
     def cleanup(self) -> dict[str, object]: ...
+
+
+@dataclass(frozen=True)
+class ExploreReport:
+    """One cell of the 2x2 capability matrix.
+
+    `api` is which Milvus entry point ran, `mode` is which capability it
+    exercised. The payload is a discriminated union keyed on those two fields so
+    the page never has to guess which shape it received.
+    """
+
+    api: str
+    mode: str
+    filter: str | None
+    latency_ms: float
+    semantics: str
+    payload: dict[str, object]
+
+    def public_dict(self) -> dict[str, object]:
+        return {
+            "status": "passed",
+            "api": self.api,
+            "mode": self.mode,
+            "filter": self.filter,
+            "latency_ms": round(self.latency_ms, 2),
+            "score_semantics": "COSINE similarity, not a probability",
+            "semantics": self.semantics,
+            **self.payload,
+        }
 
 
 @dataclass(frozen=True)
@@ -135,9 +205,7 @@ class MovieDiscoveryService:
         repository_status = self.repository.status()
         dataset = self._dataset()
         posters_dir = self.config.data_root / "posters"
-        poster_count = (
-            len(list(posters_dir.glob("m*.jpg"))) if posters_dir.is_dir() else 0
-        )
+        poster_count = len(list(posters_dir.glob("m*.jpg"))) if posters_dir.is_dir() else 0
         return {
             "status": "ready" if repository_status.get("collection_exists") else "not_prepared",
             "movie_count": dataset.movie_count,
@@ -292,3 +360,261 @@ class MovieDiscoveryService:
             "milvus": milvus,
             "model_loaded": self.embedder.loaded,
         }
+
+    # ------------------------------------------------------------------
+    # The 2x2 capability matrix
+    # ------------------------------------------------------------------
+    def explore_query_sort(
+        self,
+        *,
+        sort: str = DEFAULT_BROWSE_SORT,
+        direction: str = DEFAULT_BROWSE_DIRECTION,
+        page: int = 1,
+        page_size: int = BROWSE_PAGE_SIZE,
+        max_runtime: int | None = None,
+    ) -> ExploreReport:
+        """query + ORDER BY: an exact, paged listing of the whole catalog."""
+        if sort not in BROWSE_SORT_FIELDS:
+            raise SearchContractError(f"Unknown browse sort: {sort}")
+        if direction not in BROWSE_SORT_DIRECTIONS:
+            raise SearchContractError(f"Unsupported sort direction: {direction}")
+        if page < 1:
+            raise SearchContractError("page must be >= 1")
+        if not 1 <= page_size <= BROWSE_MAX_PAGE_SIZE:
+            raise SearchContractError(f"page_size must be between 1 and {BROWSE_MAX_PAGE_SIZE}")
+        filter_expr = self._resolve_filter(max_runtime)
+        sort_field, sort_label = BROWSE_SORT_FIELDS[sort]
+        offset = (page - 1) * page_size
+
+        started = time.perf_counter()
+        movies, total = self.repository.browse_sorted(
+            movies_by_id=self._movies_map(),
+            sort_field=sort_field,
+            direction=direction,
+            limit=page_size,
+            offset=offset,
+            filter=filter_expr,
+        )
+        elapsed = (time.perf_counter() - started) * 1000.0
+
+        total_pages = max(1, (total + page_size - 1) // page_size)
+        return ExploreReport(
+            api="query",
+            mode="sort",
+            filter=filter_expr,
+            latency_ms=elapsed,
+            semantics=(
+                "Server-side ORDER BY over the whole catalog; no vector is used. "
+                "This is a strict sort that also returns a paged listing and an "
+                "exact total, which a search-path sort cannot do."
+            ),
+            payload={
+                "sort": sort,
+                "sort_field": sort_field,
+                "sort_label": sort_label,
+                "direction": direction,
+                "page": page,
+                "page_size": page_size,
+                "total_pages": total_pages,
+                "total": total,
+                "results": [
+                    {
+                        "movie_id": movie.movie_id,
+                        "title": movie.title,
+                        "synopsis": movie.synopsis,
+                        "primary_genre": movie.primary_genre,
+                        "release_year": movie.release_year,
+                        "decade": movie.decade,
+                        "region": movie.region,
+                        "runtime_minutes": movie.runtime_minutes,
+                        "poster_path": movie.poster_path,
+                        "poster_palette": list(movie.poster_palette),
+                    }
+                    for movie in movies
+                ],
+            },
+        )
+
+    def explore_query_group(
+        self,
+        *,
+        facet: str = DEFAULT_FACET,
+        metrics: Sequence[str] = DEFAULT_EXACT_METRICS,
+        max_runtime: int | None = None,
+    ) -> ExploreReport:
+        """query + GROUP BY: exact aggregates over the whole catalog."""
+        facet = self._resolve_facet(facet)
+        if not metrics:
+            raise SearchContractError("At least one metric is required")
+        unknown = [name for name in metrics if name not in EXACT_METRICS]
+        if unknown:
+            raise SearchContractError(f"Unknown metrics: {', '.join(unknown)}")
+        filter_expr = self._resolve_filter(max_runtime)
+        facet_field = FACET_FIELDS[facet][0]
+        metric_fields = [EXACT_METRICS[name][0] for name in metrics]
+
+        started = time.perf_counter()
+        rows = self.repository.query_aggregate(
+            facet_field=facet_field,
+            metric_fields=metric_fields,
+            filter=filter_expr,
+        )
+        elapsed = (time.perf_counter() - started) * 1000.0
+
+        groups = []
+        for row in rows:
+            values = row.get("values") or {}
+            cells = {}
+            for name in metrics:
+                raw = values.get(EXACT_METRICS[name][0])
+                # Aggregates come back as numpy scalars or averages; normalise
+                # to JSON-safe numbers, keeping integers integral.
+                if raw is None:
+                    cells[name] = None
+                elif isinstance(raw, float) and raw.is_integer():
+                    cells[name] = int(raw)
+                elif isinstance(raw, float):
+                    cells[name] = round(raw, 2)
+                else:
+                    cells[name] = raw
+            groups.append({"key": row.get("key"), "metrics": cells})
+
+        return ExploreReport(
+            api="query",
+            mode="group",
+            filter=filter_expr,
+            latency_ms=elapsed,
+            semantics=(
+                "GROUP BY with count/sum/avg/min/max runs over the entire match "
+                "set, so these figures are exact. Each group carries aggregates "
+                "only; it does not retrieve individual films."
+            ),
+            payload={
+                "facet": facet,
+                "facet_field": facet_field,
+                "metrics": [
+                    {"id": name, "field": EXACT_METRICS[name][0], "label": EXACT_METRICS[name][1]}
+                    for name in metrics
+                ],
+                "groups": groups,
+                "group_count": len(groups),
+            },
+        )
+
+    def explore_search_sort(
+        self,
+        *,
+        query: str,
+        sort: str = DEFAULT_RANKED_SORT,
+        direction: str = "desc",
+        limit: int = DEFAULT_TOP_K,
+        max_runtime: int | None = None,
+    ) -> ExploreReport:
+        """search + ORDER BY: re-order the retained top-K only."""
+        if sort not in RANKED_SORT_FIELDS:
+            raise SearchContractError(f"Unknown ranked sort: {sort}")
+        resolved_query = self._resolve_query(query)
+        resolved_limit = self._resolve_limit(limit)
+        filter_expr = self._resolve_filter(max_runtime)
+
+        started = time.perf_counter()
+        vectors, _ = self.embedder.embed([resolved_query])
+        embed_ms = (time.perf_counter() - started) * 1000.0
+
+        search_started = time.perf_counter()
+        if sort == "score":
+            hits = self.repository.ranked_search(
+                query_vector=vectors[0],
+                movies_by_id=self._movies_map(),
+                limit=resolved_limit,
+                filter=filter_expr,
+            )
+        else:
+            sort_field = RANKED_SORT_FIELDS[sort][0]
+            hits = self.repository.ranked_search(
+                query_vector=vectors[0],
+                movies_by_id=self._movies_map(),
+                limit=resolved_limit,
+                sort_field=sort_field,
+                direction=direction,
+                filter=filter_expr,
+            )
+        elapsed = (time.perf_counter() - search_started) * 1000.0 + embed_ms
+
+        scores = [round(hit.score, 4) for hit in hits]
+        monotonic = all(a >= b for a, b in zip(scores, scores[1:], strict=False))
+        sort_field, sort_label = RANKED_SORT_FIELDS[sort]
+
+        return ExploreReport(
+            api="search",
+            mode="sort",
+            filter=filter_expr,
+            latency_ms=elapsed,
+            semantics=(
+                "The vector search retains a fixed top-K and the scalar sort "
+                "only re-orders those retained hits: the candidate set is "
+                "unchanged. This is a strict sort, not a blended score, and it "
+                "cannot produce a sorted list of every match."
+            ),
+            payload={
+                "query": resolved_query,
+                "sort": sort,
+                "sort_field": sort_field,
+                "sort_label": sort_label,
+                "direction": direction,
+                "limit": resolved_limit,
+                "retained_candidate_count": len(hits),
+                "score_monotonic": monotonic,
+                "results": [hit.public_dict() for hit in hits],
+            },
+        )
+
+    def explore_search_group(
+        self,
+        *,
+        query: str,
+        facet: str = DEFAULT_FACET,
+        limit: int = DEFAULT_TOP_K,
+        max_runtime: int | None = None,
+    ) -> ExploreReport:
+        """search + aggregation: facet buckets with metrics and best hits."""
+        facet = self._resolve_facet(facet)
+        resolved_query = self._resolve_query(query)
+        resolved_limit = self._resolve_limit(limit)
+        filter_expr = self._resolve_filter(max_runtime)
+        facet_field = FACET_FIELDS[facet][0]
+
+        started = time.perf_counter()
+        vectors, _ = self.embedder.embed([resolved_query])
+        embed_ms = (time.perf_counter() - started) * 1000.0
+
+        search_started = time.perf_counter()
+        buckets = self.repository.aggregated_search_with_metrics(
+            query_vector=vectors[0],
+            movies_by_id=self._movies_map(),
+            facet=facet,
+            filter=filter_expr,
+        )
+        elapsed = (time.perf_counter() - search_started) * 1000.0 + embed_ms
+        retained = sum(int(bucket["count"]) for bucket in buckets)
+
+        return ExploreReport(
+            api="search",
+            mode="group",
+            filter=filter_expr,
+            latency_ms=elapsed,
+            semantics=(
+                "Facet buckets are built over the candidates retained during "
+                "vector retrieval, so counts are approximate: each bucket can "
+                "only hold as many retained hits as its TopHits budget. Use the "
+                "query aggregation cell for exact figures."
+            ),
+            payload={
+                "query": resolved_query,
+                "facet": facet,
+                "facet_field": facet_field,
+                "limit": resolved_limit,
+                "retained_candidate_count": retained,
+                "buckets": buckets,
+            },
+        )

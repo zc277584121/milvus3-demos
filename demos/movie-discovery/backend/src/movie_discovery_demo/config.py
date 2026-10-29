@@ -50,11 +50,68 @@ GENRES = (
 # Search Aggregation budget: the maximum TopHits.size decides each full group
 # key's candidate budget. Keeping it modest keeps groups scannable.
 AGG_TOP_HITS_SIZE = 3
-AGG_ROOT_SIZE = 6
+AGG_ROOT_SIZE = 10
 DEFAULT_TOP_K = 12
 MAX_TOP_K = 20
 
 MAX_RUNTIME_FILTER = 120
+
+# ---------------------------------------------------------------------------
+# The 2x2 capability matrix. Each cell is one (api, mode) pair:
+#
+#            sort                              group
+#   query    server-side ORDER BY over the      GROUP BY with exact aggregate
+#            whole catalog (no vector)         functions (no vector)
+#   search   re-orders the retained top-K       facet buckets carrying metrics
+#            only (candidate set unchanged)    and best-matching hits
+#
+# These are deliberately separate code paths so the page can state each cell's
+# statistical contract without blurring them together.
+# ---------------------------------------------------------------------------
+PANEL_APIS = ("query", "search")
+PANEL_MODES = ("sort", "group")
+
+# query+sort: server-side ORDER BY. `movie_id` is appended as a tiebreaker so
+# offset pagination stays deterministic when the sort key has duplicate values.
+BROWSE_SORT_FIELDS = {
+    "year": ("release_year", "Year"),
+    "runtime": ("runtime_minutes", "Runtime"),
+    "title": ("title", "Title"),
+}
+DEFAULT_BROWSE_SORT = "year"
+BROWSE_SORT_DIRECTIONS = ("asc", "desc")
+DEFAULT_BROWSE_DIRECTION = "desc"
+BROWSE_PAGE_SIZE = 12
+BROWSE_MAX_PAGE_SIZE = 50
+# Always-appended secondary key; guarantees a total order for pagination.
+BROWSE_TIEBREAK_FIELD = "movie_id"
+
+# search+sort: which scalar the retained top-K is re-ordered by. "score" is the
+# untouched relevance order and therefore the honest baseline for comparison.
+RANKED_SORT_FIELDS = {
+    "score": ("distance", "Relevance"),
+    "year": ("release_year", "Year"),
+    "runtime": ("runtime_minutes", "Runtime"),
+}
+DEFAULT_RANKED_SORT = "score"
+
+# query+group: exact aggregate functions. `group_by_fields` (plural) is required
+# for pymilvus to aggregate per group; the singular form silently ignores them.
+EXACT_METRICS = {
+    "count": ("count(*)", "Count"),
+    "avg_runtime": ("avg(runtime_minutes)", "Avg runtime"),
+    "min_year": ("min(release_year)", "Earliest"),
+    "max_year": ("max(release_year)", "Latest"),
+    "sum_runtime": ("sum(runtime_minutes)", "Total runtime"),
+}
+DEFAULT_EXACT_METRICS = ("count", "avg_runtime", "min_year", "max_year")
+
+# search+group: approximate per-bucket metrics computed over retained hits only.
+# Shape is pymilvus' own {alias: {aggregate_op: field_name}}.
+APPROX_METRICS = {
+    "avg_runtime": {"avg": "runtime_minutes"},
+    "max_year": {"max": "release_year"},
+}
 
 MODEL_ID = "gpahal/bge-m3-onnx-int8"
 MODEL_REVISION = "2b34e84df040034d4b9eabb62383a87c18955822"

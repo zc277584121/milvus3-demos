@@ -507,3 +507,398 @@
 .footer-faint {
   color: var(--mv-faint);
 }
+
+/* -------------------------------------------------- 2x2 capability matrix */
+
+.matrix {
+  display: grid;
+  grid-template-columns: 72px 1fr 1fr;
+  grid-template-rows: 22px 1fr 1fr;
+  gap: 8px;
+  margin: 0 0 16px;
+  align-items: stretch;
+}
+.matrix-corner {
+  grid-column: 1;
+  grid-row: 1;
+}
+.matrix-head {
+  grid-row: 1;
+  font-size: var(--mv-font-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mv-text-faint);
+  align-self: end;
+  text-align: center;
+}
+.matrix-row-label {
+  grid-column: 1;
+  font-size: var(--mv-font-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mv-text-faint);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 4px;
+}
+.matrix-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--mv-line);
+  border-radius: var(--mv-radius-md);
+  background: var(--mv-surface);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.matrix-cell:hover {
+  border-color: var(--mv-cyan);
+}
+.matrix-cell.is-active {
+  border-color: var(--mv-brand-strong);
+  box-shadow: inset 0 0 0 1px var(--mv-brand-strong);
+}
+.matrix-cell-api {
+  font-size: var(--mv-font-sm);
+  color: var(--mv-text-faint);
+  font-family: var(--mv-font-mono, ui-monospace, monospace);
+}
+.matrix-cell-mode {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--mv-text, #0f172a);
+}
+
+/* ------------------------------------------------------------- contract bar */
+
+.contract {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  margin: 0 0 16px;
+  border-left: 3px solid var(--mv-cyan);
+  background: var(--mv-surface-alt, rgba(148, 163, 184, 0.08));
+  border-radius: var(--mv-radius-sm);
+  font-size: var(--mv-font-sm);
+}
+.contract-tag {
+  font-family: var(--mv-font-mono, ui-monospace, monospace);
+  font-weight: 700;
+  color: var(--mv-brand-strong);
+  white-space: nowrap;
+}
+.contract-text {
+  color: var(--mv-text-muted, #475569);
+  flex: 1;
+  min-width: 240px;
+}
+.contract-meta {
+  color: var(--mv-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------- panel body */
+
+.panel-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  font-size: var(--mv-font-sm);
+  color: var(--mv-text-muted, #475569);
+}
+.panel-count {
+  color: var(--mv-text-faint);
+}
+
+/* browse table */
+
+.browse-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--mv-line);
+  border-radius: var(--mv-radius-md);
+  overflow: hidden;
+}
+.browse-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 2.2fr) 62px 76px 1fr 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 12px;
+  border-top: 1px solid var(--mv-line);
+  font-size: var(--mv-font-sm);
+}
+.browse-row:first-child {
+  border-top: none;
+}
+.browse-row-head {
+  background: var(--mv-surface-alt, rgba(148, 163, 184, 0.1));
+  font-weight: 700;
+  color: var(--mv-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.68rem;
+}
+.browse-index {
+  color: var(--mv-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.browse-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.browse-title .poster {
+  width: 28px;
+  flex: 0 0 28px;
+}
+.browse-title > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 12px;
+}
+.pager-button {
+  padding: 6px 12px;
+  border: 1px solid var(--mv-line);
+  border-radius: var(--mv-radius-sm);
+  background: var(--mv-surface);
+  cursor: pointer;
+  font-size: var(--mv-font-sm);
+}
+.pager-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.pager-status {
+  font-size: var(--mv-font-sm);
+  color: var(--mv-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* exact aggregate table */
+
+.exact-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--mv-line);
+  border-radius: var(--mv-radius-md);
+  overflow: hidden;
+}
+.exact-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--mv-line);
+  font-size: var(--mv-font-sm);
+}
+.exact-row:first-child {
+  border-top: none;
+}
+.exact-row-head {
+  background: var(--mv-surface-alt, rgba(148, 163, 184, 0.1));
+  font-weight: 700;
+  color: var(--mv-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.68rem;
+}
+.exact-key {
+  font-weight: 700;
+}
+.exact-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ranked list + bucket metrics */
+
+.ranked-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bucket-metrics {
+  display: flex;
+  gap: 12px;
+  padding: 0 12px 8px;
+  font-size: 0.72rem;
+  color: var(--mv-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------- accessibility/design fixes */
+
+/* Run is the primary action: give it real presence and match the input height. */
+.run-button {
+  min-height: 42px;
+  padding: 0 22px;
+  border: none;
+  border-radius: var(--mv-radius-sm);
+  background: var(--mv-brand-strong, #1d4ed8);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+  transition: filter 120ms ease;
+}
+.run-button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.run-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Chip rows read as segmented controls, not a run of touching pills. */
+.chip-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.chip-group .filter-chip {
+  margin: 0;
+}
+
+/* Tighten the top half so results enter the first screen sooner. */
+.matrix {
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.matrix-cell {
+  padding: 9px 12px;
+}
+.contract {
+  padding: 6px 10px;
+  margin-bottom: 12px;
+}
+.movie-results {
+  margin-top: 4px;
+}
+
+/* Ranked rows: compact horizontal rows instead of tall sparse cards. */
+.ranked-list .movie-card {
+  grid-template-columns: 56px minmax(0, 1fr) 78px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+}
+.ranked-list .movie-card-meta {
+  /* keep title/subline grouped left, score alone at the far right */
+  justify-self: start;
+  width: 100%;
+}
+.ranked-list .poster {
+  width: 56px;
+}
+.ranked-list .movie-card-meta {
+  gap: 2px;
+}
+.ranked-list .movie-score {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--mv-text, #0f172a);
+  font-weight: 700;
+  white-space: nowrap;
+  justify-self: end;
+  text-align: right;
+}
+.ranked-list .movie-score::before {
+  content: "score ";
+  font-weight: 500;
+  color: var(--mv-text-faint);
+}
+
+/* Approximate buckets: narrower posters so titles stop wrapping mid-phrase. */
+.bucket-cards .movie-card {
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 10px;
+}
+.bucket-cards .poster {
+  width: 68px;
+}
+.bucket-cards .movie-title {
+  font-size: 0.88rem;
+  line-height: 1.25;
+}
+.bucket-cards .movie-subline {
+  font-size: 0.72rem;
+}
+.bucket-panel {
+  background: var(--mv-surface);
+}
+
+/* Numeric columns: right-aligned, tabular, so groups are comparable by eye. */
+.exact-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.exact-row-head span:not(:first-child) {
+  text-align: right;
+}
+/* Columns: 1 index, 2 title, 3 year, 4 runtime, 5 genre, 6 region.
+   Only the two numeric columns are right-aligned; text columns stay left. */
+.browse-row span:nth-child(3),
+.browse-row span:nth-child(4),
+.browse-row-head span:nth-child(3),
+.browse-row-head span:nth-child(4) {
+  text-align: right;
+}
+
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  border-radius: 999px;
+  background: var(--mv-surface-alt, rgba(148, 163, 184, 0.18));
+  color: var(--mv-text-faint);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+.movie-title {
+  align-items: flex-start;
+}
+.rank-title {
+  min-width: 0;
+}
+.bucket-cards .movie-card {
+  grid-template-columns: 68px minmax(0, 1fr);
+}
+.bucket-cards .movie-score {
+  display: none;
+}
+
+/* Ranked rows: the title must hug the rank badge, not spread to the row edge. */
+.ranked-list .movie-title {
+  justify-content: flex-start;
+  gap: 0;
+  width: 100%;
+}
+.ranked-list .movie-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
