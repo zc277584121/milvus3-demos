@@ -57,9 +57,7 @@ class FakeRepository:
             MilvusHit(
                 doc_id="river-weekend-003.txt", title="t", content=light_edits, distance=0.94
             ),
-            MilvusHit(
-                doc_id="river-weekend-001.txt", title="t", content=original, distance=0.87
-            ),
+            MilvusHit(doc_id="river-weekend-001.txt", title="t", content=original, distance=0.87),
         )
 
     def cleanup(self):

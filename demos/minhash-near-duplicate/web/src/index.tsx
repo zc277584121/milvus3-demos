@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
 import "./styles.css";
 
@@ -162,8 +168,110 @@ function scoreLabel(similarity: number): string {
 // same value. That Milvus value is shown verbatim as the anchor.
 // ---------------------------------------------------------------------------
 
-const TRIAL_TARGET = 256;
+// These mirror the fixed MinHash configuration the backend builds the
+// collection with (num_hashes=256, mh_lsh_band=64). The explainer keeps them
+// in sync so the bands it draws correspond to the real index shape:
+// 256 slots / 64 bands = 4 hashes per band.
+// Mirrors the backend's DEFAULT_THRESHOLD so the slider starts where the API does.
+const DEFAULT_THRESHOLD = 0.5;
+
+const NUM_HASHES = 256;
+const LSH_BAND_COUNT = 64;
+const HASHES_PER_BAND = NUM_HASHES / LSH_BAND_COUNT;
 const TRIAL_INTERVAL_MS = 24;
+
+// Real Milvus calls behind each step, shown on hover.
+type MilvusStep = "function" | "index" | "search";
+
+const MILVUS_CODE: Record<MilvusStep, string> = {
+  function: `schema.add_field("content", DataType.VARCHAR, max_length=2000,
+                 enable_analyzer=True)
+schema.add_field("minhash_signature", DataType.BINARY_VECTOR, dim=8192)
+
+schema.add_function(Function(
+    function_type=FunctionType.MINHASH,
+    input_field_names=["content"],
+    output_field_names=["minhash_signature"],
+    params={
+        "num_hashes": 256,        # 32 * 256 = 8192
+        "shingle_size": 1,
+        "hash_function": "xxhash",
+        "token_level": "word",
+    },
+))`,
+  index: `indexes.add_index(
+    field_name="minhash_signature",
+    index_type="MINHASH_LSH",
+    metric_type="MHJACCARD",
+    params={
+        "mh_element_bit_width": 32,
+        "mh_lsh_band": 64,        # 256 slots / 64 = 4 per band
+        "with_raw_data": True,    # keep signatures for refine
+    },
+)`,
+  search: `hits = client.search(
+    collection_name="milvus3_demos_minhash_near_duplicate",
+    data=[query_text],            # raw text, not a vector
+    anns_field="minhash_signature",
+    search_params={
+        "metric_type": "MHJACCARD",
+        "params": {
+            "mh_search_with_jaccard": True,
+            "refine_k": 10,
+        },
+    },
+    limit=10,
+)
+# hits[0][i]["distance"] IS the estimated Jaccard`,
+};
+
+// Minimal Python syntax highlighting for the hover overlay. Kept small on
+// purpose: enough color to read as code, not a full parser.
+const PY_TOKEN =
+  /(#[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(\b(?:from|import|def|return|True|False|None)\b)|(\b(?:FunctionType|DataType|Function|MINHASH|MINHASH_LSH|MHJACCARD|BINARY_VECTOR|VARCHAR)\b)|(\b\d+(?:\.\d+)?\b)|(\b[a-z_][a-z0-9_]*(?=\())|(\b[a-z_][a-z0-9_]*(?=\s*=))/g;
+
+function highlightPython(code: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  let last = 0;
+  for (const match of code.matchAll(PY_TOKEN)) {
+    const index = match.index ?? 0;
+    if (index > last) {
+      nodes.push(code.slice(last, index));
+    }
+    const [, comment, str, keyword, enumName, num, fn, param] = match;
+    let className = "";
+    if (comment) {
+      className = "py-comment";
+    } else if (str) {
+      className = "py-string";
+    } else if (keyword) {
+      className = "py-keyword";
+    } else if (enumName) {
+      className = "py-enum";
+    } else if (num) {
+      className = "py-number";
+    } else if (fn) {
+      className = "py-func";
+    } else if (param) {
+      className = "py-param";
+    }
+    const text = match[0];
+    nodes.push(
+      className ? (
+        <span key={index} className={className}>
+          {text}
+        </span>
+      ) : (
+        text
+      ),
+    );
+    last = index + text.length;
+  }
+  if (last < code.length) {
+    nodes.push(code.slice(last));
+  }
+  return nodes;
+}
 
 function shingles(text: string): string[] {
   // Word-level, punctuation-stripped, lowercased — mirrors the standard
@@ -186,71 +294,117 @@ function shingles(text: string): string[] {
   return result;
 }
 
-// Mulberry32: a tiny seeded PRNG so the ordering is reproducible within a
-// session but still a real random permutation of the vocabulary.
-function mulberry32(seed: number): () => number {
-  let state = seed >>> 0;
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+// FNV-1a over UTF-16 code units, seeded per signature slot. This is the
+// explainer's stand-in for Milvus's xxhash: one hash function per slot, so
+// every slot induces a different "random ordering" of the same words.
+function fnv1a(seed: number, word: string): number {
+  let hash = (0x811c9dc5 ^ seed) >>> 0;
+  for (let i = 0; i < word.length; i += 1) {
+    hash ^= word.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
 }
 
-function shuffle<T>(items: readonly T[], rand: () => number): T[] {
-  const copy = items.slice();
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(rand() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
+interface ScoredWord {
+  word: string;
+  hash: number;
 }
 
 interface MinHashTrial {
-  // The shuffled vocabulary shown in the current trial (a short prefix).
-  ordering: string[];
-  // First word of the ordering that belongs to the query / candidate set.
-  queryPick: string | null;
-  candidatePick: string | null;
+  // 0-based slot index this trial fills in the signature.
+  slotIndex: number;
+  // The vocabulary ordered by this slot's hash — the "random ordering".
+  ordering: ScoredWord[];
+  // First word of that ordering belonging to each set = the set's minimum hash.
+  queryPick: ScoredWord | null;
+  candidatePick: ScoredWord | null;
   collision: boolean;
 }
 
-function runTrial(
+// One MinHash computation: hash every word, sort ascending, and take the first
+// word each document contains. That word's hash is the slot value, which is
+// literally the "minimum hash over the set" definition of MinHash.
+export function runTrial(
   querySet: Set<string>,
   candidateSet: Set<string>,
   vocabulary: readonly string[],
-  rand: () => number,
+  slotIndex: number,
 ): MinHashTrial {
-  const ordering = shuffle(vocabulary, rand);
-  let queryPick: string | null = null;
-  let candidatePick: string | null = null;
-  for (const word of ordering) {
-    if (queryPick === null && querySet.has(word)) {
-      queryPick = word;
+  const seed = (slotIndex + 1) * 0x9e3779b9;
+  const ordering = vocabulary
+    .map((word) => ({ word, hash: fnv1a(seed, word) }))
+    .sort((a, b) => a.hash - b.hash);
+
+  let queryPick: ScoredWord | null = null;
+  let candidatePick: ScoredWord | null = null;
+  for (const entry of ordering) {
+    if (queryPick === null && querySet.has(entry.word)) {
+      queryPick = entry;
     }
-    if (candidatePick === null && candidateSet.has(word)) {
-      candidatePick = word;
+    if (candidatePick === null && candidateSet.has(entry.word)) {
+      candidatePick = entry;
     }
     if (queryPick !== null && candidatePick !== null) {
       break;
     }
   }
+
   return {
+    slotIndex,
     ordering,
     queryPick,
     candidatePick,
-    collision: queryPick !== null && queryPick === candidatePick,
+    collision:
+      queryPick !== null &&
+      candidatePick !== null &&
+      queryPick.hash === candidatePick.hash,
   };
+}
+
+function formatSlotValue(value: number): string {
+  return `0x${value.toString(16).padStart(8, "0")}`;
+}
+
+interface BandState {
+  index: number;
+  // How many of the band's slots have been computed so far.
+  filled: number;
+  // Whether every slot in the band collided (only meaningful when complete).
+  hit: boolean;
+  complete: boolean;
+}
+
+// Group the flat slot results into LSH bands, mirroring Milvus's
+// `mh_lsh_band` / signature-dimension split. A band "hits" only when every one
+// of its slots is a collision; one hit is enough to become a candidate.
+export function buildBands(
+  slotCollisions: readonly boolean[],
+  bandCount: number,
+  hashesPerBand: number,
+): BandState[] {
+  return Array.from({ length: bandCount }, (_, index) => {
+    const start = index * hashesPerBand;
+    const slice = slotCollisions.slice(start, start + hashesPerBand);
+    const filled = slice.length;
+    const complete = filled === hashesPerBand;
+    return {
+      index,
+      filled,
+      complete,
+      hit: complete && slice.every(Boolean),
+    };
+  });
 }
 
 function HowMinHashWorks({
   query,
   selectedResult,
+  latencyMs,
 }: {
   query: string;
   selectedResult: SearchResult | null;
+  latencyMs: number | null;
 }) {
   const queryShingles = useMemo(() => shingles(query), [query]);
   const candidateShingles = useMemo(
@@ -281,82 +435,95 @@ function HowMinHashWorks({
 
   const vocabulary = useMemo(() => [...union], [union]);
 
-  const [trials, setTrials] = useState(0);
-  const [collisions, setCollisions] = useState(0);
+  // `slotCollisions[i]` records whether slot i collided. It is both the
+  // signature (one bit per hash) and the raw material for the band view.
+  const [slotCollisions, setSlotCollisions] = useState<boolean[]>([]);
   const [current, setCurrent] = useState<MinHashTrial | null>(null);
   const [running, setRunning] = useState(false);
+  const [hoveredStep, setHoveredStep] = useState<MilvusStep | null>(null);
+
+  const trials = slotCollisions.length;
+  const collisions = useMemo(
+    () => slotCollisions.filter(Boolean).length,
+    [slotCollisions],
+  );
 
   // Reset the simulation whenever the compared pair changes.
   useEffect(() => {
-    setTrials(0);
-    setCollisions(0);
+    setSlotCollisions([]);
     setCurrent(null);
     setRunning(false);
   }, [query, selectedResult?.doc_id]);
 
-  // Continuous run: one trial per tick until the target count is reached.
+  const advance = useCallback(() => {
+    setSlotCollisions((prev) => {
+      if (prev.length >= NUM_HASHES) {
+        return prev;
+      }
+      const next = runTrial(querySet, candidateSet, vocabulary, prev.length);
+      setCurrent(next);
+      return [...prev, next.collision];
+    });
+  }, [querySet, candidateSet, vocabulary]);
+
+  // Continuous run: one slot per tick until the signature is full.
   useEffect(() => {
     if (!running) {
       return;
     }
     const id = window.setInterval(() => {
-      setTrials((prev) => {
-        const next = prev + 1;
-        const rand = mulberry32(next * 0x9e3779b9 + 1);
-        const trial = runTrial(querySet, candidateSet, vocabulary, rand);
-        setCurrent(trial);
-        if (trial.collision) {
-          setCollisions((c) => c + 1);
+      setSlotCollisions((prev) => {
+        if (prev.length >= NUM_HASHES) {
+          setRunning(false);
+          return prev;
         }
-        if (next >= TRIAL_TARGET) {
+        const next = runTrial(querySet, candidateSet, vocabulary, prev.length);
+        setCurrent(next);
+        if (prev.length + 1 >= NUM_HASHES) {
           setRunning(false);
         }
-        return next;
+        return [...prev, next.collision];
       });
     }, TRIAL_INTERVAL_MS);
     return () => window.clearInterval(id);
   }, [running, querySet, candidateSet, vocabulary]);
 
-  const stepOnce = useCallback(() => {
-    setTrials((prev) => {
-      const next = prev + 1;
-      const rand = mulberry32(next * 0x9e3779b9 + 1);
-      const trial = runTrial(querySet, candidateSet, vocabulary, rand);
-      setCurrent(trial);
-      if (trial.collision) {
-        setCollisions((c) => c + 1);
-      }
-      return next;
-    });
-  }, [querySet, candidateSet, vocabulary]);
-
   const reset = useCallback(() => {
-    setTrials(0);
-    setCollisions(0);
+    setSlotCollisions([]);
     setCurrent(null);
     setRunning(false);
   }, []);
 
-  const collisionRate = trials > 0 ? collisions / trials : 0;
-  const milvusValue = selectedResult?.estimated_jaccard ?? null;
+  const bands = useMemo(
+    () => buildBands(slotCollisions, LSH_BAND_COUNT, HASHES_PER_BAND),
+    [slotCollisions],
+  );
+  const decidedBands = bands.filter((band) => band.complete).length;
+  const hitBands = bands.filter((band) => band.hit).length;
+  const isCandidate = hitBands > 0;
+
+  const filled = slotCollisions.length;
 
   return (
     <section className="under-hood" data-testid="under-the-hood">
       <header className="under-hood-head">
-        <h2>How MinHash estimates Jaccard similarity</h2>
+        <h2>Inside Milvus: near-duplicate search</h2>
         <span className="under-hood-subtitle">
           {selectedResult
-            ? "One random ordering, one collision check — repeat to converge"
-            : "Run detection to compare two real word sets"}
+            ? "Hover any step for details"
+            : "Run detection to compare two word sets"}
         </span>
       </header>
 
       {selectedResult ? (
-        <div className="minhash-explainer">
-          <div className="explainer-sets">
+        <div className="explainer-split">
+          <div className="split-col app-col">
+            <span className="split-badge app">Your app</span>
+
             <div className="word-set">
               <span className="word-set-label">
-                Incoming text · {queryShingles.length} words
+                <span className="step-num">1</span>
+                Incoming · {queryShingles.length} words
               </span>
               <div className="word-chips">
                 {queryShingles.map((word) => (
@@ -371,137 +538,219 @@ function HowMinHashWorks({
                 ))}
               </div>
             </div>
-            <div className="word-set">
-              <span className="word-set-label">
-                {selectedResult.doc_id} · {candidateShingles.length} words
+
+            <div className="payload">
+              <span className="step-num">2</span>
+              <code>POST /api/v1/search</code>
+              <span className="payload-note">text only</span>
+              <span className="payload-arrow" aria-hidden="true">
+                →
               </span>
-              <div className="word-chips">
-                {candidateShingles.map((word) => (
-                  <span
-                    key={word}
-                    className={`word-chip${
-                      intersection.includes(word) ? " shared" : ""
-                    }`}
-                  >
-                    {word}
+            </div>
+
+            <div className="app-tail">
+              <div className="response-block">
+                <span className="step-num">6</span>
+                <span className="response-label">← response</span>
+                <span className="response-score">
+                  {scoreLabel(selectedResult.estimated_jaccard)}
+                </span>
+                {latencyMs !== null && (
+                  <span className="response-latency">
+                    {Math.round(latencyMs)} ms
                   </span>
-                ))}
+                )}
+              </div>
+
+              <div className="score-pair">
+                <span className="score-pair-item">
+                  true Jaccard <b>{trueJaccard.toFixed(2)}</b>
+                </span>
               </div>
             </div>
           </div>
 
-          <p className="explainer-jaccard">
-            {intersection.length} shared words / {union.size} distinct words ={" "}
-            <strong className="jaccard-value">
-              true Jaccard {trueJaccard.toFixed(2)}
-            </strong>
-          </p>
+          <div className="split-col milvus-col">
+            <span className="split-badge milvus">Milvus 3.0</span>
 
-          <div className="explainer-trial">
-            <div className="trial-head">
-              <span className="trial-title">
-                {current ? `Trial ${trials}` : "Random ordering"}
-              </span>
+            <div
+              className="mstep mstep--linked"
+              onMouseEnter={() => setHoveredStep("function")}
+              onMouseLeave={() => setHoveredStep(null)}
+            >
+              <div className="mstep-head">
+                <span className="step-num">3</span>
+                <span className="mstep-name">FunctionType.MINHASH</span>
+                <span className="mstep-meta">
+                  {filled} / {NUM_HASHES} slots
+                </span>
+              </div>
+
+              <div className="word-set compact">
+                <span className="word-set-label">
+                  Stored · {selectedResult.doc_id}
+                </span>
+                <div className="word-chips">
+                  {candidateShingles.map((word) => (
+                    <span
+                      key={word}
+                      className={`word-chip${
+                        intersection.includes(word) ? " shared" : ""
+                      }`}
+                    >
+                      {word}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="trial-line">
+                {current ? (
+                  <>
+                    <span className="trial-slot">slot {current.slotIndex}</span>
+                    <code className="trial-hash q">
+                      {current.queryPick
+                        ? formatSlotValue(current.queryPick.hash)
+                        : "—"}
+                    </code>
+                    <span
+                      className={`trial-eq${current.collision ? " hit" : " miss"}`}
+                    >
+                      {current.collision ? "=" : "≠"}
+                    </span>
+                    <code className="trial-hash c">
+                      {current.candidatePick
+                        ? formatSlotValue(current.candidatePick.hash)
+                        : "—"}
+                    </code>
+                    <span className="trial-word">
+                      {current.queryPick?.word ?? "—"}
+                    </span>
+                  </>
+                ) : (
+                  <span className="trial-idle">
+                    one hash per slot · smallest wins
+                  </span>
+                )}
+              </div>
+
+              <div className="mstep-controls">
+                <button
+                  className="mini-button primary"
+                  onClick={() => {
+                    if (filled < NUM_HASHES) {
+                      setRunning(true);
+                    }
+                  }}
+                  disabled={running || filled >= NUM_HASHES}
+                  type="button"
+                >
+                  {running ? "Running…" : `▶ Run ${NUM_HASHES} slots`}
+                </button>
+                <button
+                  className="mini-button"
+                  onClick={advance}
+                  disabled={running || filled >= NUM_HASHES}
+                  type="button"
+                >
+                  One slot
+                </button>
+                <button className="mini-button" onClick={reset} type="button">
+                  Reset
+                </button>
+                <span className="mstep-counter">{collisions} matched</span>
+              </div>
+              <div className="fill-bar" aria-hidden="true">
+                <span
+                  className="fill-bar-inner"
+                  style={{ width: `${(filled / NUM_HASHES) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            <div
+              className="mstep mstep--linked"
+              onMouseEnter={() => setHoveredStep("index")}
+              onMouseLeave={() => setHoveredStep(null)}
+            >
+              <div className="mstep-head">
+                <span className="step-num">4</span>
+                <span className="mstep-name">MINHASH_LSH index</span>
+                <span className="mstep-meta">
+                  {hitBands} / {LSH_BAND_COUNT} bands
+                </span>
+              </div>
+
+              <div className="band-grid" data-testid="lsh-bands">
+                {bands.map((band) => (
+                  <span
+                    key={band.index}
+                    className={`band-col${band.complete ? " complete" : ""}${
+                      band.hit ? " hit" : ""
+                    }`}
+                  >
+                    {Array.from({ length: HASHES_PER_BAND }, (_, offset) => {
+                      const value =
+                        slotCollisions[band.index * HASHES_PER_BAND + offset];
+                      const state =
+                        value === undefined ? "" : value ? " match" : " miss";
+                      return <i key={offset} className={`sig-cell${state}`} />;
+                    })}
+                  </span>
+                ))}
+              </div>
+
               <span
-                className={`trial-outcome${
-                  current ? (current.collision ? " hit" : " miss") : ""
+                className={`mstep-verdict${
+                  decidedBands === 0 ? "" : isCandidate ? " hit" : " miss"
                 }`}
               >
-                {current
-                  ? current.collision
-                    ? "✦ collision"
-                    : "no collision"
-                  : "—"}
+                {decidedBands === 0
+                  ? "no band complete"
+                  : isCandidate
+                    ? "→ candidate"
+                    : "→ skipped"}
               </span>
             </div>
-            <div className="trial-ordering" aria-hidden="true">
-              {(current?.ordering ?? vocabulary).slice(0, 10).map((word) => (
-                <span
-                  key={word}
-                  className={`ordering-chip${
-                    current?.queryPick === word
-                      ? " query-pick"
-                      : current?.candidatePick === word
-                        ? " candidate-pick"
-                        : ""
-                  }`}
-                >
-                  {word}
+
+            <div
+              className="mstep mstep--linked"
+              onMouseEnter={() => setHoveredStep("search")}
+              onMouseLeave={() => setHoveredStep(null)}
+            >
+              <div className="mstep-head">
+                <span className="step-num">5</span>
+                <span className="mstep-name">client.search() · refine_k</span>
+                <span className="mstep-meta">
+                  {isCandidate ? "ranked" : "not reached"}
                 </span>
-              ))}
-              {(current?.ordering ?? vocabulary).length > 10 && (
-                <span className="ordering-more">…</span>
-              )}
+              </div>
+
+              <div className="metric-line">
+                <span className="metric-key">distance</span>
+                <span className="metric-eq">=</span>
+                <b className="metric-value">
+                  {scoreLabel(selectedResult.estimated_jaccard)}
+                </b>
+                <span className="metric-hint">MHJACCARD · larger = closer</span>
+              </div>
+
+              <div className="refine-line">
+                <span className="refine-key">refine_k 10</span>
+                <span className="refine-note">
+                  re-rank from the stored raw signatures
+                </span>
+              </div>
             </div>
-            <p className="trial-explanation">
-              {current ? (
-                <>
-                  first query word{" "}
-                  <code className="pick-label query">
-                    {current.queryPick ?? "—"}
-                  </code>
-                  {" · "}first candidate word{" "}
-                  <code className="pick-label candidate">
-                    {current.candidatePick ?? "—"}
-                  </code>
-                  {" · "}
-                  {current.collision
-                    ? "same word → this trial collides"
-                    : "different words → this trial misses"}
-                </>
-              ) : (
-                "Apply one random ordering to both word sets and take the first word each contains."
-              )}
-            </p>
           </div>
 
-          <div className="explainer-controls">
-            <button
-              className="secondary-button"
-              onClick={stepOnce}
-              disabled={running}
-              type="button"
-            >
-              One trial
-            </button>
-            <button
-              className="primary-button"
-              onClick={() => {
-                if (trials < TRIAL_TARGET) {
-                  setRunning(true);
-                }
-              }}
-              disabled={running || trials >= TRIAL_TARGET}
-              type="button"
-            >
-              {running ? "Running…" : `Run ${TRIAL_TARGET} trials`}
-            </button>
-            <button className="secondary-button" onClick={reset} type="button">
-              Reset
-            </button>
-            <span className="trial-counter">
-              {collisions} / {trials} collisions
-            </span>
-          </div>
-
-          <div className="explainer-anchor">
-            <div className="anchor-card">
-              <span className="anchor-label">Simulated collision rate</span>
-              <span className="anchor-value">
-                {trials > 0 ? collisionRate.toFixed(2) : "—"}
-              </span>
+          {hoveredStep && (
+            <div className="code-overlay">
+              <pre>
+                <code>{highlightPython(MILVUS_CODE[hoveredStep])}</code>
+              </pre>
             </div>
-            <div className="anchor-card">
-              <span className="anchor-label">Milvus estimated Jaccard</span>
-              <span className="anchor-value milvus">
-                {milvusValue !== null ? scoreLabel(milvusValue) : "—"}
-              </span>
-            </div>
-            <p className="anchor-note">
-              Both converge to the true Jaccard; the simulation uses a seeded
-              PRNG while Milvus uses xxhash.
-            </p>
-          </div>
+          )}
         </div>
       ) : (
         <p className="under-hood-idle">
@@ -514,37 +763,41 @@ function HowMinHashWorks({
 }
 
 function IncomingPanel({
-  title,
   content,
-  onTitleChange,
   onContentChange,
+  threshold,
+  onThresholdChange,
 }: {
-  title: string;
   content: string;
-  onTitleChange: (value: string) => void;
   onContentChange: (value: string) => void;
+  threshold: number;
+  onThresholdChange: (value: number) => void;
 }) {
   return (
     <section className="panel incoming-panel">
       <header className="panel-header">
         <h2>Incoming document</h2>
-        <span className="panel-subtitle">Paste or edit your text</span>
+        <span className="panel-subtitle">Paste or edit, then detect</span>
       </header>
-      <label className="title-field">
-        <span className="field-label">Title</span>
-        <input
-          value={title}
-          onChange={(event) => onTitleChange(event.target.value)}
-          placeholder="A weekend by the river"
-        />
-      </label>
       <label className="content-field">
-        <span className="field-label">Text</span>
         <textarea
           value={content}
           onChange={(event) => onContentChange(event.target.value)}
           placeholder="Paste a document to check for near-duplicates…"
         />
+      </label>
+      <label className="threshold-row" htmlFor="threshold-slider">
+        <span className="threshold-row-label">Threshold</span>
+        <input
+          id="threshold-slider"
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={threshold}
+          onChange={(event) => onThresholdChange(Number(event.target.value))}
+        />
+        <span className="threshold-row-value">{threshold.toFixed(2)}</span>
       </label>
     </section>
   );
@@ -575,6 +828,9 @@ function CandidatePanel({
         <div className="candidate-list">
           {results.map((result) => {
             const selected = result.doc_id === selectedId;
+            // Judge against the live slider, not the threshold that happened to
+            // be sent with the last request, so dragging updates the list.
+            const aboveThreshold = result.estimated_jaccard >= threshold;
             return (
               <button
                 key={result.doc_id}
@@ -585,7 +841,7 @@ function CandidatePanel({
                 <div className="candidate-head">
                   <span className="candidate-name">{result.doc_id}</span>
                   <span
-                    className={`score-badge${result.above_threshold ? " above" : " below"}`}
+                    className={`score-badge${aboveThreshold ? " above" : " below"}`}
                   >
                     {scoreLabel(result.estimated_jaccard)}
                   </span>
@@ -595,11 +851,9 @@ function CandidatePanel({
                 </p>
                 <div className="candidate-foot">
                   <span
-                    className={`threshold-badge${result.above_threshold ? " above" : " below"}`}
+                    className={`threshold-badge${aboveThreshold ? " above" : " below"}`}
                   >
-                    {result.above_threshold
-                      ? "Above threshold"
-                      : "Below threshold"}
+                    {aboveThreshold ? "Above threshold" : "Below threshold"}
                   </span>
                   <span className="candidate-title">{result.title}</span>
                 </div>
@@ -652,11 +906,10 @@ export function MinHashDemoPage() {
   const [status, setStatus] = useState<MinHashStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [presetId, setPresetId] = useState<string>("");
-  const [title, setTitle] = useState("A Weekend by the River");
   const [content, setContent] = useState(
     "On Sunday, we followed the river path to the old bridge. The morning market was already busy, so we bought bread and coffee before continuing. Beyond the bridge, a narrow trail led to a quiet garden. We spent the afternoon there and returned to town before sunset.",
   );
-  const [threshold, setThreshold] = useState(0.85);
+  const [threshold, setThreshold] = useState(DEFAULT_THRESHOLD);
   const [response, setResponse] = useState<SearchResponse | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -678,14 +931,13 @@ export function MinHashDemoPage() {
           return;
         }
         setPresetId(first.id);
-        setTitle(first.title);
         setContent(first.text);
 
         setLoading(true);
         try {
           const initial = await runMinHashSearch({
             query: first.text,
-            threshold: clamp(0.85, 0, 1),
+            threshold: clamp(DEFAULT_THRESHOLD, 0, 1),
             limit: 10,
           });
           if (!cancelled) {
@@ -713,50 +965,59 @@ export function MinHashDemoPage() {
     };
   }, []);
 
+  // Shared search runner. Presets pass their own text so the request does not
+  // race the `setContent` state update; the button passes the edited text.
+  const runSearch = useCallback(
+    async (queryText: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const next = await runMinHashSearch({
+          query: queryText,
+          threshold: clamp(threshold, 0, 1),
+          limit: 10,
+        });
+        setResponse(next);
+        setSelectedId(next.results.length > 0 ? next.results[0].doc_id : null);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : String(err));
+        setResponse(null);
+        setSelectedId(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [threshold],
+  );
+
+  // Picking an example runs immediately; hand-edited text stays manual.
   const applyPreset = useCallback(
     (id: string) => {
       setPresetId(id);
       const preset = presets.find((item) => item.id === id);
       if (preset) {
-        setTitle(preset.title);
         setContent(preset.text);
         setSelectedId(null);
         setResponse(null);
+        void runSearch(preset.text);
       }
     },
-    [presets],
+    [presets, runSearch],
   );
 
   const reset = useCallback(() => {
     const preset = presets.find((item) => item.id === presetId);
     if (preset) {
-      setTitle(preset.title);
       setContent(preset.text);
     }
-    setThreshold(0.85);
+    setThreshold(DEFAULT_THRESHOLD);
     setResponse(null);
     setSelectedId(null);
   }, [presets, presetId]);
 
-  const detect = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const next = await runMinHashSearch({
-        query: content,
-        threshold: clamp(threshold, 0, 1),
-        limit: 10,
-      });
-      setResponse(next);
-      setSelectedId(next.results.length > 0 ? next.results[0].doc_id : null);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err));
-      setResponse(null);
-      setSelectedId(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [content, threshold]);
+  const detect = useCallback(() => {
+    void runSearch(content);
+  }, [runSearch, content]);
 
   const selectedResult = useMemo(
     () =>
@@ -769,7 +1030,14 @@ export function MinHashDemoPage() {
     [response, selectedId],
   );
 
-  const aboveCount = response?.above_threshold_count ?? 0;
+  // Count against the live slider so the toolbar figure matches the badges.
+  const aboveCount = useMemo(
+    () =>
+      (response?.results ?? []).filter(
+        (result) => result.estimated_jaccard >= threshold,
+      ).length,
+    [response, threshold],
+  );
 
   return (
     <div className="demo-page">
@@ -832,30 +1100,13 @@ export function MinHashDemoPage() {
 
       {error && <p className="error-banner">{error}</p>}
 
-      <div className="threshold-control">
-        <label htmlFor="threshold-slider">
-          <span className="threshold-label">Detection threshold</span>
-          <input
-            id="threshold-slider"
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={threshold}
-            onChange={(event) => setThreshold(Number(event.target.value))}
-          />
-          <span className="threshold-value">{threshold.toFixed(2)}</span>
-        </label>
-        <p className="threshold-help">Estimated Jaccard similarity cut-off.</p>
-      </div>
-
       <div className="scroll-main">
         <div className="workspace">
           <IncomingPanel
-            title={title}
             content={content}
-            onTitleChange={setTitle}
             onContentChange={setContent}
+            threshold={threshold}
+            onThresholdChange={setThreshold}
           />
           <CandidatePanel
             results={response?.results ?? []}
@@ -879,7 +1130,11 @@ export function MinHashDemoPage() {
           )}
         </div>
 
-        <HowMinHashWorks query={content} selectedResult={selectedResult} />
+        <HowMinHashWorks
+          query={content}
+          selectedResult={selectedResult}
+          latencyMs={response?.latency_ms ?? null}
+        />
 
         <footer className="footer">
           <p>Review candidates before merging or removing content.</p>

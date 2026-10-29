@@ -141,7 +141,7 @@ FastAPI → Milvus FunctionType.MINHASH (num_hashes=256, shingle_size=1)
 ```
 
 **Data.** The tracked production dataset is 36 original, fictional short texts plus controlled
-variants (exact copy, light edits, paragraph added/removed, same theme, unrelated), with three
+variants (exact copy, light edits, paragraph added/removed, same theme, unrelated), with two
 preset queries, released under CC0 1.0. No model weights or third-party articles are used.
 
 See [`demos/minhash-near-duplicate/README.md`](demos/minhash-near-duplicate/README.md) for the

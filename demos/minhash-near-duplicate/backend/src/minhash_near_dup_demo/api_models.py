@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from minhash_near_dup_demo.config import DEFAULT_THRESHOLD
+
 DEMO_ID_LITERAL = Literal["minhash-near-duplicate"]
 
 
@@ -63,7 +65,7 @@ class PrepareResponse(StrictModel):
 
 class SearchRequest(StrictModel):
     query: str = Field(min_length=1, max_length=2000)
-    threshold: float = Field(default=0.85, ge=0.0, le=1.0)
+    threshold: float = Field(default=DEFAULT_THRESHOLD, ge=0.0, le=1.0)
     limit: int = Field(default=5, ge=1, le=20)
     selected_doc_id: str | None = None
 

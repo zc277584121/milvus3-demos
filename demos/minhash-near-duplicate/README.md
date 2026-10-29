@@ -33,7 +33,7 @@ Browser /
   never applies a `1 - distance` transform, which would invert the scale. This was
   verified against the real Milvus 3.0.0 GA endpoint: an exact copy scores `1.0`, a
   two-word light edit about `0.86`, and unrelated text about `0.08`–`0.13`. The default
-  threshold is `0.85`.
+  threshold is `0.5`, which surfaces partial-overlap candidates alongside the near-duplicates.
 
 The collection is `milvus3_demos_minhash_near_duplicate`; its index is
 `milvus3_demos_minhash_signature`.
@@ -55,9 +55,10 @@ every variant the concept requires:
 | `same-theme` | Different wording on the same theme, no copied sentences. |
 | `unrelated` | Unrelated content used as a below-threshold contrast. |
 
-`documents.json` holds the documents, `presets.json` holds three preset queries
-(light edits, paragraph added, exact copy), and `manifest.json` records the counts and variant
-meanings. All text is dedicated to the public domain under CC0 1.0
+`documents.json` holds the documents, `presets.json` holds two preset queries (paragraph
+added, light edits), and `manifest.json` records the counts and variant meanings. No preset is
+an exact copy of a stored document, because an exact copy always yields an empty diff and
+demonstrates nothing. All text is dedicated to the public domain under CC0 1.0
 (`licenses/LICENSE.txt`); see `NOTICE.md` and `LICENSE-CONFLICT.md`.
 
 Validate the tracked bytes and dataset contract offline:

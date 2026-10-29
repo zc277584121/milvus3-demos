@@ -7,7 +7,7 @@ import json
 import sys
 from collections.abc import Sequence
 
-from minhash_near_dup_demo.config import RuntimeConfig
+from minhash_near_dup_demo.config import DEFAULT_THRESHOLD, RuntimeConfig
 from minhash_near_dup_demo.data import DataContractError, build_dataset
 from minhash_near_dup_demo.service import MinHashService
 
@@ -23,7 +23,7 @@ def _parser() -> argparse.ArgumentParser:
 
     query = subparsers.add_parser("query", description="Run MinHash near-duplicate search")
     query.add_argument("--query", required=True)
-    query.add_argument("--threshold", type=float, default=0.85)
+    query.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
     query.add_argument("--limit", type=int, default=5)
     return parser
 

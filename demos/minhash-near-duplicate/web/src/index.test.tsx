@@ -1,9 +1,17 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  buildBands,
   MinHashDemoPage,
   runMinHashSearch,
+  runTrial,
   type SearchResponse,
 } from "./index";
 
@@ -296,5 +304,261 @@ describe("MinHashDemoPage", () => {
     expect(searchInit?.method).toBe("POST");
 
     fetchMock.mockRestore();
+  });
+});
+
+describe("MinHash slot and band mechanics", () => {
+  it("keeps the same minimum word for identical sets", () => {
+    const words = ["river", "path", "bridge"];
+    const a = new Set(words);
+    const trial = runTrial(a, a, words, 0);
+
+    expect(trial.collision).toBe(true);
+    expect(trial.queryPick?.hash).toBe(trial.candidatePick?.hash);
+    // The pick is the smallest hash over the set for this slot.
+    const smallest = Math.min(
+      ...words.map((w) => trial.ordering.find((o) => o.word === w)!.hash),
+    );
+    expect(trial.queryPick?.hash).toBe(smallest);
+  });
+
+  it("orders the vocabulary by hash so the first match is the minimum", () => {
+    const trial = runTrial(new Set(["a"]), new Set(["b"]), ["a", "b", "c"], 3);
+    const hashes = trial.ordering.map((entry) => entry.hash);
+    expect(hashes).toEqual([...hashes].sort((x, y) => x - y));
+  });
+
+  it("groups slots into bands and only a complete all-match band hits", () => {
+    // 2 bands x 2 slots. Band 0 both match -> hit. Band 1 half match -> no hit.
+    const bands = buildBands([true, true, true, false], 2, 2);
+
+    expect(bands).toHaveLength(2);
+    expect(bands[0]).toMatchObject({ complete: true, hit: true, filled: 2 });
+    expect(bands[1]).toMatchObject({ complete: true, hit: false, filled: 2 });
+  });
+
+  it("reports partially filled bands as incomplete and never hitting", () => {
+    const bands = buildBands([true, true, true], 2, 2);
+
+    expect(bands[0]).toMatchObject({ complete: true, hit: true });
+    expect(bands[1]).toMatchObject({ complete: false, hit: false, filled: 1 });
+  });
+  it("re-runs automatically when a different example is chosen", async () => {
+    const statusPayload = {
+      status: "ready",
+      implementation_status: "implemented",
+      execution_path: "milvus_minhash_lsh_near_duplicate",
+      capability: "MinHash Function + MINHASH_LSH",
+      collection_name: "milvus3_demos_minhash_near_duplicate",
+      index_name: "milvus3_demos_minhash_signature",
+      text_field: "content",
+      signature_field: "minhash_signature",
+      metric_type: "MHJACCARD",
+      dataset: {
+        dataset_id: "original-short-stories-r1",
+        dataset_version: 1,
+        document_count: 36,
+        documents_sha256: "d",
+        presets_sha256: "p",
+      },
+      query_presets: [
+        {
+          id: "river-weekend",
+          label: "A weekend by the river",
+          title: "A Weekend by the River",
+          text: "On Sunday, we followed the river path to the old bridge.",
+          description: "A lightly edited copy.",
+        },
+        {
+          id: "night-market",
+          label: "The night market",
+          title: "The Night Market",
+          text: "The night market opened under strings of yellow lanterns.",
+          description: "A copy with an added paragraph.",
+        },
+      ],
+      milvus: {
+        milvus_uri: "http://127.0.0.1:49530",
+        server_version: "3.0.0",
+        expected_server_version: "3.0.0",
+        target_collection: "milvus3_demos_minhash_near_duplicate",
+        target_exists: true,
+      },
+      last_prepare: null,
+    };
+
+    const buildSearchPayload = (docId: string, query: string) => ({
+      status: "passed",
+      execution_path: "milvus_minhash_lsh_near_duplicate",
+      query,
+      collection_name: "milvus3_demos_minhash_near_duplicate",
+      index_name: "milvus3_demos_minhash_signature",
+      text_field: "content",
+      signature_field: "minhash_signature",
+      metric_type: "MHJACCARD",
+      threshold: 0.85,
+      limit: 10,
+      above_threshold_count: 1,
+      results: [
+        {
+          doc_id: docId,
+          title: "t",
+          content: query,
+          estimated_jaccard: 0.99,
+          raw_distance: 0.99,
+          above_threshold: true,
+        },
+      ],
+      diffs: [],
+      semantics: "Estimated Jaccard similarity between MinHash signatures.",
+      latency_ms: 5,
+    });
+
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(statusPayload), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify(
+            buildSearchPayload("first-hit.txt", "first query text"),
+          ),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify(
+            buildSearchPayload("second-hit.txt", "second query text"),
+          ),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+
+    render(<MinHashDemoPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("first-hit.txt").length).toBeGreaterThan(0);
+    });
+
+    // Choosing another example triggers its own request — no button click.
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: "night-market" },
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText("second-hit.txt").length).toBeGreaterThan(0);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(
+      JSON.parse(String(fetchMock.mock.calls[2][1]?.body)).query,
+    ).toContain("night market");
+  });
+  it("re-judges candidates against the live threshold without a new request", async () => {
+    const statusPayload = {
+      status: "ready",
+      implementation_status: "implemented",
+      execution_path: "milvus_minhash_lsh_near_duplicate",
+      capability: "MinHash Function + MINHASH_LSH",
+      collection_name: "milvus3_demos_minhash_near_duplicate",
+      index_name: "milvus3_demos_minhash_signature",
+      text_field: "content",
+      signature_field: "minhash_signature",
+      metric_type: "MHJACCARD",
+      dataset: {
+        dataset_id: "original-short-stories-r1",
+        dataset_version: 1,
+        document_count: 36,
+        documents_sha256: "d",
+        presets_sha256: "p",
+      },
+      query_presets: [
+        {
+          id: "river-weekend",
+          label: "A weekend by the river",
+          title: "A Weekend by the River",
+          text: "On Sunday, we followed the river path to the old bridge.",
+          description: "A lightly edited copy.",
+        },
+      ],
+      milvus: {
+        milvus_uri: "http://127.0.0.1:49530",
+        server_version: "3.0.0",
+        expected_server_version: "3.0.0",
+        target_collection: "milvus3_demos_minhash_near_duplicate",
+        target_exists: true,
+      },
+      last_prepare: null,
+    };
+
+    const searchPayload = {
+      status: "passed",
+      execution_path: "milvus_minhash_lsh_near_duplicate",
+      query: "q",
+      collection_name: "milvus3_demos_minhash_near_duplicate",
+      index_name: "milvus3_demos_minhash_signature",
+      text_field: "content",
+      signature_field: "minhash_signature",
+      metric_type: "MHJACCARD",
+      threshold: 0.85,
+      limit: 10,
+      above_threshold_count: 1,
+      results: [
+        {
+          doc_id: "high.txt",
+          title: "High",
+          content: "high similarity",
+          estimated_jaccard: 0.9,
+          raw_distance: 0.9,
+          above_threshold: true,
+        },
+        {
+          doc_id: "mid.txt",
+          title: "Mid",
+          content: "medium similarity",
+          estimated_jaccard: 0.45,
+          raw_distance: 0.45,
+          above_threshold: false,
+        },
+      ],
+      diffs: [],
+      semantics: "Estimated Jaccard similarity between MinHash signatures.",
+      latency_ms: 4,
+    };
+
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(statusPayload), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(searchPayload), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+    render(<MinHashDemoPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("1 candidate above threshold")).toBeTruthy();
+    });
+
+    // Drag the slider down; the mid candidate must join without a new request.
+    fireEvent.change(screen.getByLabelText(/threshold/i), {
+      target: { value: "0.4" },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("2 candidates above threshold")).toBeTruthy();
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

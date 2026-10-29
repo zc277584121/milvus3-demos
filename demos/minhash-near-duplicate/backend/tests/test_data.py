@@ -64,6 +64,8 @@ def test_unrelated_documents_do_not_copy_originals(bundle: DatasetBundle) -> Non
 
 
 def test_presets_are_present(bundle: DatasetBundle) -> None:
-    assert len(bundle.presets) == 3
+    # No preset is an exact copy of a stored document: an exact copy would
+    # always produce an empty diff and demonstrate nothing.
+    assert len(bundle.presets) == 2
     preset_ids = {preset.id for preset in bundle.presets}
-    assert preset_ids == {"river-weekend", "night-market", "train-hills"}
+    assert preset_ids == {"river-weekend", "night-market"}

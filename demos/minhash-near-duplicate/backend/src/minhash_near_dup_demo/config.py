@@ -23,11 +23,10 @@ EXECUTION_PATH = "milvus_minhash_lsh_near_duplicate"
 
 # MinHash function contract: output dim must equal 32 * num_hashes.
 NUM_HASHES = 256
-# Word-level shingle_size=1 is verified against the checked-in short texts:
-# a two-word light edit keeps exact Jaccard near the 0.85 threshold (~0.85),
-# while a 3-shingle drops the same edit to ~0.70 and would mislabel it as
-# non-duplicate. The design requires light edits to land above the default
-# threshold, so 1 is the correct choice for this corpus.
+# Word-level shingle_size=1 is verified against the checked-in short texts: a
+# two-word light edit keeps exact Jaccard at ~0.85, while a 3-shingle drops the
+# same edit to ~0.70. shingle_size=1 preserves the widest margin across the
+# threshold range the slider exposes, so it is the correct choice here.
 SHINGLE_SIZE = 1
 HASH_FUNCTION = "xxhash"
 TOKEN_LEVEL = "word"
@@ -50,7 +49,7 @@ REFINE_K = 10
 DEFAULT_TOP_K = 5
 MAX_TOP_K = 20
 
-DEFAULT_THRESHOLD = 0.85
+DEFAULT_THRESHOLD = 0.5
 THRESHOLD_MIN = 0.0
 THRESHOLD_MAX = 1.0
 
