@@ -165,7 +165,7 @@ describe("MovieDiscoveryPage · 2x2 matrix", () => {
     const cells = screen.getAllByRole("button", { pressed: true });
     expect(cells.length).toBeGreaterThanOrEqual(1);
     // Contract bar names the active capability.
-    expect(screen.getByText("search() + SearchAggregation")).toBeTruthy();
+    expect(screen.getByText("search() + SearchAggregation", { selector: ".contract-tag" })).toBeTruthy();
   });
 
   it("query+sort browses the exact catalog with paging", async () => {
@@ -174,7 +174,7 @@ describe("MovieDiscoveryPage · 2x2 matrix", () => {
     fireEvent.click(await screen.findByRole("button", { name: /query[\s\S]*sort/i }));
 
     await waitFor(() => expect(screen.getByText("Browse One")).toBeTruthy());
-    expect(screen.getByText("query() + ORDER BY")).toBeTruthy();
+    expect(screen.getByText("query() + ORDER BY", { selector: ".contract-tag" })).toBeTruthy();
     // Exact total is shown, which the search cells cannot produce.
     expect(screen.getByText(/exact total/)).toBeTruthy();
     expect(screen.getByText("1 / 8")).toBeTruthy();
@@ -186,7 +186,7 @@ describe("MovieDiscoveryPage · 2x2 matrix", () => {
     fireEvent.click(await screen.findByRole("button", { name: /query[\s\S]*group/i }));
 
     await waitFor(() => expect(screen.getByText("Adventure")).toBeTruthy());
-    expect(screen.getByText("query() + GROUP BY")).toBeTruthy();
+    expect(screen.getByText("query() + GROUP BY", { selector: ".contract-tag" })).toBeTruthy();
     expect(screen.getByText("106.47")).toBeTruthy();
     expect(screen.getByText("1987")).toBeTruthy();
   });
@@ -197,7 +197,7 @@ describe("MovieDiscoveryPage · 2x2 matrix", () => {
     fireEvent.click(await screen.findByRole("button", { name: /search[\s\S]*sort/i }));
 
     await waitFor(() => expect(screen.getByText("Ranked One")).toBeTruthy());
-    expect(screen.getByText("search() + order_by_fields")).toBeTruthy();
+    expect(screen.getByText("search() + order_by_fields", { selector: ".contract-tag" })).toBeTruthy();
     // The honest proof that the retained hits were re-ordered.
     expect(screen.getByText("jump around")).toBeTruthy();
   });
@@ -245,5 +245,67 @@ describe("MovieDiscoveryPage · 2x2 matrix", () => {
     render(<MovieDiscoveryPage />);
     fireEvent.click(await screen.findByRole("button", { name: /query[\s\S]*sort/i }));
     await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("milvus unreachable"));
+  });
+});
+
+describe("MovieDiscoveryPage · control state is applied immediately", () => {
+  it("changing the facet requests the NEW facet, not the previous one", async () => {
+    const bodies: Array<Record<string, unknown>> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/api/v1/status")) {
+          return new Response(JSON.stringify(statusPayload), { status: 200 });
+        }
+        bodies.push(JSON.parse(String(init?.body ?? "{}")));
+        return new Response(JSON.stringify(exactPayload), { status: 200 });
+      }),
+    );
+
+    render(<MovieDiscoveryPage />);
+    fireEvent.click(await screen.findByRole("button", { name: /query[\s\S]*group/i }));
+    await waitFor(() => expect(bodies.length).toBeGreaterThan(0));
+
+    bodies.length = 0;
+    fireEvent.click(screen.getByRole("button", { name: "Decade" }));
+    // The very first request after the click must already carry decade.
+    await waitFor(() => expect(bodies.length).toBeGreaterThan(0));
+    expect(bodies[0].facet).toBe("decade");
+  });
+
+  it("changing the runtime filter requests it on the first try", async () => {
+    const bodies: Array<Record<string, unknown>> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/api/v1/status")) {
+          return new Response(JSON.stringify(statusPayload), { status: 200 });
+        }
+        bodies.push(JSON.parse(String(init?.body ?? "{}")));
+        return new Response(JSON.stringify(exactPayload), { status: 200 });
+      }),
+    );
+
+    render(<MovieDiscoveryPage />);
+    fireEvent.click(await screen.findByRole("button", { name: /query[\s\S]*group/i }));
+    await waitFor(() => expect(bodies.length).toBeGreaterThan(0));
+
+    bodies.length = 0;
+    fireEvent.click(screen.getByRole("button", { name: "Under 120 min" }));
+    await waitFor(() => expect(bodies.length).toBeGreaterThan(0));
+    expect(bodies[0].max_runtime).toBe(120);
+  });
+
+  it("the matrix is step 1 and the inputs are step 2", async () => {
+    stubFetch(() => approxPayload);
+    const { container } = render(<MovieDiscoveryPage />);
+    await waitFor(() => expect(screen.getByText(/Choose what to run/)).toBeTruthy());
+
+    const matrix = container.querySelector(".matrix")!;
+    const inputs = container.querySelector(".movie-query-card")!;
+    // Document order must put the capability choice before its inputs.
+    expect(matrix.compareDocumentPosition(inputs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

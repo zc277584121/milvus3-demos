@@ -503,8 +503,69 @@ function ApproxPanel({ result }: { result: ApproxResponse }) {
     </>
   );
 }
-
 /* ------------------------------------------------------------------ page */
+
+/** Everything the four endpoints need, passed explicitly at call time.
+ *  Reading these off component state inside an async callback is what made
+ *  every control feel one step behind, so the whole input set travels
+ *  together as one object. */
+interface ExploreInput {
+  panel: PanelId;
+  query: string;
+  facet: Facet;
+  maxRuntime: number | null;
+  browseSort: BrowseSort;
+  browseDirection: Direction;
+  browsePage: number;
+  rankedSort: RankedSort;
+}
+
+function buildRequest(input: ExploreInput): { path: string; payload: Record<string, unknown> } {
+  const trimmed = input.query.trim();
+  switch (input.panel) {
+    case "query-sort":
+      return {
+        path: "query/sort",
+        payload: {
+          sort: input.browseSort,
+          direction: input.browseDirection,
+          page: input.browsePage,
+          page_size: 12,
+          max_runtime: input.maxRuntime,
+        },
+      };
+    case "query-group":
+      return {
+        path: "query/group",
+        payload: {
+          facet: input.facet,
+          metrics: ["count", "avg_runtime", "min_year", "max_year"],
+          max_runtime: input.maxRuntime,
+        },
+      };
+    case "search-sort":
+      return {
+        path: "search/sort",
+        payload: {
+          query: trimmed,
+          sort: input.rankedSort,
+          direction: "desc",
+          limit: 12,
+          max_runtime: input.maxRuntime,
+        },
+      };
+    default:
+      return {
+        path: "search/group",
+        payload: {
+          query: trimmed,
+          facet: input.facet,
+          limit: 12,
+          max_runtime: input.maxRuntime,
+        },
+      };
+  }
+}
 
 export function MovieDiscoveryPage() {
   const [status, setStatus] = useState<Status | null>(null);
@@ -529,63 +590,45 @@ export function MovieDiscoveryPage() {
   const facets = status?.facets ?? [];
   const needsQuery = meta.api === "search";
 
-  const run = useCallback(
-    async (next?: { panel?: PanelId; page?: number }) => {
-      const targetPanel = next?.panel ?? panel;
-      const targetMeta = PANELS.find((item) => item.id === targetPanel)!;
-      const page = next?.page ?? browsePage;
-      const trimmed = query.trim();
-      if (targetMeta.api === "search" && !trimmed) {
-        setError("Enter a description before running a vector search.");
-        return;
-      }
-      const token = ++epoch.current;
-      setLoading(true);
-      setError(null);
-      try {
-        let response: ExploreResponse;
-        if (targetPanel === "query-sort") {
-          response = await postExplore<BrowseResponse>("query/sort", {
-            sort: browseSort,
-            direction: browseDirection,
-            page,
-            page_size: 12,
-            max_runtime: maxRuntime,
-          });
-        } else if (targetPanel === "query-group") {
-          response = await postExplore<ExactResponse>("query/group", {
-            facet,
-            metrics: ["count", "avg_runtime", "min_year", "max_year"],
-            max_runtime: maxRuntime,
-          });
-        } else if (targetPanel === "search-sort") {
-          response = await postExplore<RankedResponse>("search/sort", {
-            query: trimmed,
-            sort: rankedSort,
-            direction: "desc",
-            limit: 12,
-            max_runtime: maxRuntime,
-          });
-        } else {
-          response = await postExplore<ApproxResponse>("search/group", {
-            query: trimmed,
-            facet,
-            limit: 12,
-            max_runtime: maxRuntime,
-          });
-        }
-        if (epoch.current === token) setResult(response);
-      } catch (cause) {
-        if (epoch.current === token) {
-          setResult(null);
-          setError(cause instanceof Error ? cause.message : "Request failed.");
-        }
-      } finally {
-        if (epoch.current === token) setLoading(false);
-      }
-    },
-    [panel, browsePage, browseSort, browseDirection, facet, rankedSort, maxRuntime, query],
+  /** Current input snapshot. Read it at click time, never inside an await. */
+  const snapshot = useCallback(
+    (patch: Partial<ExploreInput> = {}): ExploreInput => ({
+      panel,
+      query,
+      facet,
+      maxRuntime,
+      browseSort,
+      browseDirection,
+      browsePage,
+      rankedSort,
+      ...patch,
+    }),
+    [panel, query, facet, maxRuntime, browseSort, browseDirection, browsePage, rankedSort],
   );
+
+  const run = useCallback(async (input: ExploreInput) => {
+    const targetMeta = PANELS.find((item) => item.id === input.panel)!;
+    if (targetMeta.api === "search" && !input.query.trim()) {
+      setError("Describe a film first — the search cells embed your text.");
+      setResult(null);
+      return;
+    }
+    const token = ++epoch.current;
+    setLoading(true);
+    setError(null);
+    try {
+      const { path, payload } = buildRequest(input);
+      const response = await postExplore<ExploreResponse>(path, payload);
+      if (epoch.current === token) setResult(response);
+    } catch (cause) {
+      if (epoch.current === token) {
+        setResult(null);
+        setError(cause instanceof Error ? cause.message : "Request failed.");
+      }
+    } finally {
+      if (epoch.current === token) setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -606,13 +649,13 @@ export function MovieDiscoveryPage() {
     };
   }, []);
 
-  // First paint: run the default cell once the backend is ready.
+  // First paint: run the default cell once the presets have loaded.
   const bootstrapped = useRef(false);
   useEffect(() => {
     if (bootstrapped.current || !ready || !query) return;
     bootstrapped.current = true;
-    void run();
-  }, [ready, query, run]);
+    void run({ ...snapshot(), query });
+  }, [ready, query, run, snapshot]);
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
@@ -624,16 +667,52 @@ export function MovieDiscoveryPage() {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, []);
 
+  /* Step 1 — pick a capability cell. */
   function selectPanel(id: PanelId) {
     setPanel(id);
     setResult(null);
-    void run({ panel: id, page: 1 });
+    setError(null);
+    void run(snapshot({ panel: id }));
   }
 
-  function patchPanel(next: Partial<{ facet: Facet }>) {
-    if (next.facet !== undefined) setFacet(next.facet);
+  /* Step 2 — adjust that cell's own inputs; each change re-runs immediately. */
+  function changeFacet(next: Facet) {
+    setFacet(next);
     setResult(null);
-    void run();
+    void run(snapshot({ facet: next }));
+  }
+  function changeMaxRuntime(next: number | null) {
+    setMaxRuntime(next);
+    setResult(null);
+    void run(snapshot({ maxRuntime: next }));
+  }
+  function changeBrowseSort(next: BrowseSort) {
+    setBrowseSort(next);
+    setBrowsePage(1);
+    setResult(null);
+    void run(snapshot({ browseSort: next, browsePage: 1 }));
+  }
+  function toggleBrowseDirection() {
+    const next: Direction = browseDirection === "desc" ? "asc" : "desc";
+    setBrowseDirection(next);
+    setResult(null);
+    void run(snapshot({ browseDirection: next }));
+  }
+  function changeRankedSort(next: RankedSort) {
+    setRankedSort(next);
+    setResult(null);
+    void run(snapshot({ rankedSort: next }));
+  }
+  function changePage(next: number) {
+    setBrowsePage(next);
+    void run(snapshot({ browsePage: next }));
+  }
+  function applyPreset(text: string) {
+    setQuery(text);
+    setPresetOpen(false);
+    setResult(null);
+    setError(null);
+    void run(snapshot({ query: text }));
   }
 
   return (
@@ -670,164 +749,172 @@ export function MovieDiscoveryPage() {
         </div>
       </header>
 
-      <section className="movie-query-card" aria-label="Query controls">
-        <label className="query-label" htmlFor="movie-query">
-          {needsQuery ? "Describe the film you want to watch" : "Optional text query (this cell has no vector)"}
-        </label>
-        <div className="query-row">
-          <div className="query-combobox" ref={presetRef}>
-            <input
-              id="movie-query"
-              type="text"
-              value={query}
-              onChange={(event) => {
-                epoch.current += 1;
-                setQuery(event.target.value);
-                setResult(null);
-                setError(null);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") void run();
-              }}
-              placeholder="Describe the story you are looking for…"
-              aria-label="Query"
-              disabled={!needsQuery}
-            />
-            <button
-              type="button"
-              className="combobox-toggle"
-              aria-label="Choose a preset query"
-              aria-haspopup="listbox"
-              aria-expanded={presetOpen}
-              disabled={!needsQuery}
-              onClick={() => setPresetOpen((value) => !value)}
-            >
-              ▾
-            </button>
-            {presetOpen && needsQuery ? (
-              <ul className="preset-list" role="listbox">
-                {presets.map((preset) => (
-                  <li key={preset.id}>
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={preset.text === query}
-                      onClick={() => {
-                        setQuery(preset.text);
-                        setPresetOpen(false);
+      {/* Step 1: choose which capability to exercise. */}
+      <section className="step step-first" aria-label="Step 1 — choose a mode">
+        <h2 className="step-label">
+          <span className="step-num">1</span> Choose what to run
+        </h2>
+        <PanelMatrix active={panel} onSelect={selectPanel} />
+      </section>
+
+      {/* Step 2: only the inputs that the chosen cell actually uses. */}
+      <section className="step" aria-label="Step 2 — set the inputs">
+        <h2 className="step-label">
+          <span className="step-num">2</span> Set the inputs for <code>{meta.subtitle}</code>
+          <span className="step-hint">changes re-run automatically</span>
+        </h2>
+
+        <div className="movie-query-card">
+          {needsQuery ? (
+            <>
+              <label className="query-label" htmlFor="movie-query">
+                Describe the film you want to watch
+              </label>
+              <div className="query-row">
+                <div className="query-combobox" ref={presetRef}>
+                  <input
+                    id="movie-query"
+                    type="text"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
                         setResult(null);
-                        void run();
-                      }}
-                    >
-                      <strong>{preset.label}</strong>
-                      <span>{preset.description}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            className="run-button"
-            disabled={loading || !ready}
-            onClick={() => void run()}
-          >
-            {loading ? "Running…" : "Run"}
-          </button>
-        </div>
-
-        <div className="toolbar">
-          <div className="toolbar-left">
-            {meta.mode === "group" ? (
-              <div className="chip-group" role="group" aria-label="Facet">
-                {facets.map((item) => (
-                  <button
-                    type="button"
-                    key={item.id}
-                    className={`filter-chip${facet === item.id ? " is-active" : ""}`}
-                    aria-pressed={facet === item.id}
-                    onClick={() => patchPanel({ facet: item.id })}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-
-            {panel === "query-sort" ? (
-              <div className="chip-group" role="group" aria-label="Sort field">
-                {(["year", "runtime", "title"] as BrowseSort[]).map((value) => (
-                  <button
-                    type="button"
-                    key={value}
-                    className={`filter-chip${browseSort === value ? " is-active" : ""}`}
-                    aria-pressed={browseSort === value}
-                    onClick={() => {
-                      setBrowseSort(value);
-                      setBrowsePage(1);
-                      setResult(null);
-                      void run({ page: 1 });
+                        void run(snapshot());
+                      }
                     }}
+                    placeholder="Describe the story you are looking for…"
+                    aria-label="Query"
+                  />
+                  <button
+                    type="button"
+                    className="combobox-toggle"
+                    aria-label="Choose a preset query"
+                    aria-haspopup="listbox"
+                    aria-expanded={presetOpen}
+                    onClick={() => setPresetOpen((value) => !value)}
                   >
-                    {value}
+                    ▾
                   </button>
-                ))}
+                  {presetOpen ? (
+                    <ul className="preset-list" role="listbox">
+                      {presets.map((preset) => (
+                        <li key={preset.id}>
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={preset.text === query}
+                            onClick={() => applyPreset(preset.text)}
+                          >
+                            <strong>{preset.label}</strong>
+                            <span>{preset.description}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
                 <button
                   type="button"
-                  className="filter-chip"
+                  className="run-button"
+                  disabled={loading || !ready}
                   onClick={() => {
-                    setBrowseDirection(browseDirection === "desc" ? "asc" : "desc");
                     setResult(null);
-                    void run();
+                    void run(snapshot());
                   }}
-                  aria-label="Toggle sort direction"
                 >
-                  {browseDirection === "desc" ? "↓ desc" : "↑ asc"}
+                  {loading ? "Running…" : "Run"}
                 </button>
               </div>
-            ) : null}
+            </>
+          ) : (
+            <p className="query-note">
+              <strong>No text needed.</strong> This cell runs a pure scalar{" "}
+              <code>{meta.api === "query" ? "query()" : "search()"}</code> call and never touches the
+              embedding model — pick the grouping or sort options below and the result updates
+              automatically.
+            </p>
+          )}
 
-            {panel === "search-sort" ? (
-              <div className="chip-group" role="group" aria-label="Sort field">
-                {(["score", "year", "runtime"] as RankedSort[]).map((value) => (
+          <div className="toolbar">
+            <div className="toolbar-left">
+              {meta.mode === "group" ? (
+                <div className="chip-group" role="group" aria-label="Facet">
+                  <span className="chip-group-label">Group by</span>
+                  {facets.map((item) => (
+                    <button
+                      type="button"
+                      key={item.id}
+                      className={`filter-chip${facet === item.id ? " is-active" : ""}`}
+                      aria-pressed={facet === item.id}
+                      onClick={() => changeFacet(item.id)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {panel === "query-sort" ? (
+                <div className="chip-group" role="group" aria-label="Sort field">
+                  <span className="chip-group-label">Sort by</span>
+                  {(["year", "runtime", "title"] as BrowseSort[]).map((value) => (
+                    <button
+                      type="button"
+                      key={value}
+                      className={`filter-chip${browseSort === value ? " is-active" : ""}`}
+                      aria-pressed={browseSort === value}
+                      onClick={() => changeBrowseSort(value)}
+                    >
+                      {value}
+                    </button>
+                  ))}
                   <button
                     type="button"
-                    key={value}
-                    className={`filter-chip${rankedSort === value ? " is-active" : ""}`}
-                    aria-pressed={rankedSort === value}
-                    onClick={() => {
-                      setRankedSort(value);
-                      setResult(null);
-                      void run();
-                    }}
+                    className="filter-chip"
+                    onClick={toggleBrowseDirection}
+                    aria-label="Toggle sort direction"
                   >
-                    {value === "score" ? "relevance" : value}
+                    {browseDirection === "desc" ? "↓ desc" : "↑ asc"}
                   </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
+                </div>
+              ) : null}
 
-          <div className="toolbar-right">
-            <button
-              type="button"
-              className={`filter-chip${maxRuntime !== null ? " is-active" : ""}`}
-              aria-pressed={maxRuntime !== null}
-              disabled={!ready}
-              onClick={() => {
-                setMaxRuntime(maxRuntime === null ? 120 : null);
-                setResult(null);
-                void run();
-              }}
-            >
-              Under 120 min
-            </button>
+              {panel === "search-sort" ? (
+                <div className="chip-group" role="group" aria-label="Sort field">
+                  <span className="chip-group-label">Sort by</span>
+                  {(["score", "year", "runtime"] as RankedSort[]).map((value) => (
+                    <button
+                      type="button"
+                      key={value}
+                      className={`filter-chip${rankedSort === value ? " is-active" : ""}`}
+                      aria-pressed={rankedSort === value}
+                      onClick={() => changeRankedSort(value)}
+                    >
+                      {value === "score" ? "relevance" : value}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="toolbar-right">
+              <div className="chip-group" role="group" aria-label="Runtime filter">
+                <span className="chip-group-label">Filter</span>
+                <button
+                  type="button"
+                  className={`filter-chip${maxRuntime !== null ? " is-active" : ""}`}
+                  aria-pressed={maxRuntime !== null}
+                  disabled={!ready}
+                  onClick={() => changeMaxRuntime(maxRuntime === null ? 120 : null)}
+                >
+                  Under 120 min
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
-
-      <PanelMatrix active={panel} onSelect={selectPanel} />
 
       <ContractBar panel={meta} result={result} />
 
@@ -850,13 +937,7 @@ export function MovieDiscoveryPage() {
         ) : null}
 
         {result && result.api === "query" && result.mode === "sort" ? (
-          <BrowsePanel
-            result={result}
-            onPage={(page) => {
-              setBrowsePage(page);
-              void run({ page });
-            }}
-          />
+          <BrowsePanel result={result} onPage={changePage} />
         ) : null}
         {result && result.api === "query" && result.mode === "group" ? (
           <ExactPanel result={result} />
