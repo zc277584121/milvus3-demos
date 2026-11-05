@@ -175,54 +175,25 @@ function scoreLabel(similarity: number): string {
 // Mirrors the backend's DEFAULT_THRESHOLD so the slider starts where the API does.
 const DEFAULT_THRESHOLD = 0.5;
 
-const NUM_HASHES = 256;
-const LSH_BAND_COUNT = 64;
-const HASHES_PER_BAND = NUM_HASHES / LSH_BAND_COUNT;
-const TRIAL_INTERVAL_MS = 24;
-
 // Real Milvus calls behind each step, shown on hover.
-type MilvusStep = "function" | "index" | "search";
+type MilvusStep = "create" | "ingest" | "search";
 
 const MILVUS_CODE: Record<MilvusStep, string> = {
-  function: `schema.add_field("content", DataType.VARCHAR, max_length=2000,
-                 enable_analyzer=True)
-schema.add_field("minhash_signature", DataType.BINARY_VECTOR, dim=8192)
-
-schema.add_function(Function(
-    function_type=FunctionType.MINHASH,
-    input_field_names=["content"],
-    output_field_names=["minhash_signature"],
-    params={
-        "num_hashes": 256,        # 32 * 256 = 8192
-        "shingle_size": 1,
-        "hash_function": "xxhash",
-        "token_level": "word",
-    },
-))`,
-  index: `indexes.add_index(
-    field_name="minhash_signature",
-    index_type="MINHASH_LSH",
-    metric_type="MHJACCARD",
-    params={
-        "mh_element_bit_width": 32,
-        "mh_lsh_band": 64,        # 256 slots / 64 = 4 per band
-        "with_raw_data": True,    # keep signatures for refine
-    },
-)`,
-  search: `hits = client.search(
-    collection_name="milvus3_demos_minhash_near_duplicate",
-    data=[query_text],            # raw text, not a vector
-    anns_field="minhash_signature",
-    search_params={
-        "metric_type": "MHJACCARD",
-        "params": {
-            "mh_search_with_jaccard": True,
-            "refine_k": 10,
-        },
-    },
-    limit=10,
-)
-# hits[0][i]["distance"] IS the estimated Jaccard`,
+  create: `schema.add_field("content", VARCHAR, enable_analyzer=True)
+schema.add_field("signature", BINARY_VECTOR, dim=8192)
+schema.add_function(FunctionType.MINHASH,
+                    num_hashes=256, shingle_size=1)
+indexes.add_index("signature", "MINHASH_LSH", "MHJACCARD")`,
+  ingest: `client.insert(COLLECTION, data=[{
+  "doc_id": "night-market-004.txt",
+  "title":  "The Night Market",
+  "content": "The night market opened under strings of ..."
+}])
+client.flush()
+client.load_collection()`,
+  search: `client.search(COLLECTION, data=[query_text],
+              anns_field="signature", metric_type="MHJACCARD",
+              params={"refine_k": 10}, limit=10)`,
 };
 
 // Minimal Python syntax highlighting for the hover overlay. Kept small on
@@ -273,492 +244,62 @@ function highlightPython(code: string): ReactNode[] {
   return nodes;
 }
 
-function shingles(text: string): string[] {
-  // Word-level, punctuation-stripped, lowercased — mirrors the standard
-  // analyzer's tokenization closely enough to make the overlap count honest.
-  const normalized = text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-  if (!normalized) {
-    return [];
-  }
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const word of normalized.split(/\s+/)) {
-    if (!seen.has(word)) {
-      seen.add(word);
-      result.push(word);
-    }
-  }
-  return result;
-}
-
-// FNV-1a over UTF-16 code units, seeded per signature slot. This is the
-// explainer's stand-in for Milvus's xxhash: one hash function per slot, so
-// every slot induces a different "random ordering" of the same words.
-function fnv1a(seed: number, word: string): number {
-  let hash = (0x811c9dc5 ^ seed) >>> 0;
-  for (let i = 0; i < word.length; i += 1) {
-    hash ^= word.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return hash >>> 0;
-}
-
-interface ScoredWord {
-  word: string;
-  hash: number;
-}
-
-interface MinHashTrial {
-  // 0-based slot index this trial fills in the signature.
-  slotIndex: number;
-  // The vocabulary ordered by this slot's hash — the "random ordering".
-  ordering: ScoredWord[];
-  // First word of that ordering belonging to each set = the set's minimum hash.
-  queryPick: ScoredWord | null;
-  candidatePick: ScoredWord | null;
-  collision: boolean;
-}
-
-// One MinHash computation: hash every word, sort ascending, and take the first
-// word each document contains. That word's hash is the slot value, which is
-// literally the "minimum hash over the set" definition of MinHash.
-export function runTrial(
-  querySet: Set<string>,
-  candidateSet: Set<string>,
-  vocabulary: readonly string[],
-  slotIndex: number,
-): MinHashTrial {
-  const seed = (slotIndex + 1) * 0x9e3779b9;
-  const ordering = vocabulary
-    .map((word) => ({ word, hash: fnv1a(seed, word) }))
-    .sort((a, b) => a.hash - b.hash);
-
-  let queryPick: ScoredWord | null = null;
-  let candidatePick: ScoredWord | null = null;
-  for (const entry of ordering) {
-    if (queryPick === null && querySet.has(entry.word)) {
-      queryPick = entry;
-    }
-    if (candidatePick === null && candidateSet.has(entry.word)) {
-      candidatePick = entry;
-    }
-    if (queryPick !== null && candidatePick !== null) {
-      break;
-    }
-  }
-
-  return {
-    slotIndex,
-    ordering,
-    queryPick,
-    candidatePick,
-    collision:
-      queryPick !== null &&
-      candidatePick !== null &&
-      queryPick.hash === candidatePick.hash,
-  };
-}
-
-function formatSlotValue(value: number): string {
-  return `0x${value.toString(16).padStart(8, "0")}`;
-}
-
-interface BandState {
-  index: number;
-  // How many of the band's slots have been computed so far.
-  filled: number;
-  // Whether every slot in the band collided (only meaningful when complete).
-  hit: boolean;
-  complete: boolean;
-}
-
-// Group the flat slot results into LSH bands, mirroring Milvus's
-// `mh_lsh_band` / signature-dimension split. A band "hits" only when every one
-// of its slots is a collision; one hit is enough to become a candidate.
-export function buildBands(
-  slotCollisions: readonly boolean[],
-  bandCount: number,
-  hashesPerBand: number,
-): BandState[] {
-  return Array.from({ length: bandCount }, (_, index) => {
-    const start = index * hashesPerBand;
-    const slice = slotCollisions.slice(start, start + hashesPerBand);
-    const filled = slice.length;
-    const complete = filled === hashesPerBand;
-    return {
-      index,
-      filled,
-      complete,
-      hit: complete && slice.every(Boolean),
-    };
-  });
-}
-
-function HowMinHashWorks({
-  query,
-  selectedResult,
-  latencyMs,
+// One offline setup step: a number, a title, and the real call it runs.
+function StepCard({
+  index,
+  title,
+  code,
 }: {
-  query: string;
-  selectedResult: SearchResult | null;
-  latencyMs: number | null;
+  index: number;
+  title: string;
+  code: string;
 }) {
-  const queryShingles = useMemo(() => shingles(query), [query]);
-  const candidateShingles = useMemo(
-    () => (selectedResult ? shingles(selectedResult.content) : []),
-    [selectedResult],
-  );
-
-  const querySet = useMemo(() => new Set(queryShingles), [queryShingles]);
-  const candidateSet = useMemo(
-    () => new Set(candidateShingles),
-    [candidateShingles],
-  );
-
-  const intersection = useMemo(
-    () => queryShingles.filter((word) => candidateSet.has(word)),
-    [queryShingles, candidateSet],
-  );
-  const union = useMemo(
-    () => new Set([...queryShingles, ...candidateShingles]),
-    [queryShingles, candidateShingles],
-  );
-  const trueJaccard = useMemo(() => {
-    if (union.size === 0) {
-      return 0;
-    }
-    return intersection.length / union.size;
-  }, [intersection.length, union.size]);
-
-  const vocabulary = useMemo(() => [...union], [union]);
-
-  // `slotCollisions[i]` records whether slot i collided. It is both the
-  // signature (one bit per hash) and the raw material for the band view.
-  const [slotCollisions, setSlotCollisions] = useState<boolean[]>([]);
-  const [current, setCurrent] = useState<MinHashTrial | null>(null);
-  const [running, setRunning] = useState(false);
-  const [hoveredStep, setHoveredStep] = useState<MilvusStep | null>(null);
-
-  const trials = slotCollisions.length;
-  const collisions = useMemo(
-    () => slotCollisions.filter(Boolean).length,
-    [slotCollisions],
-  );
-
-  // Reset the simulation whenever the compared pair changes.
-  useEffect(() => {
-    setSlotCollisions([]);
-    setCurrent(null);
-    setRunning(false);
-  }, [query, selectedResult?.doc_id]);
-
-  const advance = useCallback(() => {
-    setSlotCollisions((prev) => {
-      if (prev.length >= NUM_HASHES) {
-        return prev;
-      }
-      const next = runTrial(querySet, candidateSet, vocabulary, prev.length);
-      setCurrent(next);
-      return [...prev, next.collision];
-    });
-  }, [querySet, candidateSet, vocabulary]);
-
-  // Continuous run: one slot per tick until the signature is full.
-  useEffect(() => {
-    if (!running) {
-      return;
-    }
-    const id = window.setInterval(() => {
-      setSlotCollisions((prev) => {
-        if (prev.length >= NUM_HASHES) {
-          setRunning(false);
-          return prev;
-        }
-        const next = runTrial(querySet, candidateSet, vocabulary, prev.length);
-        setCurrent(next);
-        if (prev.length + 1 >= NUM_HASHES) {
-          setRunning(false);
-        }
-        return [...prev, next.collision];
-      });
-    }, TRIAL_INTERVAL_MS);
-    return () => window.clearInterval(id);
-  }, [running, querySet, candidateSet, vocabulary]);
-
-  const reset = useCallback(() => {
-    setSlotCollisions([]);
-    setCurrent(null);
-    setRunning(false);
-  }, []);
-
-  const bands = useMemo(
-    () => buildBands(slotCollisions, LSH_BAND_COUNT, HASHES_PER_BAND),
-    [slotCollisions],
-  );
-  const decidedBands = bands.filter((band) => band.complete).length;
-  const hitBands = bands.filter((band) => band.hit).length;
-  const isCandidate = hitBands > 0;
-
-  const filled = slotCollisions.length;
-
   return (
-    <section className="under-hood" data-testid="under-the-hood">
-      <header className="under-hood-head">
-        <h2>Inside Milvus: near-duplicate search</h2>
-        <span className="under-hood-subtitle">
-          {selectedResult
-            ? "Hover any step for details"
-            : "Run detection to compare two word sets"}
-        </span>
+    <article className="step-card">
+      <header className="step-card-head">
+        <span className="step-num">{index}</span>
+        <span className="step-name">{title}</span>
       </header>
+      <pre className="step-code">
+        <code>{highlightPython(code)}</code>
+      </pre>
+    </article>
+  );
+}
 
-      {selectedResult ? (
-        <div className="explainer-split">
-          <div className="split-col app-col">
-            <span className="split-badge app">Your app</span>
-
-            <div className="word-set">
-              <span className="word-set-label">
-                <span className="step-num">1</span>
-                Incoming · {queryShingles.length} words
-              </span>
-              <div className="word-chips">
-                {queryShingles.map((word) => (
-                  <span
-                    key={word}
-                    className={`word-chip${
-                      intersection.includes(word) ? " shared" : ""
-                    }`}
-                  >
-                    {word}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="payload">
-              <span className="step-num">2</span>
-              <code>POST /api/v1/search</code>
-              <span className="payload-note">text only</span>
-              <span className="payload-arrow" aria-hidden="true">
-                →
-              </span>
-            </div>
-
-            <div className="app-tail">
-              <div className="response-block">
-                <span className="step-num">6</span>
-                <span className="response-label">← response</span>
-                <span className="response-score">
-                  {scoreLabel(selectedResult.estimated_jaccard)}
-                </span>
-                {latencyMs !== null && (
-                  <span className="response-latency">
-                    {Math.round(latencyMs)} ms
-                  </span>
-                )}
-              </div>
-
-              <div className="score-pair">
-                <span className="score-pair-item">
-                  true Jaccard <b>{trueJaccard.toFixed(2)}</b>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="split-col milvus-col">
-            <span className="split-badge milvus">Milvus 3.0</span>
-
-            <div
-              className="mstep mstep--linked"
-              onMouseEnter={() => setHoveredStep("function")}
-              onMouseLeave={() => setHoveredStep(null)}
-            >
-              <div className="mstep-head">
-                <span className="step-num">3</span>
-                <span className="mstep-name">FunctionType.MINHASH</span>
-                <span className="mstep-meta">
-                  {filled} / {NUM_HASHES} slots
-                </span>
-              </div>
-
-              <div className="word-set compact">
-                <span className="word-set-label">
-                  Stored · {selectedResult.doc_id}
-                </span>
-                <div className="word-chips">
-                  {candidateShingles.map((word) => (
-                    <span
-                      key={word}
-                      className={`word-chip${
-                        intersection.includes(word) ? " shared" : ""
-                      }`}
-                    >
-                      {word}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="trial-line">
-                {current ? (
-                  <>
-                    <span className="trial-slot">slot {current.slotIndex}</span>
-                    <code className="trial-hash q">
-                      {current.queryPick
-                        ? formatSlotValue(current.queryPick.hash)
-                        : "—"}
-                    </code>
-                    <span
-                      className={`trial-eq${current.collision ? " hit" : " miss"}`}
-                    >
-                      {current.collision ? "=" : "≠"}
-                    </span>
-                    <code className="trial-hash c">
-                      {current.candidatePick
-                        ? formatSlotValue(current.candidatePick.hash)
-                        : "—"}
-                    </code>
-                    <span className="trial-word">
-                      {current.queryPick?.word ?? "—"}
-                    </span>
-                  </>
-                ) : (
-                  <span className="trial-idle">
-                    one hash per slot · smallest wins
-                  </span>
-                )}
-              </div>
-
-              <div className="mstep-controls">
-                <button
-                  className="mini-button primary"
-                  onClick={() => {
-                    if (filled < NUM_HASHES) {
-                      setRunning(true);
-                    }
-                  }}
-                  disabled={running || filled >= NUM_HASHES}
-                  type="button"
-                >
-                  {running ? "Running…" : `▶ Run ${NUM_HASHES} slots`}
-                </button>
-                <button
-                  className="mini-button"
-                  onClick={advance}
-                  disabled={running || filled >= NUM_HASHES}
-                  type="button"
-                >
-                  One slot
-                </button>
-                <button className="mini-button" onClick={reset} type="button">
-                  Reset
-                </button>
-                <span className="mstep-counter">{collisions} matched</span>
-              </div>
-              <div className="fill-bar" aria-hidden="true">
-                <span
-                  className="fill-bar-inner"
-                  style={{ width: `${(filled / NUM_HASHES) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            <div
-              className="mstep mstep--linked"
-              onMouseEnter={() => setHoveredStep("index")}
-              onMouseLeave={() => setHoveredStep(null)}
-            >
-              <div className="mstep-head">
-                <span className="step-num">4</span>
-                <span className="mstep-name">MINHASH_LSH index</span>
-                <span className="mstep-meta">
-                  {hitBands} / {LSH_BAND_COUNT} bands
-                </span>
-              </div>
-
-              <div className="band-grid" data-testid="lsh-bands">
-                {bands.map((band) => (
-                  <span
-                    key={band.index}
-                    className={`band-col${band.complete ? " complete" : ""}${
-                      band.hit ? " hit" : ""
-                    }`}
-                  >
-                    {Array.from({ length: HASHES_PER_BAND }, (_, offset) => {
-                      const value =
-                        slotCollisions[band.index * HASHES_PER_BAND + offset];
-                      const state =
-                        value === undefined ? "" : value ? " match" : " miss";
-                      return <i key={offset} className={`sig-cell${state}`} />;
-                    })}
-                  </span>
-                ))}
-              </div>
-
-              <span
-                className={`mstep-verdict${
-                  decidedBands === 0 ? "" : isCandidate ? " hit" : " miss"
-                }`}
-              >
-                {decidedBands === 0
-                  ? "no band complete"
-                  : isCandidate
-                    ? "→ candidate"
-                    : "→ skipped"}
-              </span>
-            </div>
-
-            <div
-              className="mstep mstep--linked"
-              onMouseEnter={() => setHoveredStep("search")}
-              onMouseLeave={() => setHoveredStep(null)}
-            >
-              <div className="mstep-head">
-                <span className="step-num">5</span>
-                <span className="mstep-name">client.search() · refine_k</span>
-                <span className="mstep-meta">
-                  {isCandidate ? "ranked" : "not reached"}
-                </span>
-              </div>
-
-              <div className="metric-line">
-                <span className="metric-key">distance</span>
-                <span className="metric-eq">=</span>
-                <b className="metric-value">
-                  {scoreLabel(selectedResult.estimated_jaccard)}
-                </b>
-                <span className="metric-hint">MHJACCARD · larger = closer</span>
-              </div>
-
-              <div className="refine-line">
-                <span className="refine-key">refine_k 10</span>
-                <span className="refine-note">
-                  re-rank from the stored raw signatures
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {hoveredStep && (
-            <div className="code-overlay">
-              <pre>
-                <code>{highlightPython(MILVUS_CODE[hoveredStep])}</code>
-              </pre>
-            </div>
-          )}
-        </div>
-      ) : (
-        <p className="under-hood-idle">
-          Run detection and select a candidate to see its words compared against
-          the incoming text.
-        </p>
+// A short hover hint that reveals the Milvus call behind a page element. The
+// panel keeps the working UI; the code is there for readers who want it.
+function CodeHint({
+  code,
+  label,
+  children,
+}: {
+  code: string;
+  label: string;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span
+      className="code-hint"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setOpen(false)}
+      tabIndex={0}
+      role="button"
+      aria-label={label}
+    >
+      {children}
+      {open && (
+        <span className="code-hint-pop" role="tooltip">
+          <span className="code-hint-label">{label}</span>
+          <pre>
+            <code>{highlightPython(code)}</code>
+          </pre>
+        </span>
       )}
-    </section>
+    </span>
   );
 }
 
@@ -1063,78 +604,104 @@ export function MinHashDemoPage() {
         </a>
       </header>
 
-      <div className="intro-strip">
-        <p>Find copied and lightly edited documents.</p>
-        <span className="intro-badge">MinHash + LSH · No embedding model</span>
-      </div>
-
-      <div className="toolbar">
-        <label className="preset-control">
-          <span className="toolbar-label">Example</span>
-          <select
-            value={presetId}
-            onChange={(event) => applyPreset(event.target.value)}
-          >
-            {presets.map((preset) => (
-              <option key={preset.id} value={preset.id}>
-                {preset.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button className="secondary-button" onClick={reset} type="button">
-          Reset
-        </button>
-        <button
-          className="primary-button"
-          onClick={detect}
-          disabled={loading}
-          type="button"
-        >
-          {loading ? "Detecting…" : "Detect duplicates"}
-        </button>
-        <span className="result-count">
-          {aboveCount} candidate{aboveCount === 1 ? "" : "s"} above threshold
-        </span>
-      </div>
-
       {error && <p className="error-banner">{error}</p>}
 
       <div className="scroll-main">
-        <div className="workspace">
-          <IncomingPanel
-            content={content}
-            onContentChange={setContent}
-            threshold={threshold}
-            onThresholdChange={setThreshold}
-          />
-          <CandidatePanel
-            results={response?.results ?? []}
-            selectedId={selectedId}
-            threshold={threshold}
-            onSelect={setSelectedId}
-          />
-          {selectedResult && selectedDiff ? (
-            <DiffView diff={selectedDiff} result={selectedResult} />
-          ) : (
-            <section className="panel compare-panel">
-              <header className="panel-header">
-                <h2>Compare with selected</h2>
-                <span className="panel-subtitle">No document selected</span>
-              </header>
-              <p className="empty-note">
-                Run detection and select a candidate to inspect the text
-                differences.
-              </p>
-            </section>
-          )}
-        </div>
+        <section className="phase">
+          <div className="phase-head">
+            <span className="phase-tag offline">OFFLINE</span>
+          </div>
 
-        <HowMinHashWorks
-          query={content}
-          selectedResult={selectedResult}
-          latencyMs={response?.latency_ms ?? null}
-        />
+          <div className="phase-grid">
+            <StepCard
+              index={1}
+              title="Create index"
+              code={MILVUS_CODE.create}
+            />
+            <StepCard index={2} title="Ingest" code={MILVUS_CODE.ingest} />
+          </div>
+        </section>
+
+        <section className="phase">
+          <div className="phase-head">
+            <span className="phase-tag online">ONLINE</span>
+          </div>
+
+          <div className="online-card">
+            <div className="online-head">
+              <span className="step-num">3</span>
+              <span className="step-name">Search</span>
+            </div>
+
+            <pre className="online-code">
+              <code>{highlightPython(MILVUS_CODE.search)}</code>
+            </pre>
+
+            <div className="query-bar">
+              <label className="preset-control">
+                <span className="toolbar-label">Example</span>
+                <select
+                  value={presetId}
+                  onChange={(event) => applyPreset(event.target.value)}
+                >
+                  {presets.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                className="secondary-button"
+                onClick={reset}
+                type="button"
+              >
+                Reset
+              </button>
+              <button
+                className="primary-button"
+                onClick={detect}
+                disabled={loading}
+                type="button"
+              >
+                {loading ? "Detecting…" : "Detect duplicates"}
+              </button>
+              <span className="result-count">
+                {aboveCount} candidate{aboveCount === 1 ? "" : "s"} above
+                threshold
+              </span>
+            </div>
+
+            <div className="workspace">
+              <IncomingPanel
+                content={content}
+                onContentChange={setContent}
+                threshold={threshold}
+                onThresholdChange={setThreshold}
+              />
+              <CandidatePanel
+                results={response?.results ?? []}
+                selectedId={selectedId}
+                threshold={threshold}
+                onSelect={setSelectedId}
+              />
+              {selectedResult && selectedDiff ? (
+                <DiffView diff={selectedDiff} result={selectedResult} />
+              ) : (
+                <section className="panel compare-panel">
+                  <header className="panel-header">
+                    <h2>Compare with selected</h2>
+                    <span className="panel-subtitle">No document selected</span>
+                  </header>
+                  <p className="empty-note">
+                    Run detection and select a candidate to inspect the text
+                    differences.
+                  </p>
+                </section>
+              )}
+            </div>
+          </div>
+        </section>
 
         <footer className="footer">
           <p>Review candidates before merging or removing content.</p>

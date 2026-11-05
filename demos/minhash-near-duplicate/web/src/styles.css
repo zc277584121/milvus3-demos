@@ -39,9 +39,9 @@ body {
 }
 
 .demo-page {
-  max-width: 1440px;
+  max-width: none;
   margin: 0 auto;
-  padding: 16px 20px 0;
+  padding: 16px 24px 0;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -102,6 +102,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 8px 14px;
   background: #eaf6ff;
   border: 1px solid #cfe6ff;
   border-radius: var(--radius);
@@ -216,8 +217,8 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 16px;
-  min-height: 248px;
+  padding: 18px;
+  min-height: 260px;
 }
 
 .panel-header {
@@ -439,7 +440,6 @@ body {
   font-size: 13px;
 }
 
-/* Inside Milvus: the explainer */
 .under-hood {
   background: var(--card);
   border: 1px solid var(--border);
@@ -449,107 +449,6 @@ body {
   margin-bottom: 16px;
 }
 
-.under-hood-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 10px;
-  margin-bottom: 12px;
-}
-
-.under-hood-head h2 {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.under-hood-subtitle {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.under-hood-idle {
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-/* Two columns: the client on the left, Milvus on the right */
-.explainer-split {
-  display: grid;
-  grid-template-columns: minmax(220px, 300px) 1fr;
-  gap: 16px;
-  /* Stretch so the app column matches the Milvus column height; that lets the
-     response block sit at the bottom, level with the end of the pipeline. */
-  align-items: stretch;
-}
-
-.split-col {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 0;
-}
-
-.app-col {
-  border-right: 1px dashed var(--border);
-  padding-right: 16px;
-}
-/* Step numerals: deliberately quiet — a thin outlined circle in muted grey, so
-   they read as ordering hints rather than clickable badges. */
-.step-num {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: 17px;
-  height: 17px;
-  border-radius: 50%;
-  border: 1px solid #b7cdf0;
-  background: var(--blue-soft);
-  color: #4a72c4;
-  font-size: 10px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  vertical-align: middle;
-  margin-right: 6px;
-  user-select: none;
-}
-
-/* Push the response to the bottom so it lines up with the end of the
-   Milvus pipeline, reading top-to-bottom as one pass. */
-.app-tail {
-  margin-top: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.split-badge {
-  align-self: flex-start;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  border-radius: 5px;
-  padding: 2px 8px;
-}
-
-.split-badge.app {
-  color: var(--muted);
-  background: #f3f4f6;
-  border: 1px solid var(--border);
-}
-
-.split-badge.milvus {
-  color: #ffffff;
-  background: var(--blue);
-}
-
-/* Word clouds (shared by both columns) */
 .word-set {
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -595,335 +494,7 @@ body {
 }
 
 /* The request crossing the boundary */
-.payload {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 7px 10px;
-  background: #ffffff;
-}
 
-.payload code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--blue);
-}
-
-.payload-note {
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.payload-arrow {
-  margin-left: auto;
-  color: var(--blue);
-  font-weight: 700;
-}
-
-/* The response coming back */
-.response-block {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  border: 1px solid var(--teal);
-  border-radius: 8px;
-  padding: 7px 10px;
-  background: var(--teal-soft);
-}
-
-.response-label {
-  font-size: 11px;
-  color: var(--teal);
-  font-weight: 600;
-}
-
-.response-score {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--teal);
-  font-variant-numeric: tabular-nums;
-}
-
-.response-latency {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.score-pair {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.score-pair-item {
-  font-size: 11px;
-  color: var(--muted);
-  border: 1px dashed var(--border);
-  border-radius: 6px;
-  padding: 3px 8px;
-}
-
-.score-pair-item b {
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  margin-left: 4px;
-}
-
-/* Milvus steps */
-.mstep {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: #ffffff;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.mstep-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.mstep-head .mstep-name {
-  margin-right: auto;
-}
-
-.mstep-name {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--blue);
-}
-
-.mstep-meta {
-  font-size: 11px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.mstep-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.mstep-counter {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.mstep-verdict {
-  align-self: flex-start;
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: 999px;
-  padding: 2px 9px;
-  color: var(--muted);
-  background: #f3f4f6;
-}
-
-.mstep-verdict.hit {
-  color: var(--teal);
-  background: var(--teal-soft);
-}
-
-.mstep-verdict.miss {
-  color: var(--amber);
-  background: var(--amber-soft);
-}
-
-.mini-button {
-  border: 1px solid var(--border);
-  background: #ffffff;
-  color: var(--text);
-  border-radius: 8px;
-  padding: 7px 14px;
-  font-size: 12.5px;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    background 120ms ease,
-    border-color 120ms ease,
-    transform 80ms ease;
-}
-
-.mini-button:hover:not(:disabled) {
-  background: #f3f6fa;
-  border-color: #c9d3df;
-}
-
-.mini-button:active:not(:disabled) {
-  transform: translateY(1px);
-}
-
-.mini-button.primary {
-  border-color: var(--blue);
-  background: var(--blue);
-  color: #ffffff;
-  font-weight: 700;
-  padding: 8px 20px;
-  font-size: 13px;
-  box-shadow: 0 2px 6px rgba(29, 78, 216, 0.28);
-}
-
-.mini-button.primary:hover:not(:disabled) {
-  background: #1a45c4;
-  border-color: #1a45c4;
-}
-
-.mini-button:disabled {
-  opacity: 0.45;
-  cursor: default;
-  box-shadow: none;
-}
-
-/* How far the 256-slot signature has been filled */
-.fill-bar {
-  height: 3px;
-  border-radius: 999px;
-  background: #eef1f5;
-  overflow: hidden;
-}
-
-.fill-bar-inner {
-  display: block;
-  height: 100%;
-  background: var(--teal);
-  border-radius: 999px;
-  transition: width 90ms linear;
-}
-
-/* One-slot readout */
-.trial-line {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  padding: 5px 9px;
-  background: #fbfcfd;
-  min-height: 28px;
-}
-
-.trial-slot {
-  font-size: 11px;
-  color: var(--muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-.trial-hash {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.trial-hash.q {
-  color: var(--blue);
-}
-
-.trial-hash.c {
-  color: var(--teal);
-}
-
-.trial-eq {
-  font-weight: 700;
-  font-size: 12px;
-}
-
-.trial-eq.hit {
-  color: var(--teal);
-}
-
-.trial-eq.miss {
-  color: var(--amber);
-}
-
-.trial-word {
-  font-size: 11px;
-  color: var(--muted);
-  font-style: italic;
-}
-
-.trial-idle {
-  font-size: 11px;
-  color: var(--muted);
-  font-style: italic;
-}
-
-/* One figure for both: 64 columns of 4 slots. The column IS the band, so the
-   signature and the LSH buckets are the same picture, not two. */
-.band-grid {
-  display: grid;
-  grid-template-columns: repeat(64, 1fr);
-  gap: 2px;
-}
-
-.band-col {
-  display: grid;
-  grid-template-rows: repeat(4, 1fr);
-  gap: 1px;
-  padding: 1px;
-  border: 1px solid transparent;
-  border-radius: 2px;
-}
-
-.band-col.complete {
-  background: #f1f4f8;
-}
-
-.band-col.hit {
-  background: var(--teal-soft);
-  border-color: var(--teal);
-}
-
-.sig-cell {
-  display: block;
-  height: 4px;
-  border-radius: 1px;
-  background: #eef1f5;
-}
-
-.sig-cell.match {
-  background: var(--teal);
-}
-
-.sig-cell.miss {
-  background: #cfd7e0;
-}
-
-/* Hoverable Milvus steps reveal the real call */
-.mstep--linked {
-  cursor: default;
-}
-
-.mstep--linked .mstep-name {
-  border-bottom: 1px dashed transparent;
-}
-
-.mstep--linked:hover .mstep-name {
-  border-bottom-color: currentColor;
-}
-
-.mstep--linked:hover {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.08);
-}
-
-/* Code overlay: floats above the panel content, stays inside the section. */
 .under-hood {
   position: relative;
 }
@@ -958,6 +529,7 @@ body {
 }
 
 /* Syntax colors for the hovered call */
+
 .code-overlay .py-comment {
   color: #7c8da6;
   font-style: italic;
@@ -989,84 +561,305 @@ body {
 }
 
 /* refine_k line, inside the merged search + refine step */
-.refine-line {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-  border-top: 1px dashed var(--border);
-  padding-top: 7px;
+
+.code-overlay .py-comment {
+  color: #7c8da6;
+  font-style: italic;
 }
 
-.refine-key {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
+.code-overlay .py-string {
+  color: #a5d6a7;
+}
+
+.code-overlay .py-keyword {
+  color: #c792ea;
+}
+
+.code-overlay .py-enum {
+  color: #ffcb6b;
+  font-weight: 600;
+}
+
+.code-overlay .py-number {
+  color: #f78c6c;
+}
+
+.code-overlay .py-func {
+  color: #82aaff;
+}
+
+.code-overlay .py-param {
+  color: #89ddff;
+}
+
+/* Hover code hints: the working UI stays, the Milvus call appears on demand. */
+.code-hint {
+  position: relative;
+  display: inline-flex;
+  outline: none;
+}
+
+.code-hint .hintable {
+  border-bottom: 1px dashed transparent;
+  cursor: help;
+  transition: border-color 120ms ease;
+}
+
+.code-hint:hover .hintable,
+.code-hint:focus-visible .hintable {
+  border-bottom-color: currentColor;
+}
+
+.code-hint-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 30;
+  /* Purely informational: it must never swallow hover meant for the panel
+     underneath, or the pointer gets stuck on the tooltip. */
+  pointer-events: none;
+  display: block;
+  min-width: 360px;
+  max-width: min(620px, 70vw);
+  border-radius: 10px;
+  background: #0f172a;
+  color: #e2e8f0;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.32);
+  overflow: hidden;
+  text-align: left;
+}
+
+.code-hint-label {
+  display: block;
+  padding: 8px 14px 0;
+  font-size: 10px;
   font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #7c8da6;
+}
+
+.code-hint-pop pre {
+  margin: 0;
+  padding: 8px 14px 12px;
+  font-size: 11px;
+  line-height: 1.55;
+  overflow: auto;
+  max-height: 300px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.code-hint-pop code {
+  font-family: inherit;
+  white-space: pre;
+}
+
+.code-hint-pop .py-comment {
+  color: #7c8da6;
+  font-style: italic;
+}
+
+.code-hint-pop .py-string {
+  color: #a5d6a7;
+}
+
+.code-hint-pop .py-keyword {
+  color: #c792ea;
+}
+
+.code-hint-pop .py-enum {
+  color: #ffcb6b;
+  font-weight: 600;
+}
+
+.code-hint-pop .py-number {
+  color: #f78c6c;
+}
+
+.code-hint-pop .py-func {
+  color: #82aaff;
+}
+
+.code-hint-pop .py-param {
+  color: #89ddff;
+}
+
+/* Two phases: offline setup above, online query below */
+.phase {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.phase-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 6px;
+  padding: 3px 10px;
+}
+
+.phase-tag.offline {
+  color: #6b7280;
+  background: #f3f4f6;
+  border: 1px solid var(--border);
+}
+
+.phase-tag.online {
   color: var(--blue);
   background: var(--blue-soft);
-  border-radius: 4px;
-  padding: 1px 7px;
+  border: 1px solid #c7d8f7;
 }
 
-.refine-note {
-  font-size: 11px;
-  color: var(--muted);
+.phase-note {
+  font-size: 12px;
+  color: #9ca3af;
 }
 
-/* Metric line */
-.metric-line {
+.phase-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex: none;
+}
+
+.phase-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Offline step card: header + code only */
+.step-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.step-card-head,
+.online-head {
   display: flex;
   align-items: baseline;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.step-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.step-code,
+.online-code {
+  margin: 0;
+  background: #f8fafc;
   border: 1px solid var(--border);
-  border-radius: 7px;
-  padding: 7px 10px;
-  background: #fbfcfd;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 11.5px;
+  line-height: 1.7;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #334155;
 }
 
-.metric-key {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-  color: var(--muted);
+.step-code {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
-.metric-eq {
-  color: var(--muted);
+.step-code code,
+.online-code code {
+  font-family: inherit;
+  white-space: pre;
 }
 
-.metric-value {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--blue);
-  font-variant-numeric: tabular-nums;
+/* Light syntax palette for inline code blocks */
+.step-code .py-comment,
+.online-code .py-comment {
+  color: #94a3b8;
+  font-style: italic;
 }
 
-.metric-hint {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--muted);
+.step-code .py-string,
+.online-code .py-string {
+  color: #0f766e;
 }
 
-@media (max-width: 1100px) {
-  .explainer-split {
-    grid-template-columns: 1fr;
-  }
+.step-code .py-keyword,
+.online-code .py-keyword {
+  color: #7c3aed;
+}
 
-  .app-col {
-    border-right: none;
-    border-bottom: 1px dashed var(--border);
-    padding-right: 0;
-    padding-bottom: 12px;
-  }
+.step-code .py-enum,
+.online-code .py-enum {
+  color: #b45309;
+  font-weight: 600;
+}
 
-  .band-grid {
-    min-width: 560px;
-  }
+.step-code .py-number,
+.online-code .py-number {
+  color: #b45309;
+}
 
-  .milvus-col {
-    overflow-x: auto;
-  }
+.step-code .py-func,
+.online-code .py-func {
+  color: #1d4ed8;
+}
+
+.step-code .py-param,
+.online-code .py-param {
+  color: #0369a1;
+}
+
+/* Online card wraps the query controls and the three result panels */
+.online-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.online-head {
+  margin-bottom: 8px;
+}
+
+.online-head + .online-code {
+  margin-bottom: 10px;
+}
+
+.query-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.online-card .workspace {
+  margin-bottom: 0;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 /* Threshold row, inside the incoming-document panel */
@@ -1108,8 +901,13 @@ body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-bottom: 20px;
+  padding-bottom: 16px;
   padding-right: 4px;
+  /* Fill the viewport: the two phases share the leftover height so the page
+     reads as a full screen instead of a short stack at the top. */
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .scroll-main::-webkit-scrollbar {
