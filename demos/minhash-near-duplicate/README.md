@@ -92,6 +92,12 @@ the incoming text.
 - A high similarity does not mean content is safe to delete; numbers, times, and negations still
   need human judgment. The UI is read-only review — there is no automatic merge or delete.
 
+## Walkthrough video
+
+`web/src/assets/minhash-walkthrough.mp4` is not tracked by Git; it is baked into
+the image at build time and is required for `docker build` to succeed. Keep the
+file on the build machine before building an image.
+
 ## Safe local validation
 
 These checks do not require Milvus or a container:

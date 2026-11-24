@@ -1,11 +1,16 @@
 import {
+  Fragment,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 
+import { Walkthrough } from "./Walkthrough";
+import milvusWordmark from "./assets/milvus-wordmark.svg";
 import "./styles.css";
 
 export const DEMO_ID = "minhash-near-duplicate";
@@ -151,55 +156,55 @@ function scoreLabel(similarity: number): string {
   return similarity.toFixed(2);
 }
 
-// ---------------------------------------------------------------------------
-// How MinHash estimates Jaccard similarity
-//
-// MinHash turns "do these two documents overlap?" into a coin-flip: apply the
-// SAME random ordering to both documents' words and take the first word that
-// appears in each. The two "first words" are equal exactly when the first word
-// of the ordering belongs to BOTH sets, so the collision probability equals
-// the true Jaccard similarity. Run many orderings and the collision rate
-// converges to Jaccard.
-//
-// This explainer uses the REAL words of the incoming text and the selected
-// candidate, a real random ordering (Fisher–Yates with a seeded PRNG), and a
-// real count of collisions. The only "not Milvus" part is the hash/ordering:
-// Milvus uses xxhash over the same idea, so its estimated Jaccard lands on the
-// same value. That Milvus value is shown verbatim as the anchor.
-// ---------------------------------------------------------------------------
-
-// These mirror the fixed MinHash configuration the backend builds the
-// collection with (num_hashes=256, mh_lsh_band=64). The explainer keeps them
-// in sync so the bands it draws correspond to the real index shape:
-// 256 slots / 64 bands = 4 hashes per band.
 // Mirrors the backend's DEFAULT_THRESHOLD so the slider starts where the API does.
 const DEFAULT_THRESHOLD = 0.5;
 
-// Real Milvus calls behind each step, shown on hover.
-type MilvusStep = "create" | "ingest" | "search";
+// How many candidates Milvus returns. The list shows exactly this set, so the
+// count in the header always equals what is on screen.
+const SEARCH_LIMIT = 6;
 
-const MILVUS_CODE: Record<MilvusStep, string> = {
-  create: `schema.add_field("content", VARCHAR, enable_analyzer=True)
+// The three calls this demo makes, shown verbatim below the fold.
+const MILVUS_CODE = {
+  create: `schema = client.create_schema(auto_id=False)
+schema.add_field("content", VARCHAR, max_length=2000, enable_analyzer=True)
 schema.add_field("signature", BINARY_VECTOR, dim=8192)
-schema.add_function(FunctionType.MINHASH,
-                    num_hashes=256, shingle_size=1)
-indexes.add_index("signature", "MINHASH_LSH", "MHJACCARD")`,
-  ingest: `client.insert(COLLECTION, data=[{
-  "doc_id": "night-market-004.txt",
-  "title":  "The Night Market",
-  "content": "The night market opened under strings of ..."
-}])
+
+schema.add_function(
+    Function(
+        function_type=FunctionType.MINHASH,
+        input_field_names=["content"],
+        output_field_names=["signature"],
+        params={"num_hashes": 256, "shingle_size": 1},
+    )
+)
+
+indexes.add_index("signature", index_type="MINHASH_LSH", metric_type="MHJACCARD")`,
+  ingest: `client.insert(
+    COLLECTION,
+    data=[
+        {
+            "doc_id": "night-market-004.txt",
+            "title": "The Night Market",
+            "content": "The night market opened under strings of ...",
+        }
+    ],
+)
 client.flush()
 client.load_collection()`,
-  search: `client.search(COLLECTION, data=[query_text],
-              anns_field="signature", metric_type="MHJACCARD",
-              params={"refine_k": 10}, limit=10)`,
-};
+  search: `hits = client.search(
+    COLLECTION,
+    data=[query_text],
+    anns_field="signature",
+    search_params={
+        "metric_type": "MHJACCARD",
+        "params": {"refine_k": 10},
+    },
+    limit=10,
+)`,
+} as const;
 
-// Minimal Python syntax highlighting for the hover overlay. Kept small on
-// purpose: enough color to read as code, not a full parser.
 const PY_TOKEN =
-  /(#[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(\b(?:from|import|def|return|True|False|None)\b)|(\b(?:FunctionType|DataType|Function|MINHASH|MINHASH_LSH|MHJACCARD|BINARY_VECTOR|VARCHAR)\b)|(\b\d+(?:\.\d+)?\b)|(\b[a-z_][a-z0-9_]*(?=\())|(\b[a-z_][a-z0-9_]*(?=\s*=))/g;
+  /(#[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(\b(?:True|False|None)\b)|(\b(?:FunctionType|DataType|MINHASH|MINHASH_LSH|MHJACCARD|BINARY_VECTOR|VARCHAR)\b)|(\b\d+(?:\.\d+)?\b)|(\b[a-z_][a-z0-9_]*(?=\())/g;
 
 function highlightPython(code: string): ReactNode[] {
   const nodes: ReactNode[] = [];
@@ -209,34 +214,30 @@ function highlightPython(code: string): ReactNode[] {
     if (index > last) {
       nodes.push(code.slice(last, index));
     }
-    const [, comment, str, keyword, enumName, num, fn, param] = match;
-    let className = "";
-    if (comment) {
-      className = "py-comment";
-    } else if (str) {
-      className = "py-string";
-    } else if (keyword) {
-      className = "py-keyword";
-    } else if (enumName) {
-      className = "py-enum";
-    } else if (num) {
-      className = "py-number";
-    } else if (fn) {
-      className = "py-func";
-    } else if (param) {
-      className = "py-param";
-    }
-    const text = match[0];
+    const [, comment, str, keyword, enumName, num, fn] = match;
+    const className = comment
+      ? "py-comment"
+      : str
+        ? "py-string"
+        : keyword
+          ? "py-keyword"
+          : enumName
+            ? "py-enum"
+            : num
+              ? "py-number"
+              : fn
+                ? "py-func"
+                : "";
     nodes.push(
       className ? (
         <span key={index} className={className}>
-          {text}
+          {match[0]}
         </span>
       ) : (
-        text
+        match[0]
       ),
     );
-    last = index + text.length;
+    last = index + match[0].length;
   }
   if (last < code.length) {
     nodes.push(code.slice(last));
@@ -244,201 +245,274 @@ function highlightPython(code: string): ReactNode[] {
   return nodes;
 }
 
-// One offline setup step: a number, a title, and the real call it runs.
-function StepCard({
-  index,
-  title,
-  code,
-}: {
-  index: number;
-  title: string;
-  code: string;
-}) {
-  return (
-    <article className="step-card">
-      <header className="step-card-head">
-        <span className="step-num">{index}</span>
-        <span className="step-name">{title}</span>
-      </header>
-      <pre className="step-code">
-        <code>{highlightPython(code)}</code>
-      </pre>
-    </article>
-  );
-}
-
-// A short hover hint that reveals the Milvus call behind a page element. The
-// panel keeps the working UI; the code is there for readers who want it.
-function CodeHint({
-  code,
-  label,
-  children,
-}: {
-  code: string;
-  label: string;
-  children: ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <span
-      className="code-hint"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
-      onBlur={() => setOpen(false)}
-      tabIndex={0}
-      role="button"
-      aria-label={label}
-    >
-      {children}
-      {open && (
-        <span className="code-hint-pop" role="tooltip">
-          <span className="code-hint-label">{label}</span>
-          <pre>
-            <code>{highlightPython(code)}</code>
-          </pre>
-        </span>
-      )}
-    </span>
-  );
-}
-
-function IncomingPanel({
-  content,
-  onContentChange,
-  threshold,
-  onThresholdChange,
-}: {
-  content: string;
-  onContentChange: (value: string) => void;
-  threshold: number;
-  onThresholdChange: (value: number) => void;
-}) {
-  return (
-    <section className="panel incoming-panel">
-      <header className="panel-header">
-        <h2>Incoming document</h2>
-        <span className="panel-subtitle">Paste or edit, then detect</span>
-      </header>
-      <label className="content-field">
-        <textarea
-          value={content}
-          onChange={(event) => onContentChange(event.target.value)}
-          placeholder="Paste a document to check for near-duplicates…"
-        />
-      </label>
-      <label className="threshold-row" htmlFor="threshold-slider">
-        <span className="threshold-row-label">Threshold</span>
-        <input
-          id="threshold-slider"
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          value={threshold}
-          onChange={(event) => onThresholdChange(Number(event.target.value))}
-        />
-        <span className="threshold-row-value">{threshold.toFixed(2)}</span>
-      </label>
-    </section>
-  );
-}
+const STEPS = [
+  { n: 1, title: "Create index", code: MILVUS_CODE.create },
+  { n: 2, title: "Ingest", code: MILVUS_CODE.ingest },
+  { n: 3, title: "Search", code: MILVUS_CODE.search },
+] as const;
 
 function CandidatePanel({
   results,
   selectedId,
   threshold,
   onSelect,
+  pending,
+  loading,
 }: {
   results: SearchResult[];
   selectedId: string | null;
   threshold: number;
   onSelect: (docId: string) => void;
+  pending: boolean;
+  loading: boolean;
 }) {
-  return (
-    <section className="panel candidates-panel">
-      <header className="panel-header">
-        <h2>Retrieved candidates</h2>
-        <span className="panel-subtitle">
-          {results.length} candidate{results.length === 1 ? "" : "s"}
-        </span>
-      </header>
-      {results.length === 0 ? (
-        <p className="empty-note">No candidates retrieved yet.</p>
-      ) : (
-        <div className="candidate-list">
-          {results.map((result) => {
-            const selected = result.doc_id === selectedId;
-            // Judge against the live slider, not the threshold that happened to
-            // be sent with the last request, so dragging updates the list.
-            const aboveThreshold = result.estimated_jaccard >= threshold;
-            return (
+  const aboveThreshold = results.filter(
+    (result) => result.estimated_jaccard >= threshold,
+  );
+
+  function renderCandidates(candidates: SearchResult[]) {
+    return (
+      <ul className="candidate-list">
+        {candidates.map((result) => {
+          const above = result.estimated_jaccard >= threshold;
+          return (
+            <li key={result.doc_id}>
               <button
-                key={result.doc_id}
-                className={`candidate-card${selected ? " selected" : ""}`}
+                className={`candidate-button${above ? " is-above" : " is-below"}`}
+                aria-pressed={result.doc_id === selectedId}
                 onClick={() => onSelect(result.doc_id)}
+                title={`${result.title} · ${above ? "above" : "below"} threshold`}
                 type="button"
               >
-                <div className="candidate-head">
-                  <span className="candidate-name">{result.doc_id}</span>
-                  <span
-                    className={`score-badge${aboveThreshold ? " above" : " below"}`}
-                  >
-                    {scoreLabel(result.estimated_jaccard)}
-                  </span>
-                </div>
-                <p className="candidate-excerpt">
-                  {result.content.slice(0, 120)}…
-                </p>
-                <div className="candidate-foot">
-                  <span
-                    className={`threshold-badge${aboveThreshold ? " above" : " below"}`}
-                  >
-                    {aboveThreshold ? "Above threshold" : "Below threshold"}
-                  </span>
-                  <span className="candidate-title">{result.title}</span>
-                </div>
+                <span className="file-icon" aria-hidden="true" />
+                <span className="candidate-name">{result.doc_id}</span>
+                <span className="candidate-score">
+                  {scoreLabel(result.estimated_jaccard)}
+                </span>
               </button>
-            );
-          })}
-        </div>
-      )}
-      {results.length > 0 && (
-        <p className="candidates-note">
-          Select a candidate to inspect the text.
+            </li>
+          );
+        })}
+      </ul>
+    );
+  }
+
+  return (
+    <section className="candidates-panel" aria-labelledby="matches-heading">
+      <header className="candidates-header">
+        <h2 id="matches-heading">Candidate documents</h2>
+        <p className="result-count" aria-live="polite">
+          {loading
+            ? "Searching…"
+            : pending
+              ? "Edits pending"
+              : `${aboveThreshold.length} of ${results.length} above threshold`}
         </p>
+      </header>
+      {results.length === 0 ? (
+        <p className="empty-note">
+          {loading
+            ? "Finding candidates…"
+            : pending
+              ? "Apply changes to update candidates."
+              : "No candidates retrieved yet."}
+        </p>
+      ) : (
+        renderCandidates(results)
       )}
     </section>
   );
 }
 
-function DiffView({ diff, result }: { diff: Diff; result: SearchResult }) {
+interface DocumentEditor {
+  active: boolean;
+  loading: boolean;
+  value: string;
+  onStart: () => void;
+  onChange: (value: string) => void;
+  onCancel: () => void;
+  onApply: () => Promise<boolean>;
+}
+
+function ComparedDocument({
+  title,
+  text,
+  segments,
+  kind,
+  count,
+  editor,
+}: {
+  title: string;
+  text: string;
+  segments: DiffSegment[];
+  kind: "added" | "removed";
+  count: number;
+  editor?: DocumentEditor;
+}) {
+  const editButtonRef = useRef<HTMLButtonElement>(null);
+  const Mark = kind === "added" ? "ins" : "del";
+  const words = Array.from(text.matchAll(/\S+/g));
+  let wordOffset = 0;
+  let textOffset = 0;
+
+  // Diff segments normalize whitespace. Map their words back to the source
+  // so line breaks, spaces, and punctuation remain part of the document.
+  const parts = segments
+    .filter((segment) => segment.kind === "equal" || segment.kind === kind)
+    .map((segment, index) => {
+      const wordCount = segment.text.match(/\S+/g)?.length ?? 0;
+      if (wordCount === 0) return null;
+      const first = words[wordOffset];
+      wordOffset += wordCount;
+      const last = words[wordOffset - 1];
+      if (!first || !last) return null;
+
+      const spacing = text.slice(textOffset, first.index);
+      const end = last.index + last[0].length;
+      const content = text.slice(first.index, end);
+      textOffset = end;
+
+      return (
+        <Fragment key={index}>
+          {spacing}
+          {segment.kind === kind ? <Mark>{content}</Mark> : content}
+        </Fragment>
+      );
+    });
+
   return (
-    <section className="panel compare-panel">
-      <header className="panel-header">
-        <h2>Compare with selected</h2>
-        <span className="panel-subtitle">{diff.document_id}</span>
+    <article className={`document-pane ${kind}`}>
+      <header className="document-header">
+        <h3>{title}</h3>
+        <div className="document-header-actions">
+          {count > 0 && !editor?.active && (
+            <span className="change-count">
+              {count} {count === 1 ? "word" : "words"} {kind}
+            </span>
+          )}
+          {editor && !editor.active && (
+            <button
+              ref={editButtonRef}
+              className="document-edit-button"
+              type="button"
+              aria-label="Edit incoming document"
+              disabled={editor.loading}
+              onClick={editor.onStart}
+            >
+              Edit
+            </button>
+          )}
+        </div>
       </header>
-      <div className="compare-meta">
-        <span className="compare-filename">{diff.document_id}</span>
-        <span className="score-pill">
-          Estimated Jaccard {scoreLabel(result.estimated_jaccard)}
-        </span>
+      {editor?.active ? (
+        <div className="document-editor">
+          <textarea
+            className="document-edit-field"
+            aria-label="Incoming document"
+            value={editor.value}
+            onChange={(event) => editor.onChange(event.target.value)}
+            disabled={editor.loading}
+            placeholder="Enter a document to compare…"
+            maxLength={2000}
+            rows={8}
+            autoFocus
+          />
+          <div className="document-editor-actions">
+            <button
+              className="primary-button"
+              type="button"
+              disabled={editor.loading || !editor.value.trim()}
+              onClick={async () => {
+                if (await editor.onApply()) {
+                  window.setTimeout(() => editButtonRef.current?.focus(), 0);
+                }
+              }}
+            >
+              {editor.loading ? "Detecting…" : "Apply changes"}
+            </button>
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={editor.loading}
+              onClick={() => {
+                editor.onCancel();
+                window.setTimeout(() => editButtonRef.current?.focus(), 0);
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="document-text">
+          {parts}
+          {text.slice(textOffset)}
+        </p>
+      )}
+    </article>
+  );
+}
+
+function DiffView({
+  diff,
+  result,
+  query,
+  editor,
+  pending,
+}: {
+  diff: Diff | null;
+  result: SearchResult | null;
+  query: string;
+  editor: DocumentEditor;
+  pending: boolean;
+}) {
+  return (
+    <section className="compare-panel" aria-labelledby="comparison-heading">
+      <header className="panel-header">
+        <h2 id="comparison-heading">What changed</h2>
+        {result ? (
+          <p className="comparison-score">
+            Estimated Jaccard{" "}
+            <strong>{scoreLabel(result.estimated_jaccard)}</strong>
+          </p>
+        ) : (
+          <p className="comparison-status" role="status">
+            {editor.loading ? "Comparing…" : pending ? "Edits pending" : ""}
+          </p>
+        )}
+      </header>
+      <div className="split-diff">
+        <ComparedDocument
+          title="Incoming document"
+          kind="added"
+          count={diff?.added_count ?? 0}
+          text={query}
+          segments={diff?.segments ?? []}
+          editor={editor}
+        />
+        {result && diff ? (
+          <ComparedDocument
+            title={diff.document_id}
+            kind="removed"
+            count={diff.removed_count}
+            text={result.content}
+            segments={diff.segments}
+          />
+        ) : (
+          <article className="document-pane">
+            <header className="document-header">
+              <h3>Matching document</h3>
+            </header>
+            <p className="empty-note">
+              {editor.loading
+                ? "Finding matching documents…"
+                : pending
+                  ? "Apply changes to update the comparison."
+                  : "Choose an example or run detection to find matching documents."}
+            </p>
+          </article>
+        )}
       </div>
-      <div className="diff-legend">
-        <span className="legend-removed">Removed</span>
-        <span className="legend-added">Added</span>
-      </div>
-      <div className="diff-body">
-        {diff.segments.map((segment, index) => (
-          <span key={index} className={`diff-segment ${segment.kind}`}>
-            {segment.text}{" "}
-          </span>
-        ))}
-      </div>
-      <p className="compare-note">
-        Text differences are highlighted by the app.
-      </p>
     </section>
   );
 }
@@ -453,7 +527,9 @@ export function MinHashDemoPage() {
   const [threshold, setThreshold] = useState(DEFAULT_THRESHOLD);
   const [response, setResponse] = useState<SearchResponse | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [originalContent, setOriginalContent] = useState("");
 
   const presets = useMemo(() => status?.query_presets ?? [], [status]);
 
@@ -469,6 +545,7 @@ export function MinHashDemoPage() {
         setStatus(next);
         const first = next.query_presets[0];
         if (!first) {
+          setLoading(false);
           return;
         }
         setPresetId(first.id);
@@ -479,7 +556,7 @@ export function MinHashDemoPage() {
           const initial = await runMinHashSearch({
             query: first.text,
             threshold: clamp(DEFAULT_THRESHOLD, 0, 1),
-            limit: 10,
+            limit: SEARCH_LIMIT,
           });
           if (!cancelled) {
             setResponse(initial);
@@ -499,6 +576,7 @@ export function MinHashDemoPage() {
       .catch((err: unknown) => {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : String(err));
+          setLoading(false);
         }
       });
     return () => {
@@ -510,20 +588,25 @@ export function MinHashDemoPage() {
   // race the `setContent` state update; the button passes the edited text.
   const runSearch = useCallback(
     async (queryText: string) => {
+      if (!queryText.trim()) {
+        setError("Enter a document before running detection.");
+        return false;
+      }
       setLoading(true);
       setError(null);
       try {
         const next = await runMinHashSearch({
           query: queryText,
           threshold: clamp(threshold, 0, 1),
-          limit: 10,
+          limit: SEARCH_LIMIT,
         });
         setResponse(next);
         setSelectedId(next.results.length > 0 ? next.results[0].doc_id : null);
+        setEditing(false);
+        return true;
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : String(err));
-        setResponse(null);
-        setSelectedId(null);
+        return false;
       } finally {
         setLoading(false);
       }
@@ -534,6 +617,7 @@ export function MinHashDemoPage() {
   // Picking an example runs immediately; hand-edited text stays manual.
   const applyPreset = useCallback(
     (id: string) => {
+      setEditing(false);
       setPresetId(id);
       const preset = presets.find((item) => item.id === id);
       if (preset) {
@@ -546,168 +630,174 @@ export function MinHashDemoPage() {
     [presets, runSearch],
   );
 
-  const reset = useCallback(() => {
-    const preset = presets.find((item) => item.id === presetId);
-    if (preset) {
-      setContent(preset.text);
-    }
-    setThreshold(DEFAULT_THRESHOLD);
-    setResponse(null);
-    setSelectedId(null);
-  }, [presets, presetId]);
-
   const detect = useCallback(() => {
-    void runSearch(content);
+    return runSearch(content);
   }, [runSearch, content]);
 
+  const pendingEdits = editing && content !== originalContent;
+  const currentResponse =
+    !pendingEdits && response?.query.trim() === content.trim()
+      ? response
+      : null;
   const selectedResult = useMemo(
     () =>
-      response?.results.find((result) => result.doc_id === selectedId) ?? null,
-    [response, selectedId],
+      currentResponse?.results.find((result) => result.doc_id === selectedId) ??
+      null,
+    [currentResponse, selectedId],
   );
   const selectedDiff = useMemo(
     () =>
-      response?.diffs.find((diff) => diff.document_id === selectedId) ?? null,
-    [response, selectedId],
-  );
-
-  // Count against the live slider so the toolbar figure matches the badges.
-  const aboveCount = useMemo(
-    () =>
-      (response?.results ?? []).filter(
-        (result) => result.estimated_jaccard >= threshold,
-      ).length,
-    [response, threshold],
+      currentResponse?.diffs.find((diff) => diff.document_id === selectedId) ??
+      null,
+    [currentResponse, selectedId],
   );
 
   return (
     <div className="demo-page">
-      <header className="topbar">
-        <div className="brand">
-          <span className="wordmark">milvus</span>
-          <span className="version-badge">3.0</span>
-        </div>
-        <h1 className="topbar-title">Near-Duplicate Detection with MinHash</h1>
-        <a
-          className="source-link"
-          href="https://github.com/zc277584121/milvus3-demos"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-            <path
-              fill="currentColor"
-              d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"
-            />
-          </svg>
-          <span>Source</span>
-        </a>
-      </header>
-
-      {error && <p className="error-banner">{error}</p>}
-
-      <div className="scroll-main">
-        <section className="phase">
-          <div className="phase-head">
-            <span className="phase-tag offline">OFFLINE</span>
+      <div className="screen">
+        <header className="topbar">
+          <div className="brand">
+            <img className="wordmark" src={milvusWordmark} alt="Milvus" />
+            <span className="version-badge">3.0</span>
           </div>
-
-          <div className="phase-grid">
-            <StepCard
-              index={1}
-              title="Create index"
-              code={MILVUS_CODE.create}
-            />
-            <StepCard index={2} title="Ingest" code={MILVUS_CODE.ingest} />
-          </div>
-        </section>
-
-        <section className="phase">
-          <div className="phase-head">
-            <span className="phase-tag online">ONLINE</span>
-          </div>
-
-          <div className="online-card">
-            <div className="online-head">
-              <span className="step-num">3</span>
-              <span className="step-name">Search</span>
-            </div>
-
-            <pre className="online-code">
-              <code>{highlightPython(MILVUS_CODE.search)}</code>
-            </pre>
-
-            <div className="query-bar">
-              <label className="preset-control">
-                <span className="toolbar-label">Example</span>
-                <select
-                  value={presetId}
-                  onChange={(event) => applyPreset(event.target.value)}
-                >
-                  {presets.map((preset) => (
-                    <option key={preset.id} value={preset.id}>
-                      {preset.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                className="secondary-button"
-                onClick={reset}
-                type="button"
-              >
-                Reset
-              </button>
-              <button
-                className="primary-button"
-                onClick={detect}
-                disabled={loading}
-                type="button"
-              >
-                {loading ? "Detecting…" : "Detect duplicates"}
-              </button>
-              <span className="result-count">
-                {aboveCount} candidate{aboveCount === 1 ? "" : "s"} above
-                threshold
-              </span>
-            </div>
-
-            <div className="workspace">
-              <IncomingPanel
-                content={content}
-                onContentChange={setContent}
-                threshold={threshold}
-                onThresholdChange={setThreshold}
+          <h1>Near-duplicate detection with MinHash</h1>
+          <a
+            className="source-link"
+            href="https://github.com/zc277584121/milvus3-demos"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"
               />
+            </svg>
+            <span>Source</span>
+          </a>
+        </header>
+
+        <main>
+          <section className="video-hero" aria-label="Video walkthrough">
+            <div className="hero-copy">
+              <h2>How MinHash finds duplicates</h2>
+              <p className="hero-note">
+                The video on the right explains the principle behind these
+                results: create index → ingest → search.
+              </p>
+            </div>
+            <Walkthrough />
+          </section>
+
+          <div className="workbench">
+            <div className="workbench-side">
+              <form
+                className="query-panel"
+                aria-label="Document controls"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void detect();
+                }}
+              >
+                <label className="preset-control">
+                  <span>Example case</span>
+                  <select
+                    value={presetId}
+                    disabled={loading || presets.length === 0}
+                    onChange={(event) => applyPreset(event.target.value)}
+                  >
+                    {presets.map((preset) => (
+                      <option key={preset.id} value={preset.id}>
+                        {preset.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="query-controls">
+                  <div className="threshold-control">
+                    <label htmlFor="threshold-slider">
+                      Similarity threshold
+                    </label>
+                    <span aria-hidden="true">{scoreLabel(threshold)}</span>
+                    <input
+                      id="threshold-slider"
+                      aria-valuetext={scoreLabel(threshold)}
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={threshold}
+                      style={
+                        {
+                          "--threshold-position": `${threshold * 100}%`,
+                        } as CSSProperties
+                      }
+                      onChange={(event) =>
+                        setThreshold(Number(event.target.value))
+                      }
+                    />
+                  </div>
+                </div>
+                {error && (
+                  <p className="error-banner" role="alert">
+                    {error}
+                  </p>
+                )}
+              </form>
+
               <CandidatePanel
-                results={response?.results ?? []}
+                results={currentResponse?.results ?? []}
                 selectedId={selectedId}
                 threshold={threshold}
                 onSelect={setSelectedId}
+                pending={pendingEdits}
+                loading={loading}
               />
-              {selectedResult && selectedDiff ? (
-                <DiffView diff={selectedDiff} result={selectedResult} />
-              ) : (
-                <section className="panel compare-panel">
-                  <header className="panel-header">
-                    <h2>Compare with selected</h2>
-                    <span className="panel-subtitle">No document selected</span>
-                  </header>
-                  <p className="empty-note">
-                    Run detection and select a candidate to inspect the text
-                    differences.
-                  </p>
-                </section>
-              )}
             </div>
-          </div>
-        </section>
 
-        <footer className="footer">
-          <p>Review candidates before merging or removing content.</p>
-          <p className="footer-meta">Illustrative scores · Concept data</p>
-        </footer>
+            <DiffView
+              diff={selectedDiff}
+              result={selectedResult}
+              query={content}
+              pending={pendingEdits}
+              editor={{
+                active: editing,
+                loading,
+                value: content,
+                onStart: () => {
+                  setOriginalContent(content);
+                  setEditing(true);
+                  setError(null);
+                },
+                onChange: setContent,
+                onCancel: () => {
+                  setContent(originalContent);
+                  setEditing(false);
+                  setError(null);
+                },
+                onApply: detect,
+              }}
+            />
+          </div>
+        </main>
       </div>
+
+      <section className="steps" aria-label="Milvus calls behind this demo">
+        <h2>What runs behind the page</h2>
+        <ol className="step-list">
+          {STEPS.map((step) => (
+            <li className="step" key={step.title}>
+              <header className="step-head">
+                <span className="step-number">{step.n}</span>
+                <span className="step-title">{step.title}</span>
+              </header>
+              <pre className="step-code">
+                <code>{highlightPython(step.code)}</code>
+              </pre>
+            </li>
+          ))}
+        </ol>
+      </section>
     </div>
   );
 }

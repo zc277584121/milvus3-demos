@@ -15,3 +15,5 @@ test-results/
 .memsearch/
 .docker-config/
 /package-lock.json
+# Walkthrough videos are baked into the image at build time, not tracked.
+demos/minhash-near-duplicate/web/src/assets/*.mp4

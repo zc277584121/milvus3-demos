@@ -28,7 +28,7 @@ spec:
         fsGroup: 10001
       containers:
       - name: minhash-near-duplicate
-        image: harbor-us1.zilliz.cc/uso/milvus3-demos-minhash-near-duplicate:v0.2.0
+        image: harbor-us1.zilliz.cc/uso/milvus3-demos-minhash-near-duplicate:v0.1.0
         imagePullPolicy: IfNotPresent
         env:
         - name: MILVUS_URI
