@@ -46,8 +46,9 @@ spec:
             path: /healthz/ready
             port: http
           # Cold start creates the MinHash schema + MINHASH_LSH index and
-          # inserts 36 short documents; no model inference, so this is fast.
-          initialDelaySeconds: 30
+          # inserts 36 short documents; there is no model inference, so this
+          # is fast compared with the sibling demos.
+          initialDelaySeconds: 20
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
@@ -55,7 +56,7 @@ spec:
           httpGet:
             path: /healthz/live
             port: http
-          initialDelaySeconds: 60
+          initialDelaySeconds: 45
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
@@ -77,10 +78,68 @@ spec:
           mountPath: /workspace/artifacts/runtime/minhash-near-duplicate
         - name: tmp
           mountPath: /tmp
+      # Terminates the /minhash-near-duplicate prefix before it reaches the app,
+      # which only serves "/". Mirrors the sibling demo packages.
+      - name: path-proxy
+        image: harbor-us1.zilliz.cc/uso/milvus-es-live:hello-nginx-v1@sha256:28d91bdce70ad09025ea901458fdd149259d8e05982ade79d4ef2c0d9470eb48
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: proxy
+          containerPort: 8080
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: proxy
+          initialDelaySeconds: 2
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: proxy
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: proxy-config
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: default.conf
+          readOnly: true
+        - name: proxy-cache
+          mountPath: /var/cache/nginx
+        - name: proxy-run
+          mountPath: /var/run
+        - name: proxy-tmp
+          mountPath: /tmp
       volumes:
       - name: runtime
         emptyDir: {}
       - name: tmp
+        emptyDir: {}
+      - name: proxy-config
+        configMap:
+          name: minhash-near-duplicate-proxy
+      - name: proxy-cache
+        emptyDir: {}
+      - name: proxy-run
+        emptyDir: {}
+      - name: proxy-tmp
         emptyDir: {}
 ---
 apiVersion: v1
@@ -98,5 +157,6 @@ spec:
   ports:
   - name: http
     port: 48050
-    targetPort: http
+    # Traffic lands on the prefix-stripping sidecar, not the app container.
+    targetPort: proxy
     protocol: TCP

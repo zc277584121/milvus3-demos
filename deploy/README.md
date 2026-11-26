@@ -60,6 +60,12 @@ These are generous for the tiny demo datasets; SRE may tune them down.
    built/run with `VITE_BASE_PATH` / `APP_ROOT_PATH` set to the same value.
    The images bake the model weights, so no model NFS mount is required.
 
+5. **Sub-path proxy**: each package carries a `proxy.conf` and a `path-proxy`
+   sidecar. The Ingress routes `<path>` to the Service, the Service targets the
+   sidecar, and nginx strips the prefix before forwarding to the app on
+   localhost. The app itself only ever serves `/`, which is why a direct request
+   to `<path>/` against the container returns 404 without the sidecar.
+
 ## Public exposure
 
 The Ingresses use `group.name: milvus-io` and `scheme: internet-facing`
